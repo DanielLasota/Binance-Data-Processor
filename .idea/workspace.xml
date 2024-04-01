@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="first code lines commit">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="archiver saves raw data">
+      <change afterPath="$PROJECT_DIR$/orderbook/market_enum.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook/orderbook_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/orderbook/orderbook_level_2_daemon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/orderbook/orderbook_level_2_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/orderbook/orderbook_level_2_daemon.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,29 +18,29 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 6
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
   <component name="ProjectId" id="2eRrq11sffy8XpxcYJ7sUvwd3Kv" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.main.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="Binance Archiver" />
@@ -80,7 +81,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1711878419282</updated>
-      <workItem from="1711878427604" duration="17623000" />
+      <workItem from="1711878427604" duration="20395000" />
+      <workItem from="1711965356935" duration="4047000" />
     </task>
     <task id="LOCAL-00001" summary="init commit">
       <option name="closed" value="true" />
@@ -98,7 +100,15 @@
       <option name="project" value="LOCAL" />
       <updated>1711881123178</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="archiver saves raw data">
+      <option name="closed" value="true" />
+      <created>1711924345199</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1711924345200</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -107,9 +117,10 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="init commit" />
     <MESSAGE value="first code lines commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="first code lines commit" />
+    <MESSAGE value="archiver saves raw data" />
+    <option name="LAST_COMMIT_MESSAGE" value="archiver saves raw data" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1711923885446" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1711969968816" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

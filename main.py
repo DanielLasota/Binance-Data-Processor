@@ -1,10 +1,13 @@
 import time
 
 from orderbook.orderbook_level_2_daemon import OrderbookDaemon
-
+from orderbook.market_enum import Market
 
 manager = OrderbookDaemon()
-manager.run('BTCUSDT')
+manager.run(
+    instrument='BTCUSDT',
+    market=Market.USD_M_FUTURES
+)
 
 try:
     while True:
