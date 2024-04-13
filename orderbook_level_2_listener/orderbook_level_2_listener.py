@@ -21,20 +21,17 @@ class Level2OrderbookDaemon(Observer):
         self.last_file_change_time = datetime.now()
         self.file_name = ""
 
-    @staticmethod
-    def get_url(market: Market, pair: str):
+    def get_url(
+            self,
+            market: Market,
+            pair: str
+    ) -> Optional[str]:
         pair_lower = pair.lower()
-
-        url = None
-        match market:
-            case Market.SPOT:
-                url = f'wss://stream.binance.com:9443/ws/{pair_lower}@depth@100ms'
-            case Market.USD_M_FUTURES:
-                url = f'wss://fstream.binance.com/stream?streams={pair_lower}@depth@100ms'
-            case Market.COIN_M_FUTURES:
-                url = f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth.'
-
-        return url
+        return {
+            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair_lower}@depth@100ms',
+            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair_lower}@depth@100ms',
+            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth.'
+        }.get(market, None)
 
     @staticmethod
     def get_file_name(instrument: str, market: Market) -> str:
@@ -81,7 +78,7 @@ class Level2OrderbookDaemon(Observer):
                                 (datetime.now() - self.last_file_change_time).total_seconds() >=
                                 single_file_listen_duration_in_seconds
                         ):
-                            self.launch_zip_daemon(self.file_name)
+                            self.launch_zip_daemon(self.file_name, dump_path)
                             self.file_name = self.get_file_name(instrument, market)
                             self.last_file_change_time = datetime.now()
 
@@ -98,8 +95,12 @@ class Level2OrderbookDaemon(Observer):
                 print(f"Unexpected error: {e}. Attempting to restart listener...")
                 time.sleep(1)
 
-    def launch_zip_daemon(self, file_name):
-        zip_thread = threading.Thread(target=self._zip_daemon, args=(file_name,))
+    def launch_zip_daemon(
+            self,
+            file_name: str,
+            dump_path: str = None
+    ) -> None:
+        zip_thread = threading.Thread(target=self._zip_daemon, args=(file_name, dump_path, ))
         zip_thread.daemon = True
         zip_thread.start()
 
