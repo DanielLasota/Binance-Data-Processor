@@ -32,8 +32,8 @@ class DaemonManager:
 
     def stop_daemons(self):
         for daemon in self.daemons:
-            print('')
             # daemon.close_all()
+            pass
         print("Stopped all daemons.")
 
     def run(self):

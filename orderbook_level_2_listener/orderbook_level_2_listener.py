@@ -21,8 +21,8 @@ class Level2OrderbookDaemon(Observer):
         self.last_file_change_time = datetime.now()
         self.file_name = ""
 
+    @staticmethod
     def get_url(
-            self,
             market: Market,
             pair: str
     ) -> Optional[str]:
@@ -57,15 +57,12 @@ class Level2OrderbookDaemon(Observer):
             instrument: str,
             market: Market,
             single_file_listen_duration_in_seconds: int,
-            dump_path: str = None
+            dump_path: str = ''
     ) -> None:
         while True:
             try:
                 url = self.get_url(market, instrument)
                 self.file_name = self.get_file_name(instrument, market)
-
-                if dump_path is not None:
-                    dump_path = f'{dump_path}/'
 
                 async with connect(url) as websocket:
                     while True:
@@ -107,11 +104,8 @@ class Level2OrderbookDaemon(Observer):
     @staticmethod
     def _zip_daemon(
             file_name: str,
-            dump_path: str = None,
+            dump_path: str = '',
     ) -> None:
-
-        if dump_path is not None:
-            dump_path = f'{dump_path}/'
 
         zip_file_name = file_name.replace('.csv', '.csv.zip')
         with zipfile.ZipFile(f'{dump_path}{zip_file_name}', 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
