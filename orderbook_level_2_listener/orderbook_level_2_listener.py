@@ -7,19 +7,25 @@ from datetime import datetime
 from typing import Optional, Any
 import aiofiles
 from websockets import connect, WebSocketException
-
+from azure.storage.blob import BlobServiceClient
 from abstract_base_classes.observer import Observer
 from .market_enum import Market
 
 
 class Level2OrderbookDaemon(Observer):
-    def __init__(self) -> None:
+    def __init__(
+            self,
+            azure_blob_parameters_with_key: str,
+            container_name: str
+    ) -> None:
         super().__init__()
         self.lock: threading.Lock = threading.Lock()
         self.orderbook_message: Optional[dict] = None
         self.formatted_target_orderbook: Optional[Any] = None
         self.last_file_change_time = datetime.now()
         self.file_name = ""
+        self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
+        self.container_name = container_name
 
     @staticmethod
     def get_url(
@@ -49,7 +55,7 @@ class Level2OrderbookDaemon(Observer):
             case Market.COIN_M_FUTURES:
                 market_short_name = 'futures_coin_m'
 
-        file_name = f'level_2_lob_raw_delta_broadcast_{formatted_now_timestamp}_{market_short_name}_{pair_lower}.csv'
+        file_name = f'L2lob_raw_delta_broadcast_{formatted_now_timestamp}_{market_short_name}_{pair_lower}.csv'
         return file_name
 
     async def async_listener(
@@ -101,16 +107,26 @@ class Level2OrderbookDaemon(Observer):
         zip_thread.daemon = True
         zip_thread.start()
 
-    @staticmethod
     def _zip_daemon(
+            self,
             file_name: str,
             dump_path: str = '',
     ) -> None:
 
         zip_file_name = file_name.replace('.csv', '.csv.zip')
-        with zipfile.ZipFile(f'{dump_path}{zip_file_name}', 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+        zip_path = f'{dump_path}{zip_file_name}'
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
             zipf.write(f'{dump_path}{file_name}', arcname=file_name.split('/')[-1])
         os.remove(f'{dump_path}{file_name}')
+        self.upload_file_to_blob(zip_path, zip_file_name)
+
+    def upload_file_to_blob(self, file_path: str, blob_name: str):
+        blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=blob_name)
+        with open(file_path, "rb") as data:
+            blob_client.upload_blob(data, overwrite=True)
+        os.remove(file_path)
+
+        # print(f"Uploaded {blob_name} to blob storage.")
 
     def listener(
             self,

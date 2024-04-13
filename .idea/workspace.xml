@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="zip dump_path fix">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="is not none update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
@@ -88,7 +88,7 @@
       <workItem from="1712350677388" duration="4201000" />
       <workItem from="1712490379972" duration="597000" />
       <workItem from="1712554291194" duration="15000" />
-      <workItem from="1712958044344" duration="13958000" />
+      <workItem from="1712958044344" duration="15698000" />
     </task>
     <task id="LOCAL-00001" summary="init commit">
       <option name="closed" value="true" />
@@ -154,7 +154,15 @@
       <option name="project" value="LOCAL" />
       <updated>1713010623605</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="is not none update">
+      <option name="closed" value="true" />
+      <created>1713015343492</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1713015343493</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -169,9 +177,10 @@
     <MESSAGE value="add multi instrument daemon + json huge update" />
     <MESSAGE value="dump path add" />
     <MESSAGE value="zip dump_path fix" />
-    <option name="LAST_COMMIT_MESSAGE" value="zip dump_path fix" />
+    <MESSAGE value="is not none update" />
+    <option name="LAST_COMMIT_MESSAGE" value="is not none update" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713015189842" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713017008249" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
