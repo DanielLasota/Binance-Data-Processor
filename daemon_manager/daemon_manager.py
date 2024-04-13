@@ -5,8 +5,13 @@ from orderbook_level_2_listener.market_enum import Market
 
 
 class DaemonManager:
-    def __init__(self, config_path):
+    def __init__(
+            self,
+            config_path: str,
+            dump_path: str = None
+    ) -> None:
         self.config_path = config_path
+        self.dump_path = dump_path
         self.daemons = []
 
     def load_config(self):
@@ -20,7 +25,8 @@ class DaemonManager:
             daemon.run(
                 instrument=entry['instrument'],
                 market=Market[entry['market']],
-                single_file_listen_duration_in_seconds=entry['listen_duration']
+                single_file_listen_duration_in_seconds=entry['listen_duration'],
+                dump_path=self.dump_path
             )
             self.daemons.append(daemon)
 

@@ -59,12 +59,16 @@ class Level2OrderbookDaemon(Observer):
             self,
             instrument: str,
             market: Market,
-            single_file_listen_duration_in_seconds: int
+            single_file_listen_duration_in_seconds: int,
+            dump_path: str = None
     ) -> None:
         while True:
             try:
                 url = self.get_url(market, instrument)
                 self.file_name = self.get_file_name(instrument, market)
+
+                if dump_path is not None:
+                    dump_path = f'{dump_path}/'
 
                 async with connect(url) as websocket:
                     while True:
@@ -77,13 +81,12 @@ class Level2OrderbookDaemon(Observer):
                                 (datetime.now() - self.last_file_change_time).total_seconds() >=
                                 single_file_listen_duration_in_seconds
                         ):
-                            print('')
                             self.launch_zip_daemon(self.file_name)
                             self.file_name = self.get_file_name(instrument, market)
                             self.last_file_change_time = datetime.now()
 
                         async with aiofiles.open(
-                                file=self.file_name,
+                                file=f'{dump_path}{self.file_name}',
                                 mode='a'
                         ) as f:
                             await f.write(f'{data}\n')
@@ -101,17 +104,25 @@ class Level2OrderbookDaemon(Observer):
         zip_thread.start()
 
     @staticmethod
-    def _zip_daemon(file_name):
+    def _zip_daemon(
+            file_name: str,
+            dump_path: str = None,
+    ) -> None:
+
+        if dump_path is not None:
+            dump_path = f'{dump_path}/'
+
         zip_file_name = file_name.replace('.csv', '.csv.zip')
-        with zipfile.ZipFile(zip_file_name, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-            zipf.write(file_name, arcname=file_name.split('/')[-1])
-        os.remove(file_name)
+        with zipfile.ZipFile(f'{dump_path}{zip_file_name}', 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+            zipf.write(f'{dump_path}{file_name}', arcname=file_name.split('/')[-1])
+        os.remove(f'{dump_path}{file_name}')
 
     def listener(
             self,
             instrument: str,
             market: Market,
-            single_file_listen_duration_in_seconds: int
+            single_file_listen_duration_in_seconds: int,
+            dump_path: str = None
     ) -> None:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -120,7 +131,8 @@ class Level2OrderbookDaemon(Observer):
             self.async_listener(
                 instrument,
                 market,
-                single_file_listen_duration_in_seconds=single_file_listen_duration_in_seconds
+                single_file_listen_duration_in_seconds=single_file_listen_duration_in_seconds,
+                dump_path=dump_path
             )
         )
         loop.close()
@@ -129,11 +141,12 @@ class Level2OrderbookDaemon(Observer):
             self,
             instrument: str,
             market: Market,
-            single_file_listen_duration_in_seconds: int
+            single_file_listen_duration_in_seconds: int,
+            dump_path: str = None
     ) -> None:
         thread: threading.Thread = threading.Thread(
             target=self.listener,
-            args=(instrument, market, single_file_listen_duration_in_seconds)
+            args=(instrument, market, single_file_listen_duration_in_seconds, dump_path)
         )
         thread.daemon = True
         thread.start()
