@@ -23,6 +23,10 @@ class DaemonManager:
             return json.load(file)
 
     def start_daemons(self):
+
+        if not os.path.exists(self.dump_path):
+            os.makedirs(self.dump_path)
+
         load_dotenv(self.env_path)
 
         config = self.load_config()
@@ -41,9 +45,9 @@ class DaemonManager:
 
     def stop_daemons(self):
         for daemon in self.daemons:
-            # daemon.close_all()
+            # daemon.close_all() # under implementation
             pass
-        print("Stopped all daemons.")
+        print("Stopped all daemons")
 
     def run(self):
         self.start_daemons()

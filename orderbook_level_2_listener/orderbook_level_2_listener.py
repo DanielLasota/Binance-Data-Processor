@@ -114,10 +114,15 @@ class Level2OrderbookDaemon(Observer):
     ) -> None:
 
         zip_file_name = file_name.replace('.csv', '.csv.zip')
+
         zip_path = f'{dump_path}{zip_file_name}'
+        csv_path = f'{dump_path}{file_name}'
+
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-            zipf.write(f'{dump_path}{file_name}', arcname=file_name.split('/')[-1])
-        os.remove(f'{dump_path}{file_name}')
+            zipf.write(csv_path, arcname=file_name.split('/')[-1])
+
+        os.remove(csv_path)
+
         self.upload_file_to_blob(zip_path, zip_file_name)
 
     def upload_file_to_blob(self, file_path: str, blob_name: str):
