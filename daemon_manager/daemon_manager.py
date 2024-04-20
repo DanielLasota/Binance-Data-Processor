@@ -24,7 +24,7 @@ class DaemonManager:
 
     def start_daemons(self):
 
-        if not os.path.exists(self.dump_path):
+        if not os.path.exists(self.dump_path) or self.dump_path == '':
             os.makedirs(self.dump_path)
 
         load_dotenv(self.env_path)
