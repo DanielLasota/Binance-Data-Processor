@@ -1,0 +1,4 @@
+aiofiles
+websockets
+azure-storage-blob
+python-dotenv
