@@ -6,6 +6,6 @@ RUN apt update && \
 
 WORKDIR /app
 COPY . /app
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "./my_app.py"]
+CMD ["python", "main.py"]
