@@ -5,7 +5,4 @@ services:
       context: .
       dockerfile: dockerfile
 
-    env_file:
-      /.env
     restart: unless-stopped
-

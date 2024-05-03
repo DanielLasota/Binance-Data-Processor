@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 class DaemonManager:
     def __init__(
             self,
-            config_path: str,
-            env_path: str,
+            config_path: str = 'config.json',
+            env_path: str = '.env',
             dump_path: str = ''
     ) -> None:
         self.config_path = config_path

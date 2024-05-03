@@ -28,14 +28,27 @@ class Level2OrderbookDaemon(Observer):
         self.container_name = container_name
 
     @staticmethod
-    def get_url(
+    def get_snapshot_url(
+            market: Market,
+            pair: str,
+            limit: int = 1000
+
+    ) -> Optional[str]:
+        return {
+            Market.SPOT: f'https://api.binance.com/api/v3/depth?symbol={pair.lower()}&limit={limit}',
+            Market.USD_M_FUTURES: f'https://fapi.binance.com/fapi/v1/depth?symbol={pair.lower()}&limit={limit}',
+            Market.COIN_M_FUTURES: f'https://dapi.binance.com/dapi/v1/depth?symbol=BTCUSD_200925&limit={limit}'
+        }.get(market, None)
+
+    @staticmethod
+    def get_stream_url(
             market: Market,
             pair: str
     ) -> Optional[str]:
-        pair_lower = pair.lower()
+
         return {
-            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair_lower}@depth@100ms',
-            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair_lower}@depth@100ms',
+            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@depth@100ms',
+            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@depth@100ms',
             Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth.'
         }.get(market, None)
 
@@ -67,7 +80,7 @@ class Level2OrderbookDaemon(Observer):
     ) -> None:
         while True:
             try:
-                url = self.get_url(market, instrument)
+                url = self.get_stream_url(market, instrument)
                 self.file_name = self.get_file_name(instrument, market)
 
                 async with connect(url) as websocket:
