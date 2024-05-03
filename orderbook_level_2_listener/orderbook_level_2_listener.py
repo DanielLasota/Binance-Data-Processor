@@ -12,7 +12,7 @@ from abstract_base_classes.observer import Observer
 from .market_enum import Market
 
 
-class Level2OrderbookDaemon(Observer):
+class Level2OrderbookDaemon:
     def __init__(
             self,
             azure_blob_parameters_with_key: str,
