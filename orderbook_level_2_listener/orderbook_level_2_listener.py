@@ -13,12 +13,17 @@ from .market_enum import Market
 import requests
 from queue import Queue
 
+
 class OrderbookDaemon:
     def __init__(
             self,
             azure_blob_parameters_with_key: str,
-            container_name: str
+            container_name: str,
+            should_csv_be_removed_after_zip: bool = True,
+            should_zip_be_removed_after_upload: bool = True
     ) -> None:
+        self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
+        self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
         self.lock: threading.Lock = threading.Lock()
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
@@ -34,7 +39,7 @@ class OrderbookDaemon:
     ) -> None:
         thread: threading.Thread = threading.Thread(
             target=self.listener,
-            args=(instrument, market, single_file_listen_duration_in_seconds, dump_path)
+            args=(instrument, market)
         )
         thread.daemon = True
         thread.start()
@@ -49,9 +54,7 @@ class OrderbookDaemon:
     def listener(
             self,
             instrument: str,
-            market: Market,
-            single_file_listen_duration_in_seconds: int,
-            dump_path: str = None
+            market: Market
     ) -> None:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -101,13 +104,14 @@ class OrderbookDaemon:
                     while not self.message_queue.empty():
                         data = self.message_queue.get()
                         f.write(f'{data},\n')
+
                 self.launch_zip_daemon(stream_file_name, dump_path)
 
     def launch_snapshot_fetcher(
             self,
-            snapshot_url,
-            file_name,
-            dump_path
+            snapshot_url: str,
+            file_name: str,
+            dump_path: str,
     ):
         snapshot_thread = threading.Thread(
             target=self._snapshot_fetcher,
@@ -147,14 +151,14 @@ class OrderbookDaemon:
             file_name: str,
             dump_path: str = None
     ) -> None:
-        zip_thread = threading.Thread(target=self._zip_daemon, args=(file_name, dump_path, ))
+        zip_thread = threading.Thread(target=self._zip_daemon, args=(file_name, dump_path))
         zip_thread.daemon = True
         zip_thread.start()
 
     def _zip_daemon(
             self,
             file_name: str,
-            dump_path: str = '',
+            dump_path: str = ''
     ) -> None:
 
         zip_file_name = file_name + '.zip'
@@ -164,7 +168,8 @@ class OrderbookDaemon:
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
             zipf.write(csv_path, arcname=file_name.split('/')[-1])
 
-        os.remove(csv_path)
+        if self.should_csv_be_removed_after_zip:
+            os.remove(csv_path)
 
         self.upload_file_to_blob(zip_path, zip_file_name)
 
@@ -172,7 +177,9 @@ class OrderbookDaemon:
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=blob_name)
         with open(file_path, "rb") as data:
             blob_client.upload_blob(data, overwrite=True)
-        # os.remove(file_path)
+
+        if self.should_zip_be_removed_after_upload:
+            os.remove(file_path)
 
         # print(f"Uploaded {blob_name} to blob storage.")
 

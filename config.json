@@ -3,7 +3,7 @@
     {
       "instrument": "BTCUSDT",
       "market": "SPOT",
-      "listen_duration": 30
+      "listen_duration": 600
     }
   ]
 }
