@@ -13,15 +13,13 @@ from .market_enum import Market
 import requests
 
 
-class Level2OrderbookDaemon:
+class OrderbookDaemon:
     def __init__(
             self,
             azure_blob_parameters_with_key: str,
             container_name: str
     ) -> None:
         self.lock: threading.Lock = threading.Lock()
-        self.orderbook_message: Optional[dict] = None
-        self.formatted_target_orderbook: Optional[Any] = None
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
         self.container_name = container_name
@@ -52,7 +50,7 @@ class Level2OrderbookDaemon:
         asyncio.set_event_loop(loop)
 
         loop.run_until_complete(
-            self.async_listener(
+            self._listener(
                 instrument,
                 market,
                 single_file_listen_duration_in_seconds=single_file_listen_duration_in_seconds,
@@ -61,7 +59,7 @@ class Level2OrderbookDaemon:
         )
         loop.close()
 
-    async def async_listener(
+    async def _listener(
             self,
             instrument: str,
             market: Market,
@@ -71,15 +69,15 @@ class Level2OrderbookDaemon:
         while True:
             try:
                 url = self.get_stream_url(market, instrument)
-                _file_name = self.get_file_name(instrument, market)
+                _file_name = self.get_file_name(instrument, market, '.json')
 
                 snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=5000)
 
                 self.launch_snapshot_fetcher(snapshot_url, _file_name, dump_path)
 
                 async with connect(url) as websocket:
+                    print(url)
                     while True:
-
                         data = await websocket.recv()
                         with self.lock:
                             self.orderbook_message = data
@@ -90,16 +88,15 @@ class Level2OrderbookDaemon:
                                 (datetime.now() - self.last_file_change_time).total_seconds() >=
                                 single_file_listen_duration_in_seconds
                         ):
-
                             self.launch_zip_daemon(_file_name, dump_path)
-                            _file_name = self.get_file_name(instrument, market)
+                            _file_name = self.get_file_name(instrument, market, '.csv')
                             self.last_file_change_time = datetime.now()
 
                         async with aiofiles.open(
                                 file=f'{dump_path}{_file_name}',
                                 mode='a'
                         ) as f:
-                            await f.write(f'{data}\n')
+                            await f.write(f'{data},\n')
 
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
@@ -107,49 +104,6 @@ class Level2OrderbookDaemon:
             except Exception as e:
                 print(f"Unexpected error: {e}. Attempting to restart listener...")
                 time.sleep(1)
-
-    @staticmethod
-    def get_snapshot_url(
-            market: Market,
-            pair: str,
-            limit: int = 1000
-
-    ) -> Optional[str]:
-        return {
-            Market.SPOT: f'https://api.binance.com/api/v3/depth?symbol={pair}&limit={limit}',
-            Market.USD_M_FUTURES: f'https://fapi.binance.com/fapi/v1/depth?symbol={pair}&limit={limit}',
-            Market.COIN_M_FUTURES: f'https://dapi.binance.com/dapi/v1/depth?symbol=BTCUSD_200925&limit={limit}'
-        }.get(market, None)
-
-    @staticmethod
-    def get_stream_url(market, pair):
-        return {
-            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@depth@100ms',
-            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@depth@100ms',
-            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth.'
-        }.get(market, None)
-
-    @staticmethod
-    def get_file_name(
-            instrument: str,
-            market: Market
-    ) -> str:
-        pair_lower = instrument.lower()
-        now = datetime.now()
-        formatted_now_timestamp = now.strftime('%d-%m-%YT%H-%M-%S')
-
-        market_short_name = None
-
-        match market:
-            case Market.SPOT:
-                market_short_name = 'spot'
-            case Market.USD_M_FUTURES:
-                market_short_name = 'futures_usd_m'
-            case Market.COIN_M_FUTURES:
-                market_short_name = 'futures_coin_m'
-
-        file_name = f'L2lob_raw_delta_broadcast_{formatted_now_timestamp}_{market_short_name}_{pair_lower}.csv'
-        return file_name
 
     def launch_snapshot_fetcher(
             self,
@@ -225,3 +179,46 @@ class Level2OrderbookDaemon:
         # os.remove(file_path)
 
         # print(f"Uploaded {blob_name} to blob storage.")
+
+    @staticmethod
+    def get_snapshot_url(
+            market: Market,
+            pair: str,
+            limit: int = 1000
+    ) -> Optional[str]:
+        return {
+            Market.SPOT: f'https://api.binance.com/api/v3/depth?symbol={pair}&limit={limit}',
+            Market.USD_M_FUTURES: f'https://fapi.binance.com/fapi/v1/depth?symbol={pair}&limit={limit}',
+            Market.COIN_M_FUTURES: f'https://dapi.binance.com/dapi/v1/depth?symbol=BTCUSD_200925&limit={limit}'
+        }.get(market, None)
+
+    @staticmethod
+    def get_stream_url(market, pair):
+        return {
+            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@depth@100ms',
+            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@depth@100ms',
+            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth.'
+        }.get(market, None)
+
+    @staticmethod
+    def get_file_name(
+            instrument: str,
+            market: Market,
+            extension
+    ) -> str:
+        pair_lower = instrument.lower()
+        now = datetime.now()
+        formatted_now_timestamp = now.strftime('%d-%m-%YT%H-%M-%S')
+
+        market_short_name = None
+
+        match market:
+            case Market.SPOT:
+                market_short_name = 'spot'
+            case Market.USD_M_FUTURES:
+                market_short_name = 'futures_usd_m'
+            case Market.COIN_M_FUTURES:
+                market_short_name = 'futures_coin_m'
+
+        file_name = f'L2lob_raw_delta_broadcast_{formatted_now_timestamp}_{market_short_name}_{pair_lower}{extension}'
+        return file_name

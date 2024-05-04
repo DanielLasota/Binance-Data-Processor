@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from orderbook_level_2_listener.orderbook_level_2_listener import Level2OrderbookDaemon
+from orderbook_level_2_listener.orderbook_level_2_listener import OrderbookDaemon
 from orderbook_level_2_listener.market_enum import Market
 from dotenv import load_dotenv
 
@@ -31,7 +31,7 @@ class DaemonManager:
 
         config = self.load_config()
         for entry in config['daemons']:
-            daemon = Level2OrderbookDaemon(
+            daemon = OrderbookDaemon(
                 azure_blob_parameters_with_key=os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY'),
                 container_name=os.environ.get('CONTAINER_NAME')
             )
