@@ -11,7 +11,7 @@ from websockets import connect, WebSocketException
 from azure.storage.blob import BlobServiceClient
 from .market_enum import Market
 import requests
-
+from queue import Queue
 
 class OrderbookDaemon:
     def __init__(
@@ -23,6 +23,7 @@ class OrderbookDaemon:
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
         self.container_name = container_name
+        self.message_queue = Queue()
 
     def run(
             self,
@@ -38,6 +39,13 @@ class OrderbookDaemon:
         thread.daemon = True
         thread.start()
 
+        file_thread: threading.Thread = threading.Thread(
+            target=self.file_writer,
+            args=(market, instrument, single_file_listen_duration_in_seconds, dump_path)
+        )
+        file_thread.daemon = True
+        file_thread.start()
+
     def listener(
             self,
             instrument: str,
@@ -46,64 +54,54 @@ class OrderbookDaemon:
             dump_path: str = None
     ) -> None:
         loop = asyncio.new_event_loop()
-
         asyncio.set_event_loop(loop)
-
         loop.run_until_complete(
-            self._listener(
-                instrument,
-                market,
-                single_file_listen_duration_in_seconds=single_file_listen_duration_in_seconds,
-                dump_path=dump_path
-            )
+            self._listener(instrument, market)
         )
         loop.close()
 
     async def _listener(
             self,
             instrument: str,
-            market: Market,
-            single_file_listen_duration_in_seconds: int,
-            dump_path: str = ''
+            market: Market
     ) -> None:
         while True:
             try:
                 url = self.get_stream_url(market, instrument)
-                _file_name = self.get_file_name(instrument, market, '.json')
-
-                snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=5000)
-
-                self.launch_snapshot_fetcher(snapshot_url, _file_name, dump_path)
-
                 async with connect(url) as websocket:
-                    print(url)
                     while True:
                         data = await websocket.recv()
                         with self.lock:
-                            self.orderbook_message = data
-
+                            self.message_queue.put(data)
                         print(data)
-
-                        if (
-                                (datetime.now() - self.last_file_change_time).total_seconds() >=
-                                single_file_listen_duration_in_seconds
-                        ):
-                            self.launch_zip_daemon(_file_name, dump_path)
-                            _file_name = self.get_file_name(instrument, market, '.csv')
-                            self.last_file_change_time = datetime.now()
-
-                        async with aiofiles.open(
-                                file=f'{dump_path}{_file_name}',
-                                mode='a'
-                        ) as f:
-                            await f.write(f'{data},\n')
-
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
                 time.sleep(1)
             except Exception as e:
                 print(f"Unexpected error: {e}. Attempting to restart listener...")
                 time.sleep(1)
+
+    def file_writer(
+            self,
+            market: Market,
+            instrument: str,
+            single_file_listen_duration_in_seconds: int,
+            dump_path: str
+    ) -> None:
+        while True:
+            if not self.message_queue.empty():
+                snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=5000)
+                snapshot_file_name = self.get_file_name(instrument, market, '.json')
+
+                stream_file_name = self.get_file_name('instrument', market, '.csv')
+                self.launch_snapshot_fetcher(snapshot_url, snapshot_file_name, dump_path)
+
+                time.sleep(single_file_listen_duration_in_seconds)
+                with open(f'{dump_path}{stream_file_name}', 'a') as f:
+                    while not self.message_queue.empty():
+                        data = self.message_queue.get()
+                        f.write(f'{data},\n')
+                self.launch_zip_daemon(stream_file_name, dump_path)
 
     def launch_snapshot_fetcher(
             self,
@@ -140,8 +138,6 @@ class OrderbookDaemon:
             full_path = os.path.join(dump_path, file_name)
             with open(full_path, 'w') as f:
                 json.dump(data, f, indent=4)
-            print(f"Data saved successfully to {full_path}")
-            print(data['lastUpdateId'])
             self.launch_zip_daemon(file_name, dump_path)
         else:
             raise Exception(f"Failed to get data: {response.status_code} response")
