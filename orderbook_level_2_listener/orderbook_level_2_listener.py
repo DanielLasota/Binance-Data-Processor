@@ -127,7 +127,7 @@ class OrderbookDaemon:
                         data = await websocket.recv()
                         with self.lock:
                             self.orderbook_stream_message_queue.put(data)
-                        print(data)
+                        # print(data)
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
                 time.sleep(1)
@@ -145,7 +145,7 @@ class OrderbookDaemon:
         while True:
             if not self.transaction_stream_message_queue.empty():
                 stream_file_name = (
-                    self.get_file_name('instrument', market,'transaction_stream', 'json'))
+                    self.get_file_name(instrument, market,'transaction_stream', 'json'))
 
                 time.sleep(single_file_listen_duration_in_seconds)
 
@@ -182,7 +182,7 @@ class OrderbookDaemon:
                     self.get_file_name(instrument, market, 'orderbook_snapshot', 'json'))
 
                 stream_file_name = (
-                    self.get_file_name('instrument', market, 'orderbook_stream', 'json'))
+                    self.get_file_name(instrument, market, 'orderbook_stream', 'json'))
                 self.launch_snapshot_fetcher(snapshot_url, snapshot_file_name, dump_path)
 
                 time.sleep(single_file_listen_duration_in_seconds)
@@ -250,13 +250,18 @@ class OrderbookDaemon:
 
         zip_file_name = file_name + '.zip'
         zip_path = f'{dump_path}{zip_file_name}'
-        csv_path = f'{dump_path}{file_name}'
+        file_path = f'{dump_path}{file_name}'
 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-            zipf.write(csv_path, arcname=file_name.split('/')[-1])
+            zipf.write(file_path, arcname=file_name.split('/')[-1])
 
         if self.should_csv_be_removed_after_zip:
-            os.remove(csv_path)
+            os.remove(file_path)
+
+            # try:
+            #     os.remove(file_path)
+            # except Exception as e:
+            #     print(e)
 
         if self.should_zip_be_sent:
             self.upload_file_to_blob(zip_path, zip_file_name)
@@ -268,8 +273,6 @@ class OrderbookDaemon:
 
         if self.should_zip_be_removed_after_upload:
             os.remove(file_path)
-
-        # print(f"Uploaded {blob_name} to blob storage.")
 
     @staticmethod
     def get_snapshot_url(

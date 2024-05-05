@@ -7,7 +7,7 @@ if __name__ == "__main__":
         dump_path='',
         should_csv_be_removed_after_zip=True,
         should_zip_be_removed_after_upload=False,
-        should_zip_be_sent=True
+        should_zip_be_sent=False
     )
 
     manager.run()

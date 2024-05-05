@@ -1,9 +1,9 @@
 {
   "daemons": {
     "markets": {
-      "spot": ["ETHUSDT"],
-      "usd_m_futures": ["ETHUSDT"],
-      "coin_m_futures": ["BTCUSD_PERP"]
+      "spot": ["BTCUSDT", "ETHUSDT", "LTCUSDT"],
+      "usd_m_futures": ["BTCUSDT", "ETHUSDT", "LTCUSDT"],
+      "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "LTCUSD_PERP"]
     },
     "listen_duration": 60
   }
