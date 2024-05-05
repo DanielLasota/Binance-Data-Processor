@@ -4,6 +4,16 @@ from orderbook_level_2_listener.market_enum import Market
 
 
 class URLFactory:
+    """
+    A utility class for generating URLs for various Binance API endpoints.
+
+    Usage:
+        The class methods are intended to be used statically. Here is how you can generate a URL for fetching
+        orderbook snapshot data for the BTCUSDT pair on the spot market with a depth limit:
+
+            URLFactory.get_snapshot_url(Market.SPOT, 'BTCUSDT', 100)
+
+    """
     @staticmethod
     def get_snapshot_url(
             market: Market,

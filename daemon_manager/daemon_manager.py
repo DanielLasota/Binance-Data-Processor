@@ -7,6 +7,19 @@ from dotenv import load_dotenv
 
 
 class DaemonManager:
+    """
+    Initializes the DaemonManager which manages multiple ArchiverDaemon instances for processing market data.
+
+    :param config_path: Path to the configuration JSON file that contains settings for various daemons.
+    :param env_path: Path to the .env file for environment variables needed for configurations such as
+                     Azure Blob Storage credentials.
+    :param dump_path: Base directory path where all files will be dumped. If not provided, uses the current directory.
+    :param should_csv_be_removed_after_zip: Flag to determine whether the CSV files should be deleted after zipping.
+    :param should_zip_be_removed_after_upload: Flag to determine whether the zip files should be deleted after being uploaded.
+    :param should_zip_be_sent: Flag to determine whether the zip files should be uploaded to Azure Blob Storage.
+
+    Sets up the environment, loads configurations, and prepares to launch data processing daemons as configured.
+    """
     def __init__(
             self,
             config_path: str = 'config.json',
@@ -25,10 +38,21 @@ class DaemonManager:
         self.should_zip_be_sent = should_zip_be_sent
 
     def load_config(self):
+        """
+        Loads the daemon configuration from the specified JSON configuration file.
+
+        :return: A dictionary containing the loaded configuration data.
+        """
         with open(self.config_path, 'r') as file:
             return json.load(file)
 
     def start_daemons(self):
+        """
+        Initializes and starts all ArchiverDaemon instances as configured in the configuration file.
+
+        This method also ensures that the necessary directories are created as per the dump path,
+        loads environment variables, and starts each daemon based on the market and instrument specifications.
+        """
         if self.dump_path != '' and not os.path.exists(self.dump_path):
             os.makedirs(self.dump_path)
 
@@ -51,12 +75,24 @@ class DaemonManager:
                 self.daemons.append(daemon)
 
     def stop_daemons(self):
+        """
+        Stops all running ArchiverDaemon instances.
+
+        This method is intended to be called when shutting down the manager, ensuring all resources are properly
+        released and operations are cleanly terminated.
+        """
         for daemon in self.daemons:
             # daemon.close_all() # under implementation
             pass
         print("Stopped all daemons")
 
     def run(self):
+        """
+        Runs the DaemonManager, starting all configured daemons and handling KeyboardInterrupt to shut down gracefully.
+
+        This method is the main entry point for running the DaemonManager. It keeps the manager active and checks
+        for interruptions to initiate a graceful shutdown.
+        """
         self.start_daemons()
         try:
             while True:
