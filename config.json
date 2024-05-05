@@ -1,44 +1,10 @@
 {
-  "daemons": [
-    {
-      "instrument": "BTCUSDT",
-      "market": "SPOT",
-      "listen_duration": 60
+  "daemons": {
+    "markets": {
+      "spot": ["ETHUSDT"],
+      "usd_m_futures": ["ETHUSDT"],
+      "coin_m_futures": ["BTCUSD_PERP"]
     },
-    {
-      "instrument": "LTCUSDT",
-      "market": "SPOT",
-      "listen_duration": 60
-    },
-    {
-      "instrument": "ETHUSDT",
-      "market": "SPOT",
-      "listen_duration": 60
-    },
-    {
-      "instrument": "ETCUSDT",
-      "market": "SPOT",
-      "listen_duration": 60
-    },
-    {
-      "instrument": "NEOUSDT",
-      "market": "SPOT",
-      "listen_duration": 60
-    },
-    {
-      "instrument": "XRPUSDT",
-      "market": "USD_M_FUTURES",
-      "listen_duration": 60
-    },
-    {
-      "instrument": "EOSUSDT",
-      "market": "USD_M_FUTURES",
-      "listen_duration": 60
-    },
-    {
-      "instrument": "ETCUSDT",
-      "market": "USD_M_FUTURES",
-      "listen_duration": 60
-    }
-  ]
+    "listen_duration": 60
+  }
 }

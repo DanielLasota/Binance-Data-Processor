@@ -29,28 +29,30 @@ class DaemonManager:
             return json.load(file)
 
     def start_daemons(self):
-
         if self.dump_path != '' and not os.path.exists(self.dump_path):
             os.makedirs(self.dump_path)
 
         load_dotenv(self.env_path)
-
         config = self.load_config()
-        for entry in config['daemons']:
-            daemon = OrderbookDaemon(
-                azure_blob_parameters_with_key=os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY'),
-                container_name=os.environ.get('CONTAINER_NAME'),
-                should_csv_be_removed_after_zip=self.should_csv_be_removed_after_zip,
-                should_zip_be_removed_after_upload=self.should_zip_be_removed_after_upload,
-                should_zip_be_sent=self.should_zip_be_sent
-            )
-            daemon.run(
-                instrument=entry['instrument'],
-                market=Market[entry['market']],
-                single_file_listen_duration_in_seconds=entry['listen_duration'],
-                dump_path=self.dump_path
-            )
-            self.daemons.append(daemon)
+        listen_duration = config['daemons']['listen_duration']
+
+        for market_type, instruments in config['daemons']['markets'].items():
+            market_enum = Market[market_type.upper()]
+            for instrument in instruments:
+                daemon = OrderbookDaemon(
+                    azure_blob_parameters_with_key=os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY'),
+                    container_name=os.environ.get('CONTAINER_NAME'),
+                    should_csv_be_removed_after_zip=self.should_csv_be_removed_after_zip,
+                    should_zip_be_removed_after_upload=self.should_zip_be_removed_after_upload,
+                    should_zip_be_sent=self.should_zip_be_sent
+                )
+                daemon.run(
+                    instrument=instrument,
+                    market=market_enum,
+                    single_file_listen_duration_in_seconds=listen_duration,
+                    dump_path=self.dump_path
+                )
+                self.daemons.append(daemon)
 
     def stop_daemons(self):
         for daemon in self.daemons:

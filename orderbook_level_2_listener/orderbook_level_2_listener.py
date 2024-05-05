@@ -94,7 +94,7 @@ class OrderbookDaemon:
                         data = await websocket.recv()
                         with self.lock:
                             self.transaction_stream_message_queue.put(data)
-                        print(data)
+                        # print(data)
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
                 time.sleep(1)
@@ -127,7 +127,7 @@ class OrderbookDaemon:
                         data = await websocket.recv()
                         with self.lock:
                             self.orderbook_stream_message_queue.put(data)
-                        # print(data)
+                        print(data)
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
                 time.sleep(1)
@@ -167,7 +167,17 @@ class OrderbookDaemon:
     ) -> None:
         while True:
             if not self.orderbook_stream_message_queue.empty():
-                snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=5000)
+
+                limit = None
+
+                if market == Market.SPOT:
+                    limit = 5000
+                elif market == Market.USD_M_FUTURES:
+                    limit = 1000
+                elif market == Market.COIN_M_FUTURES:
+                    limit = 1000
+
+                snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=limit)
                 snapshot_file_name = (
                     self.get_file_name(instrument, market, 'orderbook_snapshot', 'json'))
 
@@ -211,7 +221,6 @@ class OrderbookDaemon:
             dump_path: str,
             lag_in_seconds: int = 1
     ) -> None:
-
         time.sleep(lag_in_seconds)
 
         response = requests.get(url)
@@ -266,12 +275,12 @@ class OrderbookDaemon:
     def get_snapshot_url(
             market: Market,
             pair: str,
-            limit: int = 1000
+            limit: int
     ) -> Optional[str]:
         return {
             Market.SPOT: f'https://api.binance.com/api/v3/depth?symbol={pair}&limit={limit}',
             Market.USD_M_FUTURES: f'https://fapi.binance.com/fapi/v1/depth?symbol={pair}&limit={limit}',
-            Market.COIN_M_FUTURES: f'https://dapi.binance.com/dapi/v1/depth?symbol=BTCUSD_200925&limit={limit}'
+            Market.COIN_M_FUTURES: f'https://dapi.binance.com/dapi/v1/depth?symbol={pair}&limit={limit}'
         }.get(market, None)
 
     @staticmethod
@@ -279,7 +288,7 @@ class OrderbookDaemon:
         return {
             Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@trade',
             Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@trade',
-            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@trade'
+            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams={pair.lower()}@trade'
         }.get(market, None)
 
     @staticmethod
@@ -287,7 +296,7 @@ class OrderbookDaemon:
         return {
             Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@depth@100ms',
             Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@depth@100ms',
-            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth'
+            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams={pair.lower()}@depth'
         }.get(market, None)
 
     @staticmethod
@@ -320,5 +329,5 @@ class OrderbookDaemon:
             case 'orderbook_snapshot':
                 prefix = 'l2lob_snapshot'
 
-        file_name = f'{prefix}_{formatted_now_timestamp}_{market_short_name}_{pair_lower}.{extension}'
+        file_name = f'{prefix}_{market_short_name}_{pair_lower}_{formatted_now_timestamp}.{extension}'
         return file_name
