@@ -11,9 +11,10 @@ class DaemonManager:
             self,
             config_path: str = 'config.json',
             env_path: str = '.env',
-            dump_path: str = '',
+            dump_path: str = '/temp/',
             should_csv_be_removed_after_zip: bool = True,
-            should_zip_be_removed_after_upload: bool = True
+            should_zip_be_removed_after_upload: bool = True,
+            should_zip_be_sent: bool = True
     ) -> None:
         self.config_path = config_path
         self.env_path = env_path
@@ -21,6 +22,7 @@ class DaemonManager:
         self.daemons = []
         self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
         self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
+        self.should_zip_be_sent = should_zip_be_sent
 
     def load_config(self):
         with open(self.config_path, 'r') as file:
@@ -39,7 +41,8 @@ class DaemonManager:
                 azure_blob_parameters_with_key=os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY'),
                 container_name=os.environ.get('CONTAINER_NAME'),
                 should_csv_be_removed_after_zip=self.should_csv_be_removed_after_zip,
-                should_zip_be_removed_after_upload=self.should_zip_be_removed_after_upload
+                should_zip_be_removed_after_upload=self.should_zip_be_removed_after_upload,
+                should_zip_be_sent=self.should_zip_be_sent
             )
             daemon.run(
                 instrument=entry['instrument'],

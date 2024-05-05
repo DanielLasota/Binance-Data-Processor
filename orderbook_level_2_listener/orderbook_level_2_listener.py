@@ -5,8 +5,7 @@ import threading
 import time
 import zipfile
 from datetime import datetime
-from typing import Optional, Any
-import aiofiles
+from typing import Optional
 from websockets import connect, WebSocketException
 from azure.storage.blob import BlobServiceClient
 from .market_enum import Market
@@ -20,15 +19,18 @@ class OrderbookDaemon:
             azure_blob_parameters_with_key: str,
             container_name: str,
             should_csv_be_removed_after_zip: bool = True,
-            should_zip_be_removed_after_upload: bool = True
+            should_zip_be_removed_after_upload: bool = True,
+            should_zip_be_sent: bool = True
     ) -> None:
         self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
         self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
+        self.should_zip_be_sent = should_zip_be_sent
         self.lock: threading.Lock = threading.Lock()
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
         self.container_name = container_name
-        self.message_queue = Queue()
+        self.orderbook_stream_message_queue = Queue()
+        self.transaction_stream_message_queue = Queue()
 
     def run(
             self,
@@ -37,21 +39,37 @@ class OrderbookDaemon:
             single_file_listen_duration_in_seconds: int,
             dump_path: str = None
     ) -> None:
-        thread: threading.Thread = threading.Thread(
-            target=self.listener,
+        orderbook_stream_thread: threading.Thread = threading.Thread(
+            target=self.orderbook_stream_listener,
             args=(instrument, market)
         )
-        thread.daemon = True
-        thread.start()
+        orderbook_stream_thread.daemon = True
+        orderbook_stream_thread.start()
 
-        file_thread: threading.Thread = threading.Thread(
-            target=self.file_writer,
+        orderbook_stream_saver_thread: threading.Thread = threading.Thread(
+            target=self.orderbook_stream_writer,
             args=(market, instrument, single_file_listen_duration_in_seconds, dump_path)
         )
-        file_thread.daemon = True
-        file_thread.start()
+        orderbook_stream_saver_thread.daemon = True
+        orderbook_stream_saver_thread.start()
 
-    def listener(
+        #############
+
+        transaction_stream_thread: threading.Thread = threading.Thread(
+            target=self.transaction_stream_listener,
+            args=(instrument, market)
+        )
+        transaction_stream_thread.daemon = True
+        transaction_stream_thread.start()
+
+        transaction_stream_writer_thread: threading.Thread = threading.Thread(
+            target=self.transaction_stream_writer,
+            args=(market, instrument, single_file_listen_duration_in_seconds, dump_path)
+        )
+        transaction_stream_writer_thread.daemon = True
+        transaction_stream_writer_thread.start()
+
+    def transaction_stream_listener(
             self,
             instrument: str,
             market: Market
@@ -59,23 +77,23 @@ class OrderbookDaemon:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(
-            self._listener(instrument, market)
+            self._transaction_stream_listener(instrument, market)
         )
         loop.close()
 
-    async def _listener(
+    async def _transaction_stream_listener(
             self,
             instrument: str,
             market: Market
     ) -> None:
         while True:
             try:
-                url = self.get_stream_url(market, instrument)
+                url = self.get_transaction_stream_url(market, instrument)
                 async with connect(url) as websocket:
                     while True:
                         data = await websocket.recv()
                         with self.lock:
-                            self.message_queue.put(data)
+                            self.transaction_stream_message_queue.put(data)
                         print(data)
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
@@ -84,7 +102,40 @@ class OrderbookDaemon:
                 print(f"Unexpected error: {e}. Attempting to restart listener...")
                 time.sleep(1)
 
-    def file_writer(
+    def orderbook_stream_listener(
+            self,
+            instrument: str,
+            market: Market
+    ) -> None:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(
+            self._orderbook_stream_listener(instrument, market)
+        )
+        loop.close()
+
+    async def _orderbook_stream_listener(
+            self,
+            instrument: str,
+            market: Market
+    ) -> None:
+        while True:
+            try:
+                url = self.get_orderbook_stream_url(market, instrument)
+                async with connect(url) as websocket:
+                    while True:
+                        data = await websocket.recv()
+                        with self.lock:
+                            self.orderbook_stream_message_queue.put(data)
+                        # print(data)
+            except WebSocketException as e:
+                print(f"WebSocket error: {e}. Reconnecting...")
+                time.sleep(1)
+            except Exception as e:
+                print(f"Unexpected error: {e}. Attempting to restart listener...")
+                time.sleep(1)
+
+    def transaction_stream_writer(
             self,
             market: Market,
             instrument: str,
@@ -92,19 +143,41 @@ class OrderbookDaemon:
             dump_path: str
     ) -> None:
         while True:
-            if not self.message_queue.empty():
-                snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=5000)
-                snapshot_file_name = self.get_file_name(instrument, market, '.json')
+            if not self.transaction_stream_message_queue.empty():
+                stream_file_name = (
+                    self.get_file_name('instrument', market,'transaction_stream', 'csv'))
 
-                stream_file_name = self.get_file_name('instrument', market, '.csv')
+                time.sleep(single_file_listen_duration_in_seconds)
+                with open(f'{dump_path}{stream_file_name}', 'a') as f:
+                    while not self.transaction_stream_message_queue.empty():
+                        data = self.transaction_stream_message_queue.get()
+                        f.write(f'{data},\n')
+                self.launch_zip_daemon(stream_file_name, dump_path)
+
+    def orderbook_stream_writer(
+            self,
+            market: Market,
+            instrument: str,
+            single_file_listen_duration_in_seconds: int,
+            dump_path: str
+    ) -> None:
+        while True:
+            if not self.orderbook_stream_message_queue.empty():
+                snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=5000)
+                snapshot_file_name = (
+                    self.get_file_name(instrument, market, 'orderbook_snapshot', '.json'))
+
+                stream_file_name = (
+                    self.get_file_name('instrument', market, 'orderbook_stream', '.json'))
                 self.launch_snapshot_fetcher(snapshot_url, snapshot_file_name, dump_path)
 
                 time.sleep(single_file_listen_duration_in_seconds)
                 with open(f'{dump_path}{stream_file_name}', 'a') as f:
-                    while not self.message_queue.empty():
-                        data = self.message_queue.get()
-                        f.write(f'{data},\n')
-
+                    f.write('[')
+                    while not self.orderbook_stream_message_queue.empty():
+                        data = self.orderbook_stream_message_queue.get()
+                        f.write(f'{data},')
+                    f.write(']')
                 self.launch_zip_daemon(stream_file_name, dump_path)
 
     def launch_snapshot_fetcher(
@@ -138,7 +211,6 @@ class OrderbookDaemon:
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-            file_name = f'snapshot_{file_name}'
             full_path = os.path.join(dump_path, file_name)
             with open(full_path, 'w') as f:
                 json.dump(data, f, indent=4)
@@ -171,7 +243,8 @@ class OrderbookDaemon:
         if self.should_csv_be_removed_after_zip:
             os.remove(csv_path)
 
-        self.upload_file_to_blob(zip_path, zip_file_name)
+        if self.should_zip_be_sent:
+            self.upload_file_to_blob(zip_path, zip_file_name)
 
     def upload_file_to_blob(self, file_path: str, blob_name: str):
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=blob_name)
@@ -196,24 +269,34 @@ class OrderbookDaemon:
         }.get(market, None)
 
     @staticmethod
-    def get_stream_url(market, pair):
+    def get_transaction_stream_url(market, pair):
+        return {
+            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@trade',
+            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@trade',
+            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@trade'
+        }.get(market, None)
+
+    @staticmethod
+    def get_orderbook_stream_url(market, pair):
         return {
             Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@depth@100ms',
             Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@depth@100ms',
-            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth.'
+            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams=btcusd_200925@depth'
         }.get(market, None)
 
     @staticmethod
     def get_file_name(
             instrument: str,
             market: Market,
-            extension
+            data_type: str,
+            extension: str
     ) -> str:
         pair_lower = instrument.lower()
         now = datetime.now()
         formatted_now_timestamp = now.strftime('%d-%m-%YT%H-%M-%S')
 
         market_short_name = None
+        prefix = None
 
         match market:
             case Market.SPOT:
@@ -223,5 +306,13 @@ class OrderbookDaemon:
             case Market.COIN_M_FUTURES:
                 market_short_name = 'futures_coin_m'
 
-        file_name = f'L2lob_raw_delta_broadcast_{formatted_now_timestamp}_{market_short_name}_{pair_lower}{extension}'
+        match data_type:
+            case 'orderbook_stream':
+                prefix = 'L2lob_raw_delta_broadcast'
+            case 'transaction_stream':
+                prefix = 'transaction_broadcast'
+            case 'orderbook_snapshot':
+                prefix = 'l2lob_snapshot'
+
+        file_name = f'{prefix}_{formatted_now_timestamp}_{market_short_name}_{pair_lower}.{extension}'
         return file_name
