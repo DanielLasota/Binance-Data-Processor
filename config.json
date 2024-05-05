@@ -4,6 +4,41 @@
       "instrument": "BTCUSDT",
       "market": "SPOT",
       "listen_duration": 60
+    },
+    {
+      "instrument": "LTCUSDT",
+      "market": "SPOT",
+      "listen_duration": 60
+    },
+    {
+      "instrument": "ETHUSDT",
+      "market": "SPOT",
+      "listen_duration": 60
+    },
+    {
+      "instrument": "ETCUSDT",
+      "market": "SPOT",
+      "listen_duration": 60
+    },
+    {
+      "instrument": "NEOUSDT",
+      "market": "SPOT",
+      "listen_duration": 60
+    },
+    {
+      "instrument": "XRPUSDT",
+      "market": "USD_M_FUTURES",
+      "listen_duration": 60
+    },
+    {
+      "instrument": "EOSUSDT",
+      "market": "USD_M_FUTURES",
+      "listen_duration": 60
+    },
+    {
+      "instrument": "ETCUSDT",
+      "market": "USD_M_FUTURES",
+      "listen_duration": 60
     }
   ]
 }

@@ -11,7 +11,7 @@ class DaemonManager:
             self,
             config_path: str = 'config.json',
             env_path: str = '.env',
-            dump_path: str = '/temp/',
+            dump_path: str = '',
             should_csv_be_removed_after_zip: bool = True,
             should_zip_be_removed_after_upload: bool = True,
             should_zip_be_sent: bool = True

@@ -145,13 +145,17 @@ class OrderbookDaemon:
         while True:
             if not self.transaction_stream_message_queue.empty():
                 stream_file_name = (
-                    self.get_file_name('instrument', market,'transaction_stream', 'csv'))
+                    self.get_file_name('instrument', market,'transaction_stream', 'json'))
 
                 time.sleep(single_file_listen_duration_in_seconds)
+
+                data_list = []
+                while not self.transaction_stream_message_queue.empty():
+                    data = self.transaction_stream_message_queue.get()
+                    data_list.append(json.loads(data))
+
                 with open(f'{dump_path}{stream_file_name}', 'a') as f:
-                    while not self.transaction_stream_message_queue.empty():
-                        data = self.transaction_stream_message_queue.get()
-                        f.write(f'{data},\n')
+                    json.dump(data_list, f)
                 self.launch_zip_daemon(stream_file_name, dump_path)
 
     def orderbook_stream_writer(
@@ -165,19 +169,21 @@ class OrderbookDaemon:
             if not self.orderbook_stream_message_queue.empty():
                 snapshot_url = self.get_snapshot_url(market=market, pair=instrument, limit=5000)
                 snapshot_file_name = (
-                    self.get_file_name(instrument, market, 'orderbook_snapshot', '.json'))
+                    self.get_file_name(instrument, market, 'orderbook_snapshot', 'json'))
 
                 stream_file_name = (
-                    self.get_file_name('instrument', market, 'orderbook_stream', '.json'))
+                    self.get_file_name('instrument', market, 'orderbook_stream', 'json'))
                 self.launch_snapshot_fetcher(snapshot_url, snapshot_file_name, dump_path)
 
                 time.sleep(single_file_listen_duration_in_seconds)
+                data_list = []
+                while not self.orderbook_stream_message_queue.empty():
+                    data = self.orderbook_stream_message_queue.get()
+                    data_list.append(json.loads(data))
+
                 with open(f'{dump_path}{stream_file_name}', 'a') as f:
-                    f.write('[')
-                    while not self.orderbook_stream_message_queue.empty():
-                        data = self.orderbook_stream_message_queue.get()
-                        f.write(f'{data},')
-                    f.write(']')
+                    json.dump(data_list, f)
+
                 self.launch_zip_daemon(stream_file_name, dump_path)
 
     def launch_snapshot_fetcher(
@@ -308,7 +314,7 @@ class OrderbookDaemon:
 
         match data_type:
             case 'orderbook_stream':
-                prefix = 'L2lob_raw_delta_broadcast'
+                prefix = 'l2lob_raw_delta_broadcast'
             case 'transaction_stream':
                 prefix = 'transaction_broadcast'
             case 'orderbook_snapshot':
