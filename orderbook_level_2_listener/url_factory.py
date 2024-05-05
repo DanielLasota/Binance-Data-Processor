@@ -4,12 +4,6 @@ from orderbook_level_2_listener.market_enum import Market
 
 
 class URLFactory:
-    BASE_URLS = {
-        Market.SPOT: "wss://stream.binance.com:9443",
-        Market.USD_M_FUTURES: "wss://fstream.binance.com",
-        Market.COIN_M_FUTURES: "wss://dstream.binance.com"
-    }
-
     @staticmethod
     def get_snapshot_url(
             market: Market,
@@ -23,7 +17,10 @@ class URLFactory:
         }.get(market, None)
 
     @staticmethod
-    def get_transaction_stream_url(market, pair):
+    def get_transaction_stream_url(
+            market: Market,
+            pair: str
+    ) -> Optional[str]:
         return {
             Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@trade',
             Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@trade',
@@ -31,7 +28,10 @@ class URLFactory:
         }.get(market, None)
 
     @staticmethod
-    def get_orderbook_stream_url(market, pair):
+    def get_orderbook_stream_url(
+            market: Market,
+            pair: str
+    ) -> Optional[str]:
         return {
             Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@depth@100ms',
             Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@depth@100ms',

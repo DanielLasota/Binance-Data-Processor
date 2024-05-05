@@ -26,7 +26,9 @@ class ArchiverDaemon:
         """
         Initializes an instance of ArchiverDaemon, which handles the archiving of data streams into Azure Blob Storage.
 
-        This daemon manages the compression, uploading, and optional deletion of CSV and ZIP files generated from orderbook and transaction streams. It uses a ThreadPoolExecutor to handle tasks concurrently.
+        This daemon manages the compression, uploading,
+        and optional deletion of CSV and ZIP files generated from orderbook and transaction streams.
+        It uses a ThreadPoolExecutor to handle tasks concurrently.
 
         :param azure_blob_parameters_with_key: Connection string for Azure Blob Storage, used to authorize and connect.
         :param container_name: Name of the Azure Blob Storage container where files will be stored.
@@ -45,7 +47,6 @@ class ArchiverDaemon:
 
         The executor uses a maximum of 6 workers by default, which can be adjusted based on workload requirements.
         """
-
         self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
         self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
         self.should_zip_be_sent = should_zip_be_sent

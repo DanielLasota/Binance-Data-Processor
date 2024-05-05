@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="threading optimize/encapsulate&#10;asyncio delete">
-      <change afterPath="$PROJECT_DIR$/orderbook_level_2_listener/url_factory.py" afterDir="false" />
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="code refactor, encapsulate methods, code quality hehe 340 lines to 200">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/orderbook_level_2_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/orderbook_level_2_listener/orderbook_level_2_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/url_factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/orderbook_level_2_listener/url_factory.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -378,7 +378,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714934892963</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="code refactor, encapsulate methods, code quality hehe 340 lines to 200">
+      <option name="closed" value="true" />
+      <created>1714941742199</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1714941742199</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -396,7 +404,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="init commit" />
     <MESSAGE value="first code lines commit" />
     <MESSAGE value="archiver saves raw data" />
     <MESSAGE value="different markets add via argument" />
@@ -421,7 +428,8 @@
     <MESSAGE value="json update, coin m fix etc" />
     <MESSAGE value="instrument name fix, &#10;minor small fixes" />
     <MESSAGE value="threading optimize/encapsulate&#10;asyncio delete" />
-    <option name="LAST_COMMIT_MESSAGE" value="threading optimize/encapsulate&#10;asyncio delete" />
+    <MESSAGE value="code refactor, encapsulate methods, code quality hehe 340 lines to 200" />
+    <option name="LAST_COMMIT_MESSAGE" value="code refactor, encapsulate methods, code quality hehe 340 lines to 200" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
