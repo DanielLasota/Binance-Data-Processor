@@ -11,6 +11,7 @@ from azure.storage.blob import BlobServiceClient
 from .market_enum import Market
 import requests
 from queue import Queue
+from websocket import WebSocketException, WebSocket
 
 
 class OrderbookDaemon:
@@ -39,103 +40,109 @@ class OrderbookDaemon:
             single_file_listen_duration_in_seconds: int,
             dump_path: str = None
     ) -> None:
-        orderbook_stream_thread: threading.Thread = threading.Thread(
-            target=self.orderbook_stream_listener,
-            args=(instrument, market)
-        )
-        orderbook_stream_thread.daemon = True
-        orderbook_stream_thread.start()
-
-        orderbook_stream_saver_thread: threading.Thread = threading.Thread(
-            target=self.orderbook_stream_writer,
-            args=(market, instrument, single_file_listen_duration_in_seconds, dump_path)
-        )
-        orderbook_stream_saver_thread.daemon = True
-        orderbook_stream_saver_thread.start()
-
-        #############
-
-        transaction_stream_thread: threading.Thread = threading.Thread(
-            target=self.transaction_stream_listener,
-            args=(instrument, market)
-        )
-        transaction_stream_thread.daemon = True
-        transaction_stream_thread.start()
-
-        transaction_stream_writer_thread: threading.Thread = threading.Thread(
-            target=self.transaction_stream_writer,
-            args=(market, instrument, single_file_listen_duration_in_seconds, dump_path)
-        )
-        transaction_stream_writer_thread.daemon = True
-        transaction_stream_writer_thread.start()
+        self.launch_orderbook_stream_listener(instrument, market)
+        self.launch_orderbook_stream_writer(market, instrument, single_file_listen_duration_in_seconds, dump_path)
+        self.transaction_stream_listener(instrument,market)
+        self.launch_transaction_stream_writer(market, instrument, single_file_listen_duration_in_seconds, dump_path)
 
     def transaction_stream_listener(
             self,
             instrument: str,
             market: Market
     ) -> None:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(
-            self._transaction_stream_listener(instrument, market)
+        transaction_stream_thread: threading.Thread = threading.Thread(
+            target=self._transaction_stream_listener,
+            args=(instrument, market)
         )
-        loop.close()
+        transaction_stream_thread.daemon = True
+        transaction_stream_thread.start()
 
-    async def _transaction_stream_listener(
+    def launch_orderbook_stream_listener(
             self,
             instrument: str,
             market: Market
     ) -> None:
+        orderbook_stream_thread: threading.Thread = threading.Thread(
+            target=self._orderbook_stream_listener,
+            args=(instrument, market)
+        )
+        orderbook_stream_thread.daemon = True
+        orderbook_stream_thread.start()
+
+    def launch_transaction_stream_writer(
+            self,
+            market: Market,
+            instrument: str,
+            single_file_listen_duration_in_seconds: int,
+            dump_path: str
+    ):
+        transaction_stream_writer_thread: threading.Thread = threading.Thread(
+            target=self._transaction_stream_writer,
+            args=(market, instrument, single_file_listen_duration_in_seconds, dump_path)
+        )
+        transaction_stream_writer_thread.daemon = True
+        transaction_stream_writer_thread.start()
+
+    def launch_orderbook_stream_writer(
+            self,
+            market: Market,
+            instrument: str,
+            single_file_listen_duration_in_seconds: int,
+            dump_path: str
+    ):
+        orderbook_stream_saver_thread: threading.Thread = threading.Thread(
+            target=self._orderbook_stream_writer,
+            args=(market, instrument, single_file_listen_duration_in_seconds, dump_path)
+        )
+        orderbook_stream_saver_thread.daemon = True
+        orderbook_stream_saver_thread.start()
+
+    def _transaction_stream_listener(
+            self,
+            instrument: str,
+            market: Market
+    ) -> None:
+
         while True:
+            websocket = WebSocket()
             try:
                 url = self.get_transaction_stream_url(market, instrument)
-                async with connect(url) as websocket:
-                    while True:
-                        data = await websocket.recv()
-                        with self.lock:
-                            self.transaction_stream_message_queue.put(data)
-                        # print(data)
+                websocket.connect(url)
+                while True:
+                    data = websocket.recv()
+                    with self.lock:
+                        self.transaction_stream_message_queue.put(data)
+                    # print(data)
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
                 time.sleep(1)
             except Exception as e:
                 print(f"Unexpected error: {e}. Attempting to restart listener...")
                 time.sleep(1)
+            finally:
+                websocket.close()
 
-    def orderbook_stream_listener(
-            self,
-            instrument: str,
-            market: Market
-    ) -> None:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(
-            self._orderbook_stream_listener(instrument, market)
-        )
-        loop.close()
-
-    async def _orderbook_stream_listener(
-            self,
-            instrument: str,
-            market: Market
-    ) -> None:
+    def _orderbook_stream_listener(self, instrument: str, market: Market) -> None:
         while True:
+            websocket = WebSocket()
             try:
                 url = self.get_orderbook_stream_url(market, instrument)
-                async with connect(url) as websocket:
-                    while True:
-                        data = await websocket.recv()
-                        with self.lock:
-                            self.orderbook_stream_message_queue.put(data)
-                        # print(data)
+                websocket.connect(url)
+                while True:
+                    data = websocket.recv()
+                    with self.lock:
+                        self.orderbook_stream_message_queue.put(data)
+                    # print(data)
             except WebSocketException as e:
                 print(f"WebSocket error: {e}. Reconnecting...")
                 time.sleep(1)
             except Exception as e:
                 print(f"Unexpected error: {e}. Attempting to restart listener...")
                 time.sleep(1)
+            finally:
+                websocket.close()
 
-    def transaction_stream_writer(
+    def _transaction_stream_writer(
             self,
             market: Market,
             instrument: str,
@@ -158,7 +165,7 @@ class OrderbookDaemon:
                     json.dump(data_list, f)
                 self.launch_zip_daemon(stream_file_name, dump_path)
 
-    def orderbook_stream_writer(
+    def _orderbook_stream_writer(
             self,
             market: Market,
             instrument: str,
