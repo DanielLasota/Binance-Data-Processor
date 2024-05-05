@@ -17,6 +17,7 @@ from .url_factory import URLFactory
 class ArchiverDaemon:
     def __init__(
             self,
+            logger,
             azure_blob_parameters_with_key: str,
             container_name: str,
             should_csv_be_removed_after_zip: bool = True,
@@ -47,6 +48,7 @@ class ArchiverDaemon:
 
         The executor uses a maximum of 6 workers by default, which can be adjusted based on workload requirements.
         """
+        self.logger = logger
         self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
         self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
         self.should_zip_be_sent = should_zip_be_sent
@@ -131,12 +133,11 @@ class ArchiverDaemon:
                     data = websocket.recv()
                     with self.lock:
                         queue.put(data)
-                    # print(data)
             except WebSocketException as e:
-                print(f"{stream_type.capitalize()} WebSocket error: {e}. Reconnecting...")
+                self.logger.info(f"{stream_type.capitalize()} WebSocket error: {e}. Reconnecting...")
                 time.sleep(1)
             except Exception as e:
-                print(f"Unexpected error in {stream_type} stream: {e}. Attempting to restart listener...")
+                self.logger.info(f"Unexpected error in {stream_type} stream: {e}. Attempting to restart listener...")
                 time.sleep(1)
             finally:
                 websocket.close()

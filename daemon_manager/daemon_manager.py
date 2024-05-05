@@ -4,6 +4,12 @@ import time
 from orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
 from orderbook_level_2_listener.market_enum import Market
 from dotenv import load_dotenv
+from orderbook_level_2_listener.setup_logger import setup_logger
+
+__author__ = "Daniel Lasota <grossmann.root@gmail.com>"
+__status__ = "production"
+__version__ = "2.1.3.7"
+__date__ = "05 may 2024"
 
 
 class DaemonManager:
@@ -29,6 +35,7 @@ class DaemonManager:
             should_zip_be_removed_after_upload: bool = True,
             should_zip_be_sent: bool = True
     ) -> None:
+        self.logger = setup_logger()
         self.config_path = config_path
         self.env_path = env_path
         self.dump_path = dump_path
@@ -53,6 +60,9 @@ class DaemonManager:
         This method also ensures that the necessary directories are created as per the dump path,
         loads environment variables, and starts each daemon based on the market and instrument specifications.
         """
+
+        self.logger.info('starting')
+
         if self.dump_path != '' and not os.path.exists(self.dump_path):
             os.makedirs(self.dump_path)
 
@@ -64,6 +74,7 @@ class DaemonManager:
             market_enum = Market[market_type.upper()]
             for instrument in instruments:
                 daemon = ArchiverDaemon(
+                    logger=self.logger,
                     azure_blob_parameters_with_key=os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY'),
                     container_name=os.environ.get('CONTAINER_NAME'),
                     should_csv_be_removed_after_zip=self.should_csv_be_removed_after_zip,
