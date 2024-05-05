@@ -7,7 +7,7 @@ def setup_logger():
     logger.setLevel(logging.DEBUG)
 
     file_handler = RotatingFileHandler(
-        'archiver.log',
+        'logs/archiver.log',
         maxBytes=5 * 1024 * 1024,
         backupCount=3
     )

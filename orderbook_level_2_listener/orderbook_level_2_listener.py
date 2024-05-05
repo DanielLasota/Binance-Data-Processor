@@ -88,6 +88,8 @@ class ArchiverDaemon:
 
         Note: If `dump_path` is not specified, ensure that the default path is correctly set up to avoid any file handling errors.
         """
+        self.logger.info(f'launching lob, snapshots, transactions on: '
+                         f'{market} {instrument} {file_duration_seconds}s {dump_path}')
 
         self.start_orderbook_stream_listener(instrument, market)
         self.start_orderbook_stream_writer(market, instrument, file_duration_seconds, dump_path)
