@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from orderbook_level_2_listener.orderbook_level_2_listener import OrderbookDaemon
+from orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
 from orderbook_level_2_listener.market_enum import Market
 from dotenv import load_dotenv
 
@@ -39,19 +39,15 @@ class DaemonManager:
         for market_type, instruments in config['daemons']['markets'].items():
             market_enum = Market[market_type.upper()]
             for instrument in instruments:
-                daemon = OrderbookDaemon(
+                daemon = ArchiverDaemon(
                     azure_blob_parameters_with_key=os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY'),
                     container_name=os.environ.get('CONTAINER_NAME'),
                     should_csv_be_removed_after_zip=self.should_csv_be_removed_after_zip,
                     should_zip_be_removed_after_upload=self.should_zip_be_removed_after_upload,
                     should_zip_be_sent=self.should_zip_be_sent
                 )
-                daemon.run(
-                    instrument=instrument,
-                    market=market_enum,
-                    single_file_listen_duration_in_seconds=listen_duration,
-                    dump_path=self.dump_path
-                )
+                daemon.run(instrument=instrument, market=market_enum, file_duration_seconds=listen_duration,
+                           dump_path=self.dump_path)
                 self.daemons.append(daemon)
 
     def stop_daemons(self):
