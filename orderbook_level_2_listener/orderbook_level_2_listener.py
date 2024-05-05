@@ -305,11 +305,6 @@ class ArchiverDaemon:
         Upon successful upload, if the configuration `should_zip_be_removed_after_upload` is set to True,
         the method removes the local file to free up space or clean up the local storage.
 
-        Raises:
-            FileNotFoundError: If the `file_path` does not point to an existing file.
-            AzureError: If there is any issue with the upload process, including authentication issues, network errors,
-                        or permissions problems.
-
         Note:
             - This method requires that the Azure storage client is properly configured with the correct access keys and
               permissions.
