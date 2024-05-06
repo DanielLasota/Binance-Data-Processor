@@ -5,6 +5,7 @@ from orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
 from orderbook_level_2_listener.market_enum import Market
 from dotenv import load_dotenv
 from orderbook_level_2_listener.setup_logger import setup_logger
+import threading
 
 __author__ = "Daniel Lasota <grossmann.root@gmail.com>"
 __status__ = "production"
@@ -43,6 +44,7 @@ class DaemonManager:
         self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
         self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
         self.should_zip_be_sent = should_zip_be_sent
+        self.shutdown_flag = threading.Event()
 
     def load_config(self):
         """
@@ -79,7 +81,8 @@ class DaemonManager:
                     container_name=os.environ.get('CONTAINER_NAME'),
                     should_csv_be_removed_after_zip=self.should_csv_be_removed_after_zip,
                     should_zip_be_removed_after_upload=self.should_zip_be_removed_after_upload,
-                    should_zip_be_sent=self.should_zip_be_sent
+                    should_zip_be_sent=self.should_zip_be_sent,
+                    shutdown_flag=self.shutdown_flag  # Pass the shutdown flag to each daemon
                 )
                 daemon.run(instrument=instrument, market=market_enum, file_duration_seconds=listen_duration,
                            dump_path=self.dump_path)
@@ -92,10 +95,18 @@ class DaemonManager:
         This method is intended to be called when shutting down the manager, ensuring all resources are properly
         released and operations are cleanly terminated.
         """
+        self.logger.info("Stopping all daemons")
+        self.shutdown_flag.set()
         for daemon in self.daemons:
-            # daemon.close_all() # under implementation
-            pass
-        print("Stopped all daemons")
+            daemon.wait()
+
+    def kill(self):
+        """
+        Forcefully terminates all threads within each daemon.
+        """
+        self.stop_daemons()  # Gracefully attempts to stop all daemons first
+        for daemon in self.daemons:
+            daemon.terminate()
 
     def run(self):
         """

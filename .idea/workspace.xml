@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="change print to logger with .log override">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="logger optimisation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/orderbook_level_2_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/orderbook_level_2_listener/orderbook_level_2_listener.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/orderbook_level_2_listener/setup_logger.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -417,7 +418,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714946597271</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="logger optimisation">
+      <option name="closed" value="true" />
+      <created>1714946861964</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1714946861964</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -435,7 +444,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="add multi instrument daemon + json huge update" />
     <MESSAGE value="dump path add" />
     <MESSAGE value="zip dump_path fix" />
     <MESSAGE value="is not none update" />
@@ -460,7 +468,8 @@
     <MESSAGE value="docs update" />
     <MESSAGE value="docs update, @100ms fix in coin m orderbook stream url" />
     <MESSAGE value="change print to logger with .log override" />
-    <option name="LAST_COMMIT_MESSAGE" value="change print to logger with .log override" />
+    <MESSAGE value="logger optimisation" />
+    <option name="LAST_COMMIT_MESSAGE" value="logger optimisation" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

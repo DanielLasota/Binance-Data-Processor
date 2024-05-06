@@ -20,9 +20,10 @@ class ArchiverDaemon:
             logger,
             azure_blob_parameters_with_key: str,
             container_name: str,
+            shutdown_flag: threading.Event,
             should_csv_be_removed_after_zip: bool = True,
             should_zip_be_removed_after_upload: bool = True,
-            should_zip_be_sent: bool = True
+            should_zip_be_sent: bool = True,
     ) -> None:
         """
         Initializes an instance of ArchiverDaemon, which handles the archiving of data streams into Azure Blob Storage.
@@ -52,6 +53,7 @@ class ArchiverDaemon:
         self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
         self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
         self.should_zip_be_sent = should_zip_be_sent
+        self.shutdown_flag = shutdown_flag
         self.lock: threading.Lock = threading.Lock()
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
@@ -126,12 +128,12 @@ class ArchiverDaemon:
         queue = self.orderbook_stream_message_queue if stream_type == 'orderbook' \
             else self.transaction_stream_message_queue
 
-        while True:
+        while not self.shutdown_flag.is_set():
             websocket = WebSocket()
             try:
                 url = url_method(market, instrument)
                 websocket.connect(url)
-                while True:
+                while not self.shutdown_flag.is_set():
                     data = websocket.recv()
                     with self.lock:
                         queue.put(data)
@@ -182,7 +184,7 @@ class ArchiverDaemon:
             else self.orderbook_stream_message_queue
         limits = {Market.SPOT: 5000, Market.USD_M_FUTURES: 1000, Market.COIN_M_FUTURES: 1000}
 
-        while True:
+        while not self.shutdown_flag.is_set():
             if not queue.empty():
                 file_name = self.get_file_name(instrument, market, f'{stream_type}_stream', 'json')
 
