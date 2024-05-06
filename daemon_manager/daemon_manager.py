@@ -1,16 +1,11 @@
 import json
 import os
 import time
-from orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
-from orderbook_level_2_listener.market_enum import Market
 from dotenv import load_dotenv
-from orderbook_level_2_listener.setup_logger import setup_logger
 import threading
-
-__author__ = "Daniel Lasota <grossmann.root@gmail.com>"
-__status__ = "production"
-__version__ = "2.1.3.7"
-__date__ = "05 may 2024"
+from orderbook_level_2_listener.setup_logger import setup_logger
+from orderbook_level_2_listener.market_enum import Market
+from orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
 
 
 class DaemonManager:
@@ -34,9 +29,10 @@ class DaemonManager:
             dump_path: str = '',
             should_csv_be_removed_after_zip: bool = True,
             should_zip_be_removed_after_upload: bool = True,
-            should_zip_be_sent: bool = True
+            should_zip_be_sent: bool = True,
+            dump_path_to_log_file: str = ''
     ) -> None:
-        self.logger = setup_logger()
+        self.logger = setup_logger(dump_path_to_log_file)
         self.config_path = config_path
         self.env_path = env_path
         self.dump_path = dump_path

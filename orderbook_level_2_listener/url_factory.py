@@ -1,5 +1,4 @@
 from typing import Optional
-
 from orderbook_level_2_listener.market_enum import Market
 
 
