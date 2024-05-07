@@ -9,7 +9,7 @@ from binance_archiver import DaemonManager
 
 if __name__ == "__main__":
 
-    load_dotenv('C:/Users/daniellasota/archer.env')
+    load_dotenv()
     config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
     blob_parameters_secret_name = os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY_SECRET_NAME')
     container_name_secret_name = os.environ.get('CONTAINER_NAME_SECRET_NAME')
