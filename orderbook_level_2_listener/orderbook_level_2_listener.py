@@ -91,7 +91,7 @@ class ArchiverDaemon:
         Note: If `dump_path` is not specified, ensure that the default path is correctly set up to avoid any file handling errors.
         """
         self.logger.info(f'launching lob, snapshots, transactions on: '
-                         f'{market} {instrument} {file_duration_seconds}s {dump_path}')
+                         f'{market} {instrument} {file_duration_seconds}s path: {dump_path}')
 
         self.start_orderbook_stream_listener(instrument, market)
         self.start_orderbook_stream_writer(market, instrument, file_duration_seconds, dump_path)
@@ -279,8 +279,8 @@ class ArchiverDaemon:
         """
 
         zip_file_name = file_name + '.zip'
-        zip_path = f'{dump_path}{zip_file_name}'
-        file_path = f'{dump_path}{file_name}'
+        zip_path = f'{dump_path}/{zip_file_name}'
+        file_path = f'{dump_path}/{file_name}'
 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
             zipf.write(file_path, arcname=file_name.split('/')[-1])

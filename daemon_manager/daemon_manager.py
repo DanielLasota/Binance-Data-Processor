@@ -1,9 +1,7 @@
-import json
 import os
 import time
 from typing import Optional
 
-from dotenv import load_dotenv
 import threading
 from orderbook_level_2_listener.setup_logger import setup_logger
 from orderbook_level_2_listener.market_enum import Market
@@ -28,7 +26,7 @@ class DaemonManager:
     def __init__(
             self,
             config: dict,
-            dump_path: str = '',
+            dump_path: str = 'saved_data/',
             remove_csv_after_zip: bool = True,
             remove_zip_after_upload: bool = True,
             send_zip_to_blob: bool = True,

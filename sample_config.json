@@ -1,0 +1,10 @@
+{
+  "daemons": {
+    "markets": {
+      "spot": ["BTCUSDT", "ETCUSDT","ETHUSDT", "LTCUSDT", "NEOUSDT", "XRPUSDT", "EOSUSDT", "ETCUSDT"],
+      "usd_m_futures": ["BTCUSDT", "ETCUSDT", "ETHUSDT", "LTCUSDT", "NEOUSDT", "XRPUSDT", "EOSUSDT", "ETCUSDT"],
+      "coin_m_futures": ["BTCUSD_PERP", "ETCUSD_PERP", "ETHUSD_PERP", "LTCUSD_PERP"]
+    },
+    "listen_duration": 300
+  }
+}
