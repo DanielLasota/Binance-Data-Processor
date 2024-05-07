@@ -2,12 +2,12 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logger(log_dump):
+def setup_logger(log_file_path: str) -> logging.Logger:
     logger = logging.getLogger('DaemonManager')
     logger.setLevel(logging.DEBUG)
 
     file_handler = RotatingFileHandler(
-        f'{log_dump}archiver.log',
+        f'{log_file_path}archiver.log',
         maxBytes=5 * 1024 * 1024,
         backupCount=3
     )

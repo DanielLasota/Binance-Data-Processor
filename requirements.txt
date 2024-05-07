@@ -1,6 +1,9 @@
 aiofiles
 websockets
 azure-storage-blob
+azure-identity
+azure-keyvault-secrets
+azure-containerregistry
 python-dotenv
 aiohttp
 requests

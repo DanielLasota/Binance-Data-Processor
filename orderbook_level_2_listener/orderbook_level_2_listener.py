@@ -21,9 +21,9 @@ class ArchiverDaemon:
             azure_blob_parameters_with_key: str,
             container_name: str,
             shutdown_flag: threading.Event,
-            should_csv_be_removed_after_zip: bool = True,
-            should_zip_be_removed_after_upload: bool = True,
-            should_zip_be_sent: bool = True,
+            remove_csv_after_zip: bool = True,
+            remove_zip_after_upload: bool = True,
+            send_zip_to_blob: bool = False,
     ) -> None:
         """
         Initializes an instance of ArchiverDaemon, which handles the archiving of data streams into Azure Blob Storage.
@@ -34,9 +34,9 @@ class ArchiverDaemon:
 
         :param azure_blob_parameters_with_key: Connection string for Azure Blob Storage, used to authorize and connect.
         :param container_name: Name of the Azure Blob Storage container where files will be stored.
-        :param should_csv_be_removed_after_zip: Boolean flag to determine if CSV files should be deleted after zipping.
-        :param should_zip_be_removed_after_upload: Boolean flag to determine if ZIP files should be deleted after uploading to Azure Blob Storage.
-        :param should_zip_be_sent: Boolean flag to determine if ZIP files should be uploaded to Azure Blob Storage.
+        :param remove_csv_after_zip: Boolean flag to determine if CSV files should be deleted after zipping.
+        :param remove_zip_after_upload: Boolean flag to determine if ZIP files should be deleted after uploading to Azure Blob Storage.
+        :param send_zip_to_blob: Boolean flag to determine if ZIP files should be uploaded to Azure Blob Storage.
 
         Attributes:
             lock (threading.Lock): A threading lock to manage access to shared resources in a thread-safe manner.
@@ -50,9 +50,9 @@ class ArchiverDaemon:
         The executor uses a maximum of 6 workers by default, which can be adjusted based on workload requirements.
         """
         self.logger = logger
-        self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
-        self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
-        self.should_zip_be_sent = should_zip_be_sent
+        self.should_csv_be_removed_after_zip = remove_csv_after_zip
+        self.should_zip_be_removed_after_upload = remove_zip_after_upload
+        self.should_zip_be_sent = send_zip_to_blob
         self.shutdown_flag = shutdown_flag
         self.lock: threading.Lock = threading.Lock()
         self.last_file_change_time = datetime.now()

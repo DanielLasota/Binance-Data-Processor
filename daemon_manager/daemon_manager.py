@@ -1,6 +1,8 @@
 import json
 import os
 import time
+from typing import Optional
+
 from dotenv import load_dotenv
 import threading
 from orderbook_level_2_listener.setup_logger import setup_logger
@@ -13,43 +15,45 @@ class DaemonManager:
     Initializes the DaemonManager which manages multiple ArchiverDaemon instances for processing market data.
 
     :param config_path: Path to the configuration JSON file that contains settings for various daemons.
-    :param env_path: Path to the .env file for environment variables needed for configurations such as
+    :param env: Path to the .env file for environment variables needed for configurations such as
                      Azure Blob Storage credentials.
     :param dump_path: Base directory path where all files will be dumped. If not provided, uses the current directory.
-    :param should_csv_be_removed_after_zip: Flag to determine whether the CSV files should be deleted after zipping.
-    :param should_zip_be_removed_after_upload: Flag to determine whether the zip files should be deleted after being uploaded.
-    :param should_zip_be_sent: Flag to determine whether the zip files should be uploaded to Azure Blob Storage.
+    :param remove_csv_after_zip: Flag to determine whether the CSV files should be deleted after zipping.
+    :param remove_zip_after_upload: Flag to determine whether the zip files should be deleted after being uploaded.
+    :param send_zip_to_blob: Flag to determine whether the zip files should be uploaded to Azure Blob Storage.
 
     Sets up the environment, loads configurations, and prepares to launch data processing daemons as configured.
     """
+
     def __init__(
             self,
-            config_path: str = 'config.json',
-            env_path: str = '.env',
+            config: dict,
             dump_path: str = '',
-            should_csv_be_removed_after_zip: bool = True,
-            should_zip_be_removed_after_upload: bool = True,
-            should_zip_be_sent: bool = True,
-            dump_path_to_log_file: str = ''
+            remove_csv_after_zip: bool = True,
+            remove_zip_after_upload: bool = True,
+            send_zip_to_blob: bool = True,
+            dump_path_to_log_file: str = '',
+            azure_blob_parameters_with_key: Optional[str] = None,
+            container_name: Optional[str] = None
     ) -> None:
+        self.config = config
         self.logger = setup_logger(dump_path_to_log_file)
-        self.config_path = config_path
-        self.env_path = env_path
         self.dump_path = dump_path
+        self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
+        self.container_name = container_name
         self.daemons = []
-        self.should_csv_be_removed_after_zip = should_csv_be_removed_after_zip
-        self.should_zip_be_removed_after_upload = should_zip_be_removed_after_upload
-        self.should_zip_be_sent = should_zip_be_sent
+        self.remove_csv_after_zip = remove_csv_after_zip
+        self.remove_zip_after_upload = remove_zip_after_upload
+        self.send_zip_to_blob = send_zip_to_blob
         self.shutdown_flag = threading.Event()
 
     def load_config(self):
         """
-        Loads the daemon configuration from the specified JSON configuration file.
+        Loads the daemon configuration from the specified JSON
 
         :return: A dictionary containing the loaded configuration data.
         """
-        with open(self.config_path, 'r') as file:
-            return json.load(file)
+        return self.config
 
     def start_daemons(self):
         """
@@ -59,12 +63,14 @@ class DaemonManager:
         loads environment variables, and starts each daemon based on the market and instrument specifications.
         """
 
+        if self.azure_blob_parameters_with_key is None or self.container_name is None:
+            self.send_zip_to_blob = False
+
         self.logger.info('starting')
 
         if self.dump_path != '' and not os.path.exists(self.dump_path):
             os.makedirs(self.dump_path)
 
-        load_dotenv(self.env_path)
         config = self.load_config()
         listen_duration = config['daemons']['listen_duration']
 
@@ -73,15 +79,18 @@ class DaemonManager:
             for instrument in instruments:
                 daemon = ArchiverDaemon(
                     logger=self.logger,
-                    azure_blob_parameters_with_key=os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY'),
-                    container_name=os.environ.get('CONTAINER_NAME'),
-                    should_csv_be_removed_after_zip=self.should_csv_be_removed_after_zip,
-                    should_zip_be_removed_after_upload=self.should_zip_be_removed_after_upload,
-                    should_zip_be_sent=self.should_zip_be_sent,
-                    shutdown_flag=self.shutdown_flag  # Pass the shutdown flag to each daemon
+                    azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
+                    container_name=self.container_name,
+                    remove_csv_after_zip=self.remove_csv_after_zip,
+                    remove_zip_after_upload=self.remove_zip_after_upload,
+                    send_zip_to_blob=self.send_zip_to_blob,
+                    shutdown_flag=self.shutdown_flag
                 )
-                daemon.run(instrument=instrument, market=market_enum, file_duration_seconds=listen_duration,
-                           dump_path=self.dump_path)
+                daemon.run(
+                    instrument=instrument,
+                    market=market_enum,
+                    file_duration_seconds=listen_duration,
+                    dump_path=self.dump_path)
                 self.daemons.append(daemon)
 
     def stop_daemons(self):
