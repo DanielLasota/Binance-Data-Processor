@@ -3,9 +3,9 @@ import time
 from typing import Optional
 
 import threading
-from orderbook_level_2_listener.setup_logger import setup_logger
-from orderbook_level_2_listener.market_enum import Market
-from orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
+from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
+from binance_archiver.orderbook_level_2_listener.market_enum import Market
+from binance_archiver.orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
 
 
 class DaemonManager:
@@ -26,7 +26,7 @@ class DaemonManager:
     def __init__(
             self,
             config: dict,
-            dump_path: str = 'saved_data/',
+            dump_path: str = 'temp/',
             remove_csv_after_zip: bool = True,
             remove_zip_after_upload: bool = True,
             send_zip_to_blob: bool = True,
