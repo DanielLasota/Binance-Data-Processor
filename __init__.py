@@ -1,8 +1,6 @@
-from daemon_manager.daemon_manager import DaemonManager
+from .daemon_manager.daemon_manager import DaemonManager
 
-__all__ = [
-    'DaemonManager'
-]
+__all__ = ['DaemonManager']
 
 __author__ = "Daniel Lasota <grossmann.root@gmail.com>"
 __status__ = "production"
