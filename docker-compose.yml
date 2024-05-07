@@ -3,6 +3,6 @@ services:
   algo:
     build:
       context: .
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
 
     restart: unless-stopped

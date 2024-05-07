@@ -9,7 +9,7 @@ from azure.storage.blob import BlobServiceClient
 from .market_enum import Market
 import requests
 from queue import Queue
-from websocket import WebSocketException, WebSocket
+from websocket import WebSocket
 from concurrent.futures import ThreadPoolExecutor
 from .url_factory import URLFactory
 

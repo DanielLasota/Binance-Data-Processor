@@ -7,9 +7,8 @@ azure-containerregistry
 python-dotenv
 aiohttp
 requests
-websocket
-python-dotenv
-websockets
-requests
-websocket
 websocket-client
+websocket
+websockets
+python-dotenv
+requests
