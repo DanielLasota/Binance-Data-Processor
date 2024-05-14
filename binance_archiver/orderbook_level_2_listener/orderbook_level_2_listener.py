@@ -4,12 +4,11 @@ import threading
 import time
 import zipfile
 from datetime import datetime
-from websockets import WebSocketException
 from azure.storage.blob import BlobServiceClient
 from .market_enum import Market
 import requests
 from queue import Queue
-from websocket import WebSocket
+from websocket import WebSocket, WebSocketConnectionClosedException
 from concurrent.futures import ThreadPoolExecutor
 from .url_factory import URLFactory
 
@@ -50,9 +49,9 @@ class ArchiverDaemon:
         The executor uses a maximum of 6 workers by default, which can be adjusted based on workload requirements.
         """
         self.logger = logger
-        self.should_csv_be_removed_after_zip = remove_csv_after_zip
-        self.should_zip_be_removed_after_upload = remove_zip_after_upload
-        self.should_zip_be_sent = send_zip_to_blob
+        self.remove_csv_after_zip = remove_csv_after_zip
+        self.remove_zip_after_upload = remove_zip_after_upload
+        self.send_zip_to_blob = send_zip_to_blob
         self.shutdown_flag = shutdown_flag
         self.lock: threading.Lock = threading.Lock()
         self.last_file_change_time = datetime.now()
@@ -92,7 +91,6 @@ class ArchiverDaemon:
         """
         self.logger.info(f'launching lob, snapshots, transactions on: '
                          f'{market} {instrument} {file_duration_seconds}s path: {dump_path}')
-
         self.start_orderbook_stream_listener(instrument, market)
         self.start_orderbook_stream_writer(market, instrument, file_duration_seconds, dump_path)
         self.start_transaction_stream_listener(instrument, market)
@@ -123,22 +121,27 @@ class ArchiverDaemon:
         :param instrument: Trading pair or instrument identifier.
         :param market: Market enum indicating the specific market.
         """
+
         url_method = URLFactory.get_orderbook_stream_url if stream_type == 'orderbook' \
             else URLFactory.get_transaction_stream_url
         queue = self.orderbook_stream_message_queue if stream_type == 'orderbook' \
             else self.transaction_stream_message_queue
 
         while not self.shutdown_flag.is_set():
+
             websocket = WebSocket()
+
             try:
                 url = url_method(market, instrument)
                 websocket.connect(url)
+
                 while not self.shutdown_flag.is_set():
                     data = websocket.recv()
                     with self.lock:
                         queue.put(data)
-            except WebSocketException as e:
-                self.logger.info(f"{stream_type.capitalize()} WebSocket error: {e}. Reconnecting...")
+
+            except WebSocketConnectionClosedException as e:
+                self.logger.info(f"WebSocket connection closed: {e}. Reconnecting...")
                 time.sleep(1)
             except Exception as e:
                 self.logger.info(f"Unexpected error in {stream_type} stream: {e}. Attempting to restart listener...")
@@ -246,7 +249,7 @@ class ArchiverDaemon:
             data = response.json()
             full_path = os.path.join(dump_path, file_name)
             with open(full_path, 'w') as f:
-                json.dump(data, f, indent=4)
+                json.dump(data, f)
             self.launch_zip_daemon(file_name, dump_path)
         else:
             raise Exception(f"Failed to get data: {response.status_code} response")
@@ -285,10 +288,10 @@ class ArchiverDaemon:
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
             zipf.write(file_path, arcname=file_name.split('/')[-1])
 
-        if self.should_csv_be_removed_after_zip:
+        if self.remove_csv_after_zip:
             os.remove(file_path)
 
-        if self.should_zip_be_sent:
+        if self.send_zip_to_blob:
             self.upload_file_to_blob(zip_path, zip_file_name)
 
     def upload_file_to_blob(
@@ -317,10 +320,11 @@ class ArchiverDaemon:
               instantiation of the class.
         """
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=blob_name)
+
         with open(file_path, "rb") as data:
             blob_client.upload_blob(data, overwrite=True)
 
-        if self.should_zip_be_removed_after_upload:
+        if self.remove_zip_after_upload:
             os.remove(file_path)
 
     @staticmethod

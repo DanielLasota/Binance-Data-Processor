@@ -1,5 +1,4 @@
 aiofiles
-websockets
 azure-storage-blob
 azure-identity
 azure-keyvault-secrets
@@ -8,7 +7,3 @@ python-dotenv
 aiohttp
 requests
 websocket-client
-websocket
-websockets
-python-dotenv
-requests

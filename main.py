@@ -9,7 +9,7 @@ from binance_archiver import DaemonManager
 
 if __name__ == "__main__":
 
-    load_dotenv('C:/Users/daniellasota/archer.env')
+    load_dotenv()
     config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
     blob_parameters_secret_name = os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY_SECRET_NAME')
     container_name_secret_name = os.environ.get('CONTAINER_NAME_SECRET_NAME')
@@ -25,10 +25,6 @@ if __name__ == "__main__":
 
     manager = DaemonManager(
         config=config,
-        dump_path='temp',
-        remove_csv_after_zip=True,
-        remove_zip_after_upload=True,
-        send_zip_to_blob=True,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
         container_name=container_name
     )

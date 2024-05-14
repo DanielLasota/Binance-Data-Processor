@@ -6,6 +6,7 @@ import threading
 from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.orderbook_level_2_listener import ArchiverDaemon
+from binance_archiver.logo import logo
 
 
 class DaemonManager:
@@ -26,7 +27,7 @@ class DaemonManager:
     def __init__(
             self,
             config: dict,
-            dump_path: str = 'temp/',
+            dump_path: str = 'temp',
             remove_csv_after_zip: bool = True,
             remove_zip_after_upload: bool = True,
             send_zip_to_blob: bool = True,
@@ -64,7 +65,8 @@ class DaemonManager:
         if self.azure_blob_parameters_with_key is None or self.container_name is None:
             self.send_zip_to_blob = False
 
-        self.logger.info('starting')
+        self.logger.info(logo)
+        self.logger.info('Starting Binance Archiver...')
 
         if self.dump_path != '' and not os.path.exists(self.dump_path):
             os.makedirs(self.dump_path)
