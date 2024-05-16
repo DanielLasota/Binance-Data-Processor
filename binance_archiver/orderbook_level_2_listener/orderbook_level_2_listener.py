@@ -139,6 +139,7 @@ class ArchiverDaemon:
                     data = websocket.recv()
                     with self.lock:
                         queue.put(data)
+                        self.logger.info(len(queue))
 
             except WebSocketConnectionClosedException as e:
                 self.logger.info(f"WebSocket connection closed: {e}. Reconnecting...")
@@ -328,9 +329,8 @@ class ArchiverDaemon:
             os.remove(file_path)
 
     @staticmethod
-    def get_timestamp():
-        now = datetime.now()
-        return now.strftime('%d-%m-%YT%H-%M-%S')
+    def get_utc_timestamp():
+        return datetime.utcnow().strftime('%d-%m-%YT%H-%M-%SZ')
 
     @staticmethod
     def get_file_name(
@@ -366,7 +366,7 @@ class ArchiverDaemon:
         """
 
         pair_lower = instrument.lower()
-        formatted_now_timestamp = ArchiverDaemon.get_timestamp()
+        formatted_now_timestamp = ArchiverDaemon.get_utc_timestamp()
 
         market_mapping = {
             Market.SPOT: 'spot',
@@ -375,9 +375,9 @@ class ArchiverDaemon:
         }
 
         data_type_mapping = {
-            'orderbook_stream': 'l2lob_raw_delta_broadcast',
-            'transaction_stream': 'transaction_broadcast',
-            'orderbook_snapshot': 'l2lob_snapshot'
+            'orderbook_stream': 'binance_l2lob_raw_delta_broadcast',
+            'transaction_stream': 'binance_transaction_broadcast',
+            'orderbook_snapshot': 'binance_l2lob_snapshot'
         }
 
         market_short_name = market_mapping.get(market, 'unknown_market')

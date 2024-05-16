@@ -1,16 +1,20 @@
 import logging
 from logging.handlers import RotatingFileHandler
+from datetime import datetime
 
 
 def setup_logger(log_file_path: str) -> logging.Logger:
     logger = logging.getLogger('DaemonManager')
     logger.setLevel(logging.DEBUG)
 
+    now_utc = datetime.utcnow().strftime('%d-%m-%YT%H-%M-%SZ')
+
     file_handler = RotatingFileHandler(
-        f'{log_file_path}archiver.log',
+        f"{log_file_path}archiver{now_utc}.log",
         maxBytes=5 * 1024 * 1024,
         backupCount=3
     )
+
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(file_formatter)
 
