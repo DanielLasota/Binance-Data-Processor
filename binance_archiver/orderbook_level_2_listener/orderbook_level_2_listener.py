@@ -139,7 +139,6 @@ class ArchiverDaemon:
                     data = websocket.recv()
                     with self.lock:
                         queue.put(data)
-                        self.logger.info(len(queue))
 
             except WebSocketConnectionClosedException as e:
                 self.logger.info(f"WebSocket connection closed: {e}. Reconnecting...")

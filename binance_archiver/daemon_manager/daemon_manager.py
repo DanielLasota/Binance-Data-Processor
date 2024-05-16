@@ -31,7 +31,7 @@ class DaemonManager:
             remove_csv_after_zip: bool = True,
             remove_zip_after_upload: bool = True,
             send_zip_to_blob: bool = True,
-            dump_path_to_log_file: str = '',
+            dump_path_to_log_file: str = 'logs/',
             azure_blob_parameters_with_key: Optional[str] = None,
             container_name: Optional[str] = None
     ) -> None:
