@@ -141,10 +141,12 @@ class ArchiverDaemon:
                         queue.put(data)
 
             except WebSocketConnectionClosedException as e:
-                self.logger.info(f"WebSocket connection closed: {e}. Reconnecting...")
+                self.logger.info(f"WebSocket connection closed on {stream_type} {instrument} {instrument}: "
+                                 f"{e}. Reconnecting...")
                 time.sleep(1)
             except Exception as e:
-                self.logger.info(f"Unexpected error in {stream_type} stream: {e}. Attempting to restart listener...")
+                self.logger.info(f"Unexpected error in {stream_type} {instrument} {instrument} "
+                                 f"stream: {e}. Attempting to restart listener...")
                 time.sleep(1)
             finally:
                 websocket.close()

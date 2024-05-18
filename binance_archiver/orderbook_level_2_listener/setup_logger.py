@@ -1,4 +1,5 @@
 import logging
+import time
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
@@ -14,6 +15,8 @@ def setup_logger(log_file_path: str) -> logging.Logger:
         maxBytes=5 * 1024 * 1024,
         backupCount=3
     )
+
+    logging.Formatter.converter = time.gmtime
 
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(file_formatter)
