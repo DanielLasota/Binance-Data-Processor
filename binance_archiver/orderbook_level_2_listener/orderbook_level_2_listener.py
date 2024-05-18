@@ -8,7 +8,7 @@ from azure.storage.blob import BlobServiceClient
 from .market_enum import Market
 import requests
 from queue import Queue
-from websocket import WebSocket, WebSocketConnectionClosedException
+from websocket import WebSocket, WebSocketConnectionClosedException, WebSocketAddressException
 from concurrent.futures import ThreadPoolExecutor
 from .url_factory import URLFactory
 
@@ -91,6 +91,7 @@ class ArchiverDaemon:
         """
         self.logger.info(f'launching lob, snapshots, transactions on: '
                          f'{market} {instrument} {file_duration_seconds}s path: {dump_path}')
+
         self.start_orderbook_stream_listener(instrument, market)
         self.start_orderbook_stream_writer(market, instrument, file_duration_seconds, dump_path)
         self.start_transaction_stream_listener(instrument, market)
@@ -124,8 +125,15 @@ class ArchiverDaemon:
 
         url_method = URLFactory.get_orderbook_stream_url if stream_type == 'orderbook' \
             else URLFactory.get_transaction_stream_url
-        queue = self.orderbook_stream_message_queue if stream_type == 'orderbook' \
-            else self.transaction_stream_message_queue
+        queues = {
+            'transaction': self.transaction_stream_message_queue,
+            'orderbook': self.orderbook_stream_message_queue
+        }
+
+        try:
+            queue = queues[stream_type]
+        except KeyError:
+            raise ValueError(f"Invalid stream type: {stream_type}")
 
         while not self.shutdown_flag.is_set():
 
@@ -139,17 +147,35 @@ class ArchiverDaemon:
                     data = websocket.recv()
                     with self.lock:
                         queue.put(data)
+                        if stream_type == 'orderbook':
+                            self.logger.info(f'queue.qsize() {queue.qsize()}')
 
             except WebSocketConnectionClosedException as e:
-                self.logger.info(f"WebSocket connection closed on {stream_type} {instrument} {instrument}: "
-                                 f"{e}. Reconnecting...")
-                time.sleep(1)
+                self.logger.warning(f"WebSocket connection closed: {e} - "
+                                    f"Reconnecting to {stream_type} stream of {instrument} in {market.value}")
+                self._reconnect(stream_type, instrument, market)
+
+            except WebSocketAddressException as e:
+                self.logger.error(f"Socket GAI error: {e} - "
+                                  f"Restarting {stream_type} stream of {instrument} in {market.value}")
+                time.sleep(5)
+                self._reconnect(stream_type, instrument, market)
+
             except Exception as e:
-                self.logger.info(f"Unexpected error in {stream_type} {instrument} {instrument} "
-                                 f"stream: {e}. Attempting to restart listener...")
-                time.sleep(1)
+                self.logger.error(f"Unexpected error: {e} - "
+                                  f"Restarting {stream_type} stream of {instrument} in {market.value}")
+                self._reconnect(stream_type, instrument, market)
+
             finally:
                 websocket.close()
+                self.logger.info(f"Closed WebSocket for {stream_type} stream of {instrument} in {market.value}")
+
+    def _reconnect(self, stream_type: str, instrument: str, market: Market) -> None:
+        time.sleep(1)
+        if not self.shutdown_flag.is_set():
+            self.executor.submit(self._stream_listener, stream_type, instrument, market)
+            self.logger.info(f">> RE-SUBMITTER: "
+                             f"Resubmitted task for {stream_type} stream of {instrument} in {market.value}")
 
     def _stream_writer(
             self,
@@ -185,9 +211,23 @@ class ArchiverDaemon:
         Note: This method should run in a dedicated thread or asynchronous task since it contains a blocking infinite loop
         and time-delayed operations.
         """
-        queue = self.transaction_stream_message_queue if stream_type == 'transaction' \
-            else self.orderbook_stream_message_queue
-        limits = {Market.SPOT: 5000, Market.USD_M_FUTURES: 1000, Market.COIN_M_FUTURES: 1000}
+
+        queues = {
+            'transaction': self.transaction_stream_message_queue,
+            'orderbook': self.orderbook_stream_message_queue
+        }
+
+        try:
+            queue = queues[stream_type]
+
+        except KeyError:
+            raise ValueError(f"Invalid stream type: {stream_type}")
+
+        limits = {
+            Market.SPOT: 5000,
+            Market.USD_M_FUTURES: 1000,
+            Market.COIN_M_FUTURES: 1000
+        }
 
         while not self.shutdown_flag.is_set():
             if not queue.empty():
@@ -197,12 +237,14 @@ class ArchiverDaemon:
                     limit = limits.get(market, 1000)
                     snapshot_url = URLFactory.get_snapshot_url(market=market, pair=instrument, limit=limit)
                     snapshot_file_name = (
-                        self.get_file_name(instrument, market, 'orderbook_snapshot', 'json'))
+                        self.get_file_name(instrument, market, 'orderbook_snapshot', 'json')
+                    )
                     self.launch_snapshot_fetcher(snapshot_url, snapshot_file_name, dump_path)
 
                 time.sleep(duration)
 
                 data_list = []
+                self.logger.info('started _stream_writer')
                 while not queue.empty():
                     data = queue.get()
                     data_list.append(json.loads(data))
@@ -233,16 +275,6 @@ class ArchiverDaemon:
         :param dump_path: The path to the directory where the output file should be stored. This path must exist
                           on the file system.
 
-        After fetching the data and writing it to a file, the method calls `launch_zip_daemon` to handle possible
-        zipping and uploading of the file based on class configurations.
-
-        Raises:
-            Exception: An exception is raised if the HTTP request does not return a 200 (OK) status code, indicating
-                       that the data fetch was unsuccessful. The exception message includes the failed status code.
-
-        Note:
-            This method includes a delay (sleep) of 1 second before executing the request to mitigate the risk of
-            hitting API rate limits or to handle use cases that require a slight delay for any reason.
         """
         time.sleep(1)
 
@@ -277,10 +309,6 @@ class ArchiverDaemon:
         - If enabled (`should_csv_be_removed_after_zip`), deletes the original file after successful compression.
         - If enabled (`should_zip_be_sent`), uploads the newly created ZIP file to Azure Blob Storage.
 
-        Note:
-            - The method assumes that the path management (e.g., ensuring the directory exists) is handled externally.
-            - Proper permissions must be in place to read the source file, write the ZIP file, and delete the source file if configured.
-            - The method does not return any value but will raise filesystem or network exceptions if operations fail.
         """
 
         zip_file_name = file_name + '.zip'
@@ -304,22 +332,10 @@ class ArchiverDaemon:
         """
         Uploads a file to an Azure Blob Storage container and optionally removes the file locally.
 
-        This method is responsible for uploading a specified file to Azure Blob Storage using the provided blob name.
-        It opens the file in binary read mode and uploads its contents to the blob storage. After successfully uploading,
-        the method can optionally delete the local file based on the class configuration.
-
         :param file_path: The full path to the file that needs to be uploaded. This file must exist on the local file system.
         :param blob_name: The name of the blob within the Azure Blob Storage container where the file will be stored.
                           This is effectively the file name in the cloud.
 
-        Upon successful upload, if the configuration `should_zip_be_removed_after_upload` is set to True,
-        the method removes the local file to free up space or clean up the local storage.
-
-        Note:
-            - This method requires that the Azure storage client is properly configured with the correct access keys and
-              permissions.
-            - The method assumes the `self.blob_service_client` and `self.container_name` are correctly set up during the
-              instantiation of the class.
         """
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=blob_name)
 
@@ -352,18 +368,6 @@ class ArchiverDaemon:
         :param data_type: A string representing the type of data (e.g., 'orderbook_stream', 'transaction_stream').
         :param extension: The file extension (e.g., 'json', 'csv') to append to the file name.
         :return: A string representing the formatted file name.
-
-        The method maps the market and data type to predefined strings that describe these aspects more verbosely.
-        If no matching key is found in the mapping for market or data type, 'unknown_market' or 'unknown_data_type'
-        is used respectively. The file name includes a timestamp in the format '%d-%m-%YT%H-%M-%S' to prevent overwriting
-        previous files and to track data chronologically.
-
-        Example of generated file name:
-            'l2lob_raw_delta_broadcast_spot_btcusd_05-10-2023T14-30-01.json'
-
-        Note:
-            This method uses `ArchiverDaemon.get_timestamp()` to generate the timestamp, assuming this method is defined
-            elsewhere in the ArchiverDaemon class that returns the current date and time formatted as a string.
         """
 
         pair_lower = instrument.lower()
