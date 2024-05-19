@@ -5,7 +5,6 @@ import threading
 import time
 import zipfile
 from datetime import datetime
-from typing import Optional
 
 from azure.storage.blob import BlobServiceClient
 
