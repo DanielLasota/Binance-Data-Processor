@@ -1,22 +1,30 @@
 import json
+import logging
 import os
 import threading
 import time
 import zipfile
 from datetime import datetime
+from typing import Optional
+
 from azure.storage.blob import BlobServiceClient
+
 from .market_enum import Market
 import requests
 from queue import Queue
-from websocket import WebSocket, WebSocketConnectionClosedException, WebSocketAddressException
+from websocket import WebSocket, WebSocketConnectionClosedException, WebSocketAddressException, \
+    WebSocketTimeoutException
 from concurrent.futures import ThreadPoolExecutor
+
+from .NoSignalException import NoSignalException
+from .supervisor import Supervisor
 from .url_factory import URLFactory
 
 
 class ArchiverDaemon:
     def __init__(
             self,
-            logger,
+            logger: logging.Logger,
             azure_blob_parameters_with_key: str,
             container_name: str,
             shutdown_flag: threading.Event,
@@ -34,25 +42,14 @@ class ArchiverDaemon:
         :param azure_blob_parameters_with_key: Connection string for Azure Blob Storage, used to authorize and connect.
         :param container_name: Name of the Azure Blob Storage container where files will be stored.
         :param remove_csv_after_zip: Boolean flag to determine if CSV files should be deleted after zipping.
-        :param remove_zip_after_upload: Boolean flag to determine if ZIP files should be deleted after uploading to Azure Blob Storage.
+        :param remove_zip_after_upload: Boolean flag to determine if ZIP files should be deleted after uploading to blob
         :param send_zip_to_blob: Boolean flag to determine if ZIP files should be uploaded to Azure Blob Storage.
-
-        Attributes:
-            lock (threading.Lock): A threading lock to manage access to shared resources in a thread-safe manner.
-            last_file_change_time (datetime): Timestamp of the last file operation, used to monitor and log file changes.
-            blob_service_client (BlobServiceClient): Client for interacting with Azure Blob Storage, initialized with the provided connection string.
-            container_name (str): Container name in Azure Blob Storage for storing files.
-            orderbook_stream_message_queue (Queue): Queue for storing messages from the orderbook data stream.
-            transaction_stream_message_queue (Queue): Queue for storing messages from the transaction data stream.
-            executor (ThreadPoolExecutor): Executor with a configurable number of workers to manage concurrent tasks.
-
-        The executor uses a maximum of 6 workers by default, which can be adjusted based on workload requirements.
         """
         self.logger = logger
         self.remove_csv_after_zip = remove_csv_after_zip
         self.remove_zip_after_upload = remove_zip_after_upload
         self.send_zip_to_blob = send_zip_to_blob
-        self.shutdown_flag = shutdown_flag
+        self.global_shutdown_flag = shutdown_flag
         self.lock: threading.Lock = threading.Lock()
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
@@ -87,7 +84,6 @@ class ArchiverDaemon:
         - Listening to the transaction stream.
         - Writing transaction data to a file every `file_duration_secs`.
 
-        Note: If `dump_path` is not specified, ensure that the default path is correctly set up to avoid any file handling errors.
         """
         self.logger.info(f'launching lob, snapshots, transactions on: '
                          f'{market} {instrument} {file_duration_seconds}s path: {dump_path}')
@@ -116,66 +112,99 @@ class ArchiverDaemon:
         self.executor.submit(self._zip_daemon, file_name, dump_path)
 
     def _stream_listener(self, stream_type: str, instrument: str, market: Market) -> None:
-        """
-        A generic stream listener for both orderbook and transaction streams.
-        :param stream_type: 'orderbook' or 'transaction' to specify the type of stream.
-        :param instrument: Trading pair or instrument identifier.
-        :param market: Market enum indicating the specific market.
-        """
-
         url_method = URLFactory.get_orderbook_stream_url if stream_type == 'orderbook' \
             else URLFactory.get_transaction_stream_url
+
         queues = {
             'transaction': self.transaction_stream_message_queue,
             'orderbook': self.orderbook_stream_message_queue
         }
 
+        stop_event = threading.Event()
+
+        queue = queues[stream_type]
+        websocket = WebSocket()
+
+        supervisor = Supervisor(
+            logger=self.logger,
+            on_error_callback=lambda: stop_event.set(),
+            stream_type=stream_type,
+            instrument=instrument,
+            market=market
+        )
+
         try:
-            queue = queues[stream_type]
-        except KeyError:
-            raise ValueError(f"Invalid stream type: {stream_type}")
+            url = url_method(market, instrument)
+            websocket.connect(url, timeout=5)
+            websocket.settimeout(5)
 
-        while not self.shutdown_flag.is_set():
+            while not self.global_shutdown_flag.is_set():
+                if stop_event.is_set():
+                    self.logger.info("Stop event set by Supervisor, breaking the loop.")
+                    break
 
-            websocket = WebSocket()
-
-            try:
-                url = url_method(market, instrument)
-                websocket.connect(url)
-
-                while not self.shutdown_flag.is_set():
+                try:
                     data = websocket.recv()
                     with self.lock:
                         queue.put(data)
-                        if stream_type == 'orderbook':
-                            self.logger.info(f'queue.qsize() {queue.qsize()}')
+                        supervisor.notify()
 
-            except WebSocketConnectionClosedException as e:
-                self.logger.warning(f"WebSocket connection closed: {e} - "
-                                    f"Reconnecting to {stream_type} stream of {instrument} in {market.value}")
-                self._reconnect(stream_type, instrument, market)
+                except NoSignalException as e:
+                    self.logger.warning(
+                        f"WebSocketTimeoutException {e}: Reconnecting to {stream_type} stream of {instrument} in {market}")
+                    self._reconnect(stream_type, instrument, market)
+                    break
+                except WebSocketTimeoutException as e:
+                    self.logger.warning(
+                        f"WebSocketTimeoutException {e}: Reconnecting to {stream_type} stream of {instrument} in {market}")
+                    self._reconnect(stream_type, instrument, market)
+                    break
+                except WebSocketConnectionClosedException as e:
+                    self.logger.warning(
+                        f"WebSocketTimeoutException {e}: Reconnecting to {stream_type} stream of {instrument} in {market}")
+                    self._reconnect(stream_type, instrument, market)
+                    break
+                except WebSocketAddressException as e:
+                    self.logger.error(
+                        f"WebSocketAddressException {e}: Restarting {stream_type} stream of {instrument} in {market}")
+                    time.sleep(5)
+                    self._reconnect(stream_type, instrument, market)
+                    break
+                except Exception as e:
+                    self.logger.error(f"Exception {e}: Restarting {stream_type} stream of {instrument} in {market}")
+                    self._reconnect(stream_type, instrument, market)
+                    break
 
-            except WebSocketAddressException as e:
-                self.logger.error(f"Socket GAI error: {e} - "
-                                  f"Restarting {stream_type} stream of {instrument} in {market.value}")
-                time.sleep(5)
-                self._reconnect(stream_type, instrument, market)
+        except WebSocketTimeoutException as e:
+            self.logger.warning(
+                f"WebSocketTimeoutException {e}: Reconnecting to {stream_type} stream of {instrument} in {market}")
+            self._reconnect(stream_type, instrument, market)
 
-            except Exception as e:
-                self.logger.error(f"Unexpected error: {e} - "
-                                  f"Restarting {stream_type} stream of {instrument} in {market.value}")
-                self._reconnect(stream_type, instrument, market)
+        except WebSocketConnectionClosedException as e:
+            self.logger.warning(
+                f"WebSocketConnectionClosedException: {e} Reconnecting to {stream_type} stream of {instrument} in {market}")
+            self._reconnect(stream_type, instrument, market)
 
-            finally:
-                websocket.close()
-                self.logger.info(f"Closed WebSocket for {stream_type} stream of {instrument} in {market.value}")
+        except WebSocketAddressException as e:
+            self.logger.error(
+                f"WebSocketAddressException {e}: Restarting {stream_type} stream of {instrument} in {market}")
+            time.sleep(5)
+            self._reconnect(stream_type, instrument, market)
+
+        except Exception as e:
+            self.logger.error(f"Exception {e}: Restarting {stream_type} stream of {instrument} in {market}")
+            self._reconnect(stream_type, instrument, market)
+
+        finally:
+            self.logger.info(f"Reached _stream_listener end on WebSocket for "
+                             f"{stream_type} stream of {instrument} in {market}")
+            websocket.close()
 
     def _reconnect(self, stream_type: str, instrument: str, market: Market) -> None:
-        time.sleep(1)
-        if not self.shutdown_flag.is_set():
+        if not self.global_shutdown_flag.is_set():
             self.executor.submit(self._stream_listener, stream_type, instrument, market)
-            self.logger.info(f">> RE-SUBMITTER: "
-                             f"Resubmitted task for {stream_type} stream of {instrument} in {market.value}")
+            self.logger.info(f"_reconnect invocation: "
+                             f"Resubmitted task for {stream_type} stream of {instrument} in {market}")
 
     def _stream_writer(
             self,
@@ -195,21 +224,12 @@ class ArchiverDaemon:
 
         :param market: The market type as specified in the Market enum, which determines the source of the stream data.
         :param instrument: The trading instrument identifier (e.g., 'BTCUSD') for which the stream data is relevant.
-        :param duration: The interval in seconds between writing data to the file system. This controls how often the data
-                         is dumped from the queue to the filesystem.
+        :param duration: The interval in seconds between writing data to the file system.
+                         This controls how often the data is dumped from the queue to the filesystem.
         :param dump_path: The directory path where the resulting files will be stored.
-        :param stream_type: A string indicating the type of data stream ('transaction' or 'orderbook'). This determines which
+        :param stream_type: A string indicating the type of data stream ('transaction' or 'orderbook').
+                            This determines which
                             queue to monitor and the specific processing logic to apply.
-
-        The function operates in an infinite loop, checking if the corresponding data queue is not empty,
-        and processing the data accordingly. If the stream type is 'orderbook', it additionally fetches
-        a snapshot from a URL and saves it separately.
-
-        Files are appended with new data at each interval, and once written, the file archiving process is triggered to
-        optionally compress and upload the data to Azure Blob Storage.
-
-        Note: This method should run in a dedicated thread or asynchronous task since it contains a blocking infinite loop
-        and time-delayed operations.
         """
 
         queues = {
@@ -229,7 +249,7 @@ class ArchiverDaemon:
             Market.COIN_M_FUTURES: 1000
         }
 
-        while not self.shutdown_flag.is_set():
+        while not self.global_shutdown_flag.is_set():
             if not queue.empty():
                 file_name = self.get_file_name(instrument, market, f'{stream_type}_stream', 'json')
 
@@ -244,7 +264,6 @@ class ArchiverDaemon:
                 time.sleep(duration)
 
                 data_list = []
-                self.logger.info('started _stream_writer')
                 while not queue.empty():
                     data = queue.get()
                     data_list.append(json.loads(data))
@@ -296,19 +315,16 @@ class ArchiverDaemon:
         """
         Compresses a specified file into a ZIP archive and optionally uploads it to Azure Blob Storage.
 
-        This method takes a file specified by `file_name` within the `dump_path` directory, compresses it into a ZIP file,
-        and optionally handles the deletion of the original file and the uploading of the ZIP file based on the daemon's configuration.
+        This method takes a file specified by `file_name` within the `dump_path` directory,
+        compresses it into a ZIP file,
+        and optionally handles the deletion of the original file
+        and the uploading of the ZIP file based on the daemon's configuration.
 
-        :param file_name: The name of the file to be compressed. This file must exist within the directory specified by `dump_path`.
+        :param file_name: The name of the file to be compressed. This file must exist within
+                          the directory specified by `dump_path`.
                           The '.zip' extension is automatically appended to this name for the created ZIP file.
         :param dump_path: The path to the directory where the file resides and where the ZIP file will be created.
                           If not specified, it defaults to the current working directory.
-
-        The method performs the following operations:
-        - Creates a ZIP file in the specified `dump_path` with maximum compression.
-        - If enabled (`should_csv_be_removed_after_zip`), deletes the original file after successful compression.
-        - If enabled (`should_zip_be_sent`), uploads the newly created ZIP file to Azure Blob Storage.
-
         """
 
         zip_file_name = file_name + '.zip'
@@ -332,7 +348,7 @@ class ArchiverDaemon:
         """
         Uploads a file to an Azure Blob Storage container and optionally removes the file locally.
 
-        :param file_path: The full path to the file that needs to be uploaded. This file must exist on the local file system.
+        :param file_path: The full path to the file that needs to be uploaded.
         :param blob_name: The name of the blob within the Azure Blob Storage container where the file will be stored.
                           This is effectively the file name in the cloud.
 
@@ -363,8 +379,10 @@ class ArchiverDaemon:
         the type of data, and the file extension. It ensures that file names are consistent and descriptive,
         including a timestamp to make each file name unique.
 
-        :param instrument: The trading instrument identifier (e.g., 'BTCUSD'). The instrument name is converted to lowercase.
-        :param market: The market type, which should be an enum value from Market (e.g., Market.SPOT, Market.USD_M_FUTURES).
+        :param instrument: The trading instrument identifier (e.g., 'BTCUSD').
+            The instrument name is converted to lowercase.
+        :param market: The market type, which should be an enum value from Market
+            (e.g., Market.SPOT, Market.USD_M_FUTURES).
         :param data_type: A string representing the type of data (e.g., 'orderbook_stream', 'transaction_stream').
         :param extension: The file extension (e.g., 'json', 'csv') to append to the file name.
         :return: A string representing the formatted file name.
