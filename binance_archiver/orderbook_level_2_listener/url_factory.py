@@ -1,53 +1,65 @@
-from typing import Optional
+import warnings
+from typing import Optional, List
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 
 
 class URLFactory:
-    """
-    A utility class for generating URLs for various Binance API endpoints.
 
-    :param market: The market type, which should be a value from the Market enum (SPOT, USD_M_FUTURES, COIN_M_FUTURES).
-    :param pair: The trading pair as a string (e.g., 'BTCUSDT').
-    :param limit: The maximum number of buy/sell levels to be returned in the snapshot.
-    :return: A string containing the fully formed URL or None if the market type is not supported.
-
-    Usage:
-        The class methods are intended to be used statically. Here is how you can generate a URL for fetching
-        orderbook snapshot data for the BTCUSDT pair on the spot market with a depth limit:
-
-            URLFactory.get_snapshot_url(Market.SPOT, 'BTCUSDT', 100)
-
-    """
     @staticmethod
     def get_snapshot_url(
             market: Market,
             pair: str,
-            limit: int
-    ) -> Optional[str]:
-        return {
-            Market.SPOT: f'https://api.binance.com/api/v3/depth?symbol={pair}&limit={limit}',
-            Market.USD_M_FUTURES: f'https://fapi.binance.com/fapi/v1/depth?symbol={pair}&limit={limit}',
-            Market.COIN_M_FUTURES: f'https://dapi.binance.com/dapi/v1/depth?symbol={pair}&limit={limit}'
-        }.get(market, None)
+            limit: int | None = None
+    ) -> str | None:
+        base_urls = {
+            Market.SPOT: 'https://api.binance.com/api/v3/depth?symbol={}&limit={}',
+            Market.USD_M_FUTURES: 'https://fapi.binance.com/fapi/v1/depth?symbol={}&limit={}',
+            Market.COIN_M_FUTURES: 'https://dapi.binance.com/dapi/v1/depth?symbol={}&limit={}'
+        }
+        limits = {
+            Market.SPOT: 5000,
+            Market.USD_M_FUTURES: 1000,
+            Market.COIN_M_FUTURES: 1000
+        }
+        base_url = base_urls.get(market)
+        if base_url:
+            actual_limit = limit if limit is not None else limits.get(market)
+            if limit is not None and limit > limits.get(market, 0):
+                print(f"Warning: Limit {limit} exceeds maximum allowed limit {limits[market]} for market {market}."
+                      f"This may cause an 400 response")
+            return base_url.format(pair, actual_limit)
+        return None
 
     @staticmethod
     def get_transaction_stream_url(
             market: Market,
-            pair: str
-    ) -> Optional[str]:
-        return {
-            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@trade',
-            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@trade',
-            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams={pair.lower()}@trade'
-        }.get(market, None)
+            pairs: List[str]
+    ) -> str | None:
+        base_urls = {
+            Market.SPOT: 'wss://stream.binance.com:443/stream?streams={}',
+            Market.USD_M_FUTURES: 'wss://fstream.binance.com/stream?streams={}',
+            Market.COIN_M_FUTURES: 'wss://dstream.binance.com/stream?streams={}'
+        }
+        stream_suffix = '@trade'
+        streams = '/'.join([f'{pair.lower()}{stream_suffix}' for pair in pairs])
+        base_url = base_urls.get(market)
+        if base_url:
+            return base_url.format(streams)
+        return None
 
     @staticmethod
     def get_orderbook_stream_url(
             market: Market,
-            pair: str
-    ) -> Optional[str]:
-        return {
-            Market.SPOT: f'wss://stream.binance.com:9443/ws/{pair.lower()}@depth@100ms',
-            Market.USD_M_FUTURES: f'wss://fstream.binance.com/stream?streams={pair.lower()}@depth@100ms',
-            Market.COIN_M_FUTURES: f'wss://dstream.binance.com/stream?streams={pair.lower()}@depth@100ms'
-        }.get(market, None)
+            pairs: List[str]
+    ) -> str | None:
+        base_urls = {
+            Market.SPOT: 'wss://stream.binance.com:443/stream?streams={}',
+            Market.USD_M_FUTURES: 'wss://fstream.binance.com/stream?streams={}',
+            Market.COIN_M_FUTURES: 'wss://dstream.binance.com/stream?streams={}'
+        }
+        stream_suffix = '@depth@100ms'
+        streams = '/'.join([f'{pair.lower()}{stream_suffix}' for pair in pairs])
+        base_url = base_urls.get(market)
+        if base_url:
+            return base_url.format(streams)
+        return None
