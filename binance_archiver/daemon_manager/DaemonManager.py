@@ -46,7 +46,6 @@ class DaemonManager:
         listen_duration = config['daemons']['listen_duration']
         snapshot_fetcher_interval_seconds = config['daemons']['snapshot_fetcher_interval_seconds']
 
-        # time.sleep(10)
         new_daemons = []
 
         for market_type, instruments in config['daemons']['markets'].items():
@@ -60,6 +59,7 @@ class DaemonManager:
                 send_zip_to_blob=self.send_zip_to_blob,
                 snapshot_fetcher_interval_seconds=snapshot_fetcher_interval_seconds
             )
+
             daemon.run(
                 pairs=instruments,
                 market=market_enum,
@@ -72,27 +72,22 @@ class DaemonManager:
 
     def run(self):
         daemon_service_life_time_seconds = self.config['daemons']['daemon_service_life_time_seconds']
-        overlap_time = 20  # Time in seconds for overlapping daemon execution
-        self.logger.info(f'daemon_service_life_time_seconds {daemon_service_life_time_seconds}')
-        self.logger.info(f'overlap_time {overlap_time}')
+        overlap_time = 20
+
+        self.daemons = self.start_daemon()
 
         while True:
-            self.logger.info(">>>>>> Starting new daemon 1")
-            self.logger.info(f"Current timestamp: {round(datetime.now(timezone.utc).timestamp())}")
+            time.sleep(daemon_service_life_time_seconds - overlap_time)
 
+            self.logger.info(">>>>>> Starting new daemon 1")
             new_daemons = self.start_daemon()
 
-            self.logger.info(f"Current timestamp: {round(datetime.now(timezone.utc).timestamp())}")
+            # self.logger.info(f"New daemons will fully take over in {overlap_time} seconds.")
 
-            self.logger.info(f"Old daemons will be stopped in {daemon_service_life_time_seconds - overlap_time} seconds.")
-            time.sleep(daemon_service_life_time_seconds - overlap_time)
+            time.sleep(overlap_time)
 
             for daemon in self.daemons:
                 self.logger.info(">>>>>> Stopping old daemons 2")
                 daemon.global_shutdown_flag.set()
 
-            self.logger.info(f"New daemons will fully take over in {overlap_time} seconds.")
-            time.sleep(overlap_time)
-
             self.daemons = new_daemons
-            self.logger.info(f'len(self.daemons): {len(self.daemons)}')
