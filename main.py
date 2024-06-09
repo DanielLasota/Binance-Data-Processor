@@ -58,19 +58,27 @@ if __name__ == "__main__":
         {
             "daemons": {
                 "markets": {
-                    "coin_m_futures": ["BTCUSD_PERP"]
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
                 },
-                "listen_duration": 40,
+                "listen_duration": 60,
                 "snapshot_fetcher_interval_seconds": 30,
-                "daemon_service_life_time_seconds": 60
+                "websocket_life_time_seconds": 60,
+                "websocket_overlap_seconds": 20
             }
         }
 
     manager = DaemonManager(
         config=config,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-        container_name=container_name,
-        remove_zip_after_upload=False
+        container_name=container_name
     )
 
     manager.run()
