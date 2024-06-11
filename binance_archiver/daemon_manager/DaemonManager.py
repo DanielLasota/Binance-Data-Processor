@@ -1,11 +1,10 @@
 import os
 import time
-import threading
 from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.ArchiverDaemon import ArchiverDaemon
 from binance_archiver.logo import logo
-from datetime import datetime, timezone
+from typing import List
 
 
 class DaemonManager:
@@ -17,9 +16,6 @@ class DaemonManager:
             dump_path_to_log_file: str = 'logs/',
             azure_blob_parameters_with_key: str | None = None,
             container_name: str | None = None,
-            save_to_json: bool = True,
-            save_to_zip: bool = True,
-            send_zip_to_blob: bool = True
     ) -> None:
         self.config = config
         self.logger = setup_logger(dump_path_to_log_file)
@@ -28,16 +24,34 @@ class DaemonManager:
         self.container_name = container_name
         self.daemons = []
 
+    def run(self) -> None:
+
         self.logger.info(logo)
         self.logger.info('Starting Binance Archiver...')
 
-    def start_daemon(self):
+        self.daemons = self._start_daemon(
+            self.dump_path,
+            save_to_json=self.config['daemons']['save_to_json'],
+            save_to_zip=self.config['daemons']['save_to_zip'],
+            send_zip_to_blob=self.config['daemons']['send_zip_to_blob']
+        )
 
-        if self.dump_path != '' and not os.path.exists(self.dump_path):
-            os.makedirs(self.dump_path)
+        while True:
+            time.sleep(10)
+
+    def _start_daemon(
+            self,
+            dump_path,
+            save_to_json: bool = False,
+            save_to_zip: bool = False,
+            send_zip_to_blob: bool = True
+    ) -> List[ArchiverDaemon]:
+
+        if dump_path != '' and not os.path.exists(self.dump_path):
+            os.makedirs(dump_path)
 
         config = self.config
-        listen_duration = config['daemons']['listen_duration']
+        file_duration_seconds = config['daemons']['file_duration_seconds']
         snapshot_fetcher_interval_seconds = config['daemons']['snapshot_fetcher_interval_seconds']
         websocket_life_time_seconds = config['daemons']['websocket_life_time_seconds']
         websocket_overlap_seconds = config['daemons']['websocket_overlap_seconds']
@@ -55,37 +69,14 @@ class DaemonManager:
             daemon.run(
                 pairs=instruments,
                 market=market_enum,
-                file_duration_seconds=listen_duration,
-                dump_path=self.dump_path,
-                websockets_lifetime=websocket_life_time_seconds,
+                file_duration_seconds=file_duration_seconds,
+                dump_path=dump_path,
+                websockets_lifetime_seconds=websocket_life_time_seconds,
                 overlap=websocket_overlap_seconds,
-                save_to_json=False,
-                save_to_zip=False,
-                send_zip_to_blob=True,
+                save_to_json=save_to_json,
+                save_to_zip=save_to_zip,
+                send_zip_to_blob=send_zip_to_blob
             )
             new_daemons.append(daemon)
 
         return new_daemons
-
-    def run(self):
-        websocket_life_time_seconds = self.config['daemons']['websocket_life_time_seconds']
-        overlap_time = 20
-
-        self.daemons = self.start_daemon()
-
-        while True:
-            time.sleep(10)
-            # time.sleep(daemon_service_life_time_seconds - overlap_time)
-            #
-            # self.logger.info(">>>>>> Starting new daemon 1")
-            # new_daemons = self.start_daemon()
-            #
-            # # self.logger.info(f"New daemons will fully take over in {overlap_time} seconds.")
-            #
-            # time.sleep(overlap_time)
-            #
-            # for daemon in self.daemons:
-            #     self.logger.info(">>>>>> Stopping old daemons 2")
-            #     daemon.global_shutdown_flag.set()
-            #
-            # self.daemons = new_daemons
