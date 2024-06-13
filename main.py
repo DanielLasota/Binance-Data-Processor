@@ -3,6 +3,7 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import json
+import pprint
 
 from binance_archiver import DaemonManager
 
@@ -21,8 +22,7 @@ if __name__ == "__main__":
     azure_blob_parameters_with_key = client.get_secret(blob_parameters_secret_name).value
     container_name = client.get_secret(container_name_secret_name).value
 
-    config = \
-        {
+    config = {
             "daemons": {
                 "markets": {
 
@@ -36,13 +36,34 @@ if __name__ == "__main__":
                                        "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
                                        "DOTUSD_PERP"]
                 },
-                "file_duration_seconds": 60,
-                "snapshot_fetcher_interval_seconds": 30,
-                "websocket_life_time_seconds": 60,
+                "file_duration_seconds": 300,
+                "snapshot_fetcher_interval_seconds": 300,
+                "websocket_life_time_seconds": 600,
                 "websocket_overlap_seconds": 20,
                 "save_to_json": False,
                 "save_to_zip": False,
                 "send_zip_to_blob": True
+            }
+        }
+
+    config = \
+        {
+            "daemons": {
+                "markets": {
+
+                    "spot": ["BTCUSDT", "ETHUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+                },
+                "file_duration_seconds": 60,
+                "snapshot_fetcher_interval_seconds": 30,
+                "websocket_life_time_seconds": 60,
+                "websocket_overlap_seconds": 20,
+                "save_to_json": True,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
             }
         }
 
@@ -53,3 +74,11 @@ if __name__ == "__main__":
     )
 
     manager.run()
+
+'''
+ContainerAppConsoleLogs_CL
+| where TimeGenerated >= ago(7d)
+| project TimeGenerated, Log_s
+| sort by TimeGenerated desc
+'''
+

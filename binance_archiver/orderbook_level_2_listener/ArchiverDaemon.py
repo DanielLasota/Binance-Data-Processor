@@ -47,7 +47,7 @@ class ArchiverDaemon:
             file_duration_seconds: int,
             dump_path: str | None = None,
             websockets_lifetime_seconds: int = 60 * 60 * 8,
-            overlap: int = 60,
+            websocket_overlap_seconds: int = 60,
             save_to_json: bool = False,
             save_to_zip: bool = False,
             send_zip_to_blob: bool = True
@@ -55,36 +55,28 @@ class ArchiverDaemon:
         self.logger.info(f'launching daemon: '
                          f'{market} {pairs} {file_duration_seconds}s path: {dump_path}')
 
-        self.start_orderbook_stream_listener(pairs, market, websockets_lifetime_seconds, overlap)
-        self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-                                           send_zip_to_blob)
-        self.start_transaction_stream_listener(pairs, market, websockets_lifetime_seconds, overlap)
-        self.start_transaction_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-                                             send_zip_to_blob)
-        self.start_snapshot_daemon(pairs, market, dump_path, self.snapshot_fetcher_interval_seconds, save_to_json,
-                                   save_to_zip, send_zip_to_blob)
+        self.start_orderbook_stream_listener(pairs, market, websockets_lifetime_seconds, websocket_overlap_seconds)
+        self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip, send_zip_to_blob)
+        # self.start_transaction_stream_listener(pairs, market, websockets_lifetime_seconds, overlap)
+        # self.start_transaction_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip, send_zip_to_blob)
+        # self.start_snapshot_daemon(pairs, market, dump_path, self.snapshot_fetcher_interval_seconds, save_to_json, save_to_zip, send_zip_to_blob)
 
     def start_orderbook_stream_listener(self, pairs: List[str], market: Market, lifetime: int, overlap: int) -> None:
         time.sleep(overlap + 10)
         self.executor.submit(self._stream_listener, StreamType.ORDERBOOK, pairs, market, lifetime, overlap)
 
-    def start_orderbook_stream_writer(self, market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-                                      send_zip_to_blob) -> None:
-        self.executor.submit(self._stream_writer, market, file_duration_seconds, dump_path, StreamType.ORDERBOOK,
-                             save_to_json, save_to_zip, send_zip_to_blob)
+    def start_orderbook_stream_writer(self, market, file_duration_seconds, dump_path, save_to_json, save_to_zip, send_zip_to_blob) -> None:
+        self.executor.submit(self._stream_writer, market, file_duration_seconds, dump_path, StreamType.ORDERBOOK, save_to_json, save_to_zip, send_zip_to_blob)
 
     def start_transaction_stream_listener(self, pairs: List[str], market: Market, lifetime: int, overlap: int) -> None:
         time.sleep(overlap + 10)
         self.executor.submit(self._stream_listener, StreamType.TRANSACTIONS, pairs, market, lifetime, overlap)
 
-    def start_transaction_stream_writer(self, market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-                                        send_zip_to_blob) -> None:
-        self.executor.submit(self._stream_writer, market, file_duration_seconds, dump_path, StreamType.TRANSACTIONS,
-                             save_to_json, save_to_zip, send_zip_to_blob)
+    def start_transaction_stream_writer(self, market, file_duration_seconds, dump_path, save_to_json, save_to_zip, send_zip_to_blob) -> None:
+        self.executor.submit(self._stream_writer, market, file_duration_seconds, dump_path, StreamType.TRANSACTIONS, save_to_json, save_to_zip, send_zip_to_blob)
 
     def start_snapshot_daemon(self, pairs, market, dump_path, interval, save_to_json, save_to_zip, send_zip_to_blob):
-        self.executor.submit(self._snapshot_daemon, pairs, market, dump_path, interval, save_to_json, save_to_zip,
-                             send_zip_to_blob)
+        self.executor.submit(self._snapshot_daemon, pairs, market, dump_path, interval, save_to_json, save_to_zip, send_zip_to_blob)
 
     def _stream_listener(self, stream_type: StreamType, pairs: List[str], market: Market, websocket_lifetime: int,
                          overlap: int) -> None:
@@ -123,7 +115,7 @@ class ArchiverDaemon:
             on_error_shutdown_flag.set()
 
         def _on_close(ws, close_status_code, close_msg):
-            self.logger.info(f"WebSocket connection closed: for {market}, {stream_type}, {pairs} "
+            self.logger.info(f"WebSocket connection closed: for {stream_type} {market}"
                              f"{close_msg} (code: {close_status_code})")
             supervisor.shutdown_supervisor()
 
@@ -131,18 +123,20 @@ class ArchiverDaemon:
             ws.send("", ABNF.OPCODE_PONG)
 
         def _on_open(ws):
-            self.logger.info(f"WebSocket connection opened for {market}, {stream_type}, {pairs} ")
+            self.logger.info(f"WebSocket connection opened for {stream_type} {market}")
 
         websocket = None
 
         def _close_websocket_after_lifetime(ws, websocket_lifetime_, overlap_):
             time.sleep(websocket_lifetime_ - overlap_)
-
+            self.logger.info(f'Websocket lifetime will run out in: '
+                             f'overlap ({overlap_} seconds), launching new stream listener')
             self._restart_stream_listener(stream_type, pairs, market, websocket_lifetime, overlap_)
 
             time.sleep(overlap_)
 
             if ws.keep_running:
+                self.logger.info(f'Websocket lifetime ended after overlap')
                 ws.close()
 
         try:
@@ -164,29 +158,29 @@ class ArchiverDaemon:
 
             while True:
                 if self.global_shutdown_flag.is_set():
-                    self.logger.info("Stop event set on global level, breaking the loop")
+                    self.logger.warning("Stop event set on global level global_shutdown_flag is set, breaking the loop")
                     break
                 if supervisor_signal_shutdown_flag.is_set():
-                    self.logger.info("Stop event set by Supervisor, breaking the loop and reconnecting")
+                    self.logger.error("Stop event set by Supervisor, breaking the loop and reconnecting")
                     self._restart_stream_listener(stream_type, pairs, market, websocket_lifetime, overlap)
                     break
                 if on_error_shutdown_flag.is_set():
-                    self.logger.info("On error on_error_shutdown_flag is set, breaking the loop and reconnecting")
+                    self.logger.warning("On error on_error_shutdown_flag is set, breaking the loop and reconnecting")
                     break
                 time.sleep(1)
 
         except Exception as e:
-            self.logger.error(f"Exception {e}: Restarting {stream_type} stream of {pairs} in {market}")
-            self.logger.info(f"sending _reconnect, except Exception")
-
+            self.logger.error(f"Exception {e}: Restarting {stream_type} {market} "
+                              f"sending _reconnect, except Exception")
         finally:
             websocket.close()
-            self.logger.info(f"Ended _stream_listener on {market} {stream_type} of {pairs} in ")
+            self.logger.info(f"Ended _stream_listener on {stream_type} {market}")
 
     def _restart_stream_listener(self, stream_type: StreamType, pairs: List[str], market: Market,
                                  websocket_lifetime: int, overlap: int) -> None:
         self.logger.info(f"new stream listener invocation: _restart_stream_listener: "
-                         f"{stream_type} stream of {pairs} in {market}")
+                         f"{stream_type} {market}")
+        self.logger.info(f'{len(self.executor._threads)}')
         self.executor.submit(self._stream_listener, stream_type, pairs, market, websocket_lifetime, overlap)
 
     def _stream_writer(self, market: Any, duration: int, dump_path: str, stream_type: Any, save_to_json, save_to_zip,
@@ -199,12 +193,11 @@ class ArchiverDaemon:
         queue = queues.get(stream_type, None)
 
         while not self.global_shutdown_flag.is_set():
-            self._process_stream_data(queue, market, dump_path, stream_type, save_to_json, save_to_zip,
-                                      send_zip_to_blob)
+            self._process_stream_data(queue, market, dump_path, stream_type, save_to_json, save_to_zip, send_zip_to_blob)
             self._sleep_with_flag_check(duration)
 
         self._process_stream_data(queue, market, dump_path, stream_type, save_to_json, save_to_zip, send_zip_to_blob)
-        self.logger.info('ended _stream_writer')
+        self.logger.info(f'ended {stream_type} {market} _stream_writer')
 
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 2
@@ -213,7 +206,7 @@ class ArchiverDaemon:
                 break
             time.sleep(interval)
 
-    def _process_stream_data(self, queue, market, dump_path, stream_type, save_to_json, save_to_zip, send_zip_to_blob):
+    def _process_stream_data(self, queue: UniqueQueue, market: Market, dump_path: str, stream_type: StreamType, save_to_json: bool, save_to_zip: bool, send_zip_to_blob: bool) -> None:
         if not queue.empty():
             stream_data = defaultdict(list)
 
@@ -304,7 +297,7 @@ class ArchiverDaemon:
                         self._send_zipped_json_to_blob(snapshot, file_name)
 
                 except Exception as e:
-                    self.logger.error(f'error whilst fetching {pair} {market} {StreamType.ORDERBOOK_SNAPSHOT}: {e}')
+                    self.logger.error(f'error whilst fetching snapshot: {market} {StreamType.ORDERBOOK_SNAPSHOT}: {e}')
 
             time.sleep(interval)
 
@@ -343,9 +336,9 @@ class ArchiverDaemon:
         }
 
         data_type_mapping = {
-            StreamType.ORDERBOOK: 'binance_l2lob_raw_delta_broadcast',
-            StreamType.TRANSACTIONS: 'binance_transaction_broadcast',
-            StreamType.ORDERBOOK_SNAPSHOT: 'binance_l2lob_snapshot'
+            StreamType.ORDERBOOK: 'binance_l2lob_delta_broadcast',
+            StreamType.ORDERBOOK_SNAPSHOT: 'binance_l2lob_snapshot',
+            StreamType.TRANSACTIONS: 'binance_transaction_broadcast'
         }
 
         market_short_name = market_mapping.get(market, 'unknown_market')

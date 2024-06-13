@@ -1,10 +1,12 @@
 import os
 import time
+from typing import List
+import pprint
+
 from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.ArchiverDaemon import ArchiverDaemon
 from binance_archiver.logo import logo
-from typing import List
 
 
 class DaemonManager:
@@ -26,8 +28,9 @@ class DaemonManager:
 
     def run(self) -> None:
 
-        self.logger.info(logo)
+        self.logger.info('\n%s',logo)
         self.logger.info('Starting Binance Archiver...')
+        self.logger.info("Configuration:\n%s", pprint.pformat(self.config, indent=1))
 
         self.daemons = self._start_daemon(
             self.dump_path,
@@ -55,7 +58,7 @@ class DaemonManager:
         snapshot_fetcher_interval_seconds = config['daemons']['snapshot_fetcher_interval_seconds']
         websocket_life_time_seconds = config['daemons']['websocket_life_time_seconds']
         websocket_overlap_seconds = config['daemons']['websocket_overlap_seconds']
-        new_daemons = []
+        daemons = []
 
         for market_type, instruments in config['daemons']['markets'].items():
             market_enum = Market[market_type.upper()]
@@ -72,11 +75,13 @@ class DaemonManager:
                 file_duration_seconds=file_duration_seconds,
                 dump_path=dump_path,
                 websockets_lifetime_seconds=websocket_life_time_seconds,
-                overlap=websocket_overlap_seconds,
+                websocket_overlap_seconds=websocket_overlap_seconds,
                 save_to_json=save_to_json,
                 save_to_zip=save_to_zip,
                 send_zip_to_blob=send_zip_to_blob
             )
-            new_daemons.append(daemon)
 
-        return new_daemons
+            daemons.append(daemon)
+            # time.sleep(websocket_overlap_seconds + 10)
+
+        return daemons
