@@ -46,26 +46,22 @@ if __name__ == "__main__":
             }
         }
 
-    config = \
-        {
-            "daemons": {
-                "markets": {
-
-                    "spot": ["BTCUSDT", "ETHUSDT"],
-
-                    "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
-
-                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
-                },
-                "file_duration_seconds": 60,
-                "snapshot_fetcher_interval_seconds": 30,
-                "websocket_life_time_seconds": 60,
-                "websocket_overlap_seconds": 20,
-                "save_to_json": True,
-                "save_to_zip": False,
-                "send_zip_to_blob": False
-            }
-        }
+    # config = \
+    #     {
+    #         "daemons": {
+    #             "markets": {
+    #
+    #                 "spot": ["BTCUSDT", "ETHUSDT"]
+    #             },
+    #             "file_duration_seconds": 60,
+    #             "snapshot_fetcher_interval_seconds": 30,
+    #             "websocket_life_time_seconds": 60,
+    #             "websocket_overlap_seconds": 20,
+    #             "save_to_json": True,
+    #             "save_to_zip": False,
+    #             "send_zip_to_blob": False
+    #         }
+    #     }
 
     manager = DaemonManager(
         config=config,

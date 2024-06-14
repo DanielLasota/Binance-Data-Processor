@@ -38,8 +38,9 @@ class Supervisor:
                                            - self.last_message_time_epoch_seconds_utc)
             if time_since_last_message > self.max_interval_without_messages_in_seconds:
                 self.logger.info(
-                    f'Supervisor: {self.stream_type}, {self.market} '
-                    f'No entry for {self.max_interval_without_messages_in_seconds} seconds, sending restart signal.'
+                    f'{self.market} {self.stream_type}: '
+                    f'Supervisor: No entry for {self.max_interval_without_messages_in_seconds} seconds, '
+                    f'sending restart signal.'
                 )
                 self._send_shutdown_signal()
             time.sleep(self.check_interval_in_seconds)
