@@ -1,10 +1,53 @@
 {
   "daemons": {
     "markets": {
-      "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT", "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-      "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-      "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP", "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP", "DOTUSD_PERP"]
+      "spot": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT",
+        "DOGEUSDT",
+        "ADAUSDT",
+        "SHIBUSDT",
+        "LTCUSDT",
+        "AVAXUSDT",
+        "TRXUSDT",
+        "DOTUSDT"
+      ],
+      "usd_m_futures": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT",
+        "DOGEUSDT",
+        "ADAUSDT",
+        "LTCUSDT",
+        "AVAXUSDT",
+        "TRXUSDT",
+        "DOTUSDT"
+      ],
+      "coin_m_futures": [
+        "BTCUSD_PERP",
+        "ETHUSD_PERP",
+        "BNBUSD_PERP",
+        "SOLUSD_PERP",
+        "XRPUSD_PERP",
+        "DOGEUSD_PERP",
+        "ADAUSD_PERP",
+        "LTCUSD_PERP",
+        "AVAXUSD_PERP",
+        "TRXUSD_PERP",
+        "DOTUSD_PERP"
+      ]
     },
-    "listen_duration": 300
+    "file_duration_seconds": 300,
+    "snapshot_fetcher_interval_seconds": 300,
+    "websocket_life_time_seconds": 600,
+    "websocket_overlap_seconds": 20,
+    "save_to_json": false,
+    "save_to_zip": false,
+    "send_zip_to_blob": false
   }
 }

@@ -83,6 +83,5 @@ class DaemonManager:
 
             daemons.append(daemon)
             time.sleep((websocket_overlap_seconds+10) * 2)
-            # time.sleep(websocket_overlap_seconds + 10)
 
         return daemons

@@ -231,7 +231,7 @@ class ArchiverDaemon:
                 try:
                     message, timestamp = queue.get_nowait()
                     message = json.loads(message)
-                    message["_E"] = timestamp
+                    message["_e"] = timestamp
 
                     stream = message["stream"]
                     stream_data[stream].append(message)
