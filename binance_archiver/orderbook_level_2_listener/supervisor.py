@@ -13,6 +13,8 @@ class Supervisor:
             logger: logging.Logger,
             stream_type: StreamType,
             market: Market,
+            check_interval_in_seconds,
+            max_interval_without_messages_in_seconds,
             on_error_callback=None
     ) -> None:
         self.logger = logger
@@ -20,8 +22,8 @@ class Supervisor:
         self.market = market
         self.on_error_callback = on_error_callback
         self.last_message_time_epoch_seconds_utc = int(datetime.now(timezone.utc).timestamp())
-        self.check_interval_in_seconds = 10
-        self.max_interval_without_messages_in_seconds = 10
+        self.check_interval_in_seconds = check_interval_in_seconds
+        self.max_interval_without_messages_in_seconds = max_interval_without_messages_in_seconds
         self.running = True
         self.lock = threading.Lock()
         self.thread = threading.Thread(target=self._monitor_last_message_time)

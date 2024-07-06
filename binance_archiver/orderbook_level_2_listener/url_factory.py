@@ -1,5 +1,4 @@
-import warnings
-from typing import Optional, List
+from typing import List
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 
 

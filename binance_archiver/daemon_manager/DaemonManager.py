@@ -20,7 +20,7 @@ class DaemonManager:
             container_name: str | None = None,
     ) -> None:
         self.config = config
-        self.logger = setup_logger(dump_path_to_log_file, dump_to_file=False)
+        self.logger = setup_logger(dump_path_to_log_file, dump_to_file=True)
         self.dump_path = dump_path
         self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
         self.container_name = container_name

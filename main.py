@@ -8,6 +8,7 @@ import pprint
 from binance_archiver import DaemonManager
 
 if __name__ == "__main__":
+    load_dotenv('C:/Users/daniellasota/archer.env')
     config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
     blob_parameters_secret_name = os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY_SECRET_NAME')
     container_name_secret_name = os.environ.get('CONTAINER_NAME_SECRET_NAME')
@@ -39,6 +40,22 @@ if __name__ == "__main__":
             "snapshot_fetcher_interval_seconds": 300,
             "websocket_life_time_seconds": 600,
             "websocket_overlap_seconds": 20,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+    }
+
+    config = {
+        "daemons": {
+            "markets": {
+                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"]
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 60,
+            "websocket_life_time_seconds": 60,
+            "websocket_overlap_seconds": 30,
             "save_to_json": True,
             "save_to_zip": False,
             "send_zip_to_blob": False
