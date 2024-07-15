@@ -102,29 +102,49 @@ class ArchiverDaemon:
         }
 
         queue = queues.get(stream_type, None)
+        queue.set_pairs_amount = len(pairs)
+        did_websockets_switch_successfully = False
+        self.orderbook_stream_message_queue.set_websocket_switch_indicator(did_websockets_switch_successfully)
 
         stream_listener = StreamListener(self.logger)
         stream_listener.stream_age = StreamAge.OLD
+
         self.executor.submit(stream_listener.run_listener, queue, pairs, stream_type, market)
 
         while True:
             time.sleep(websockets_lifetime_seconds - websocket_overlap_seconds)
-
-            self.logger.info(f'{market} {stream_type}: Websocket lifetime will run out in: '
-                             f'{websocket_overlap_seconds} seconds, '
-                             f'launching new stream listener')
 
             new_stream_listener = StreamListener(self.logger)
             new_stream_listener.stream_age = StreamAge.NEW
 
             self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market)
 
-            time.sleep(websocket_overlap_seconds)
+            while did_websockets_switch_successfully is False:
+                time.sleep(0.01)
 
+            did_websockets_switch_successfully = False
             stream_listener.end()
 
             stream_listener = new_stream_listener
-            stream_listener.stream_age = StreamAge.OLD
+
+        # while True:
+        #     time.sleep(websockets_lifetime_seconds - websocket_overlap_seconds)
+        #
+        #     self.logger.info(f'{market} {stream_type}: Websocket lifetime will run out in: '
+        #                      f'{websocket_overlap_seconds} seconds, '
+        #                      f'launching new stream listener')
+        #
+        #     new_stream_listener = StreamListener(self.logger)
+        #     new_stream_listener.stream_age = StreamAge.NEW
+        #
+        #     self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market)
+        #
+        #     time.sleep(websocket_overlap_seconds)
+        #
+        #     stream_listener.end()
+        #
+        #     stream_listener = new_stream_listener
+        #     stream_listener.stream_age = StreamAge.OLD
 
     def _snapshot_daemon(self, pairs: List[str], market: Market, dump_path: str, interval: int, save_to_json: bool,
                          save_to_zip: bool, send_zip_to_blob: bool) -> None:

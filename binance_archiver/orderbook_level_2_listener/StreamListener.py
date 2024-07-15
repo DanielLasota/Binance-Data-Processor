@@ -23,8 +23,8 @@ class StreamListener:
 
     def get_id_data(self) -> dict:
         return {
-           'stream_type': self.stream_type,
-           'stream_age': self.stream_age
+            'stream_type': self.stream_type,
+            'stream_age': self.stream_age
         }
 
     def run_listener(self, queue, pairs: List[str], stream_type: StreamType, market: Market) -> None:
@@ -50,11 +50,13 @@ class StreamListener:
         url_method = stream_url_methods.get(stream_type, None)
         url = url_method(market, pairs)
 
+        pairs_amount = len(pairs)
+
         def _on_message(ws, message):
             self.logger.info(f"{self.stream_age} {market} {stream_type}: {message}")
-            # self.logger.info('>>>')
-            # self.logger.info(' ')
-            queue.put(id_data=self.get_id_data(), message=message)
+            id_data = self.get_id_data()
+            id_data['pairs_amount'] = pairs_amount
+            queue.put(id_data=id_data, message=message)
             supervisor.notify()
 
         def _on_error(ws, error):
