@@ -1,4 +1,4 @@
-import pprint
+import time
 
 from binance_archiver.orderbook_level_2_listener.SupervisedQueue import SupervisedQueue
 from binance_archiver.orderbook_level_2_listener.stream_age_enum import StreamAge
@@ -6,16 +6,22 @@ from binance_archiver.orderbook_level_2_listener.stream_age_enum import StreamAg
 import re
 from datetime import datetime, timezone
 
+from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
+
 
 class TestSupervisedQueue:
 
     def test_given_two_equal_throws_does_method_return_true(self):
-        _two_last_throws = {
-            StreamAge.NEW: [],
-            StreamAge.OLD: []
-        }
+        _two_last_throws = {}
 
-        _two_last_throws[StreamAge.NEW].append(
+        old_stream_listener_id = StreamId()
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId()
+
+        _two_last_throws[old_stream_listener_id.id] = []
+        _two_last_throws[new_stream_listener_id.id] = []
+
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "dotusdt@depth@100ms",
                 "data": {
@@ -44,7 +50,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.NEW].append(
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "adausdt@depth@100ms",
                 "data": {
@@ -103,10 +109,9 @@ class TestSupervisedQueue:
                     ]
                 }
             }
-
         )
 
-        _two_last_throws[StreamAge.NEW].append(
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "trxusdt@depth@100ms",
                 "data": {
@@ -128,7 +133,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "adausdt@depth@100ms",
                 "data": {
@@ -187,10 +192,9 @@ class TestSupervisedQueue:
                     ]
                 }
             }
-
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "dotusdt@depth@100ms",
                 "data": {
@@ -219,7 +223,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "trxusdt@depth@100ms",
                 "data": {
@@ -246,12 +250,16 @@ class TestSupervisedQueue:
         assert do_they_match is True
 
     def test_given_two_different_throws_does_method_return_false(self):
-        _two_last_throws = {
-            StreamAge.NEW: [],
-            StreamAge.OLD: []
-        }
+        _two_last_throws = {}
 
-        _two_last_throws[StreamAge.NEW].append(
+        old_stream_listener_id = StreamId()
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId()
+
+        _two_last_throws[old_stream_listener_id.id] = []
+        _two_last_throws[new_stream_listener_id.id] = []
+
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "dotusdt@depth@100ms",
                 "data": {
@@ -280,7 +288,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.NEW].append(
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "adausdt@depth@100ms",
                 "data": {
@@ -341,7 +349,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.NEW].append(
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "trxusdt@depth@100ms",
                 "data": {
@@ -368,7 +376,7 @@ class TestSupervisedQueue:
         )
         # old trx entry is different from new trx entry
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "adausdt@depth@100ms",
                 "data": {
@@ -429,7 +437,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "dotusdt@depth@100ms",
                 "data": {
@@ -458,7 +466,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "trxusdt@depth@100ms",
                 "data": {
@@ -486,12 +494,16 @@ class TestSupervisedQueue:
         assert do_they_match is False
 
     def test_given_two_throws_does_method_sort_entries_by_symbol(self):
-        _two_last_throws = {
-            StreamAge.NEW: [],
-            StreamAge.OLD: []
-        }
+        _two_last_throws = {}
 
-        _two_last_throws[StreamAge.NEW].append(
+        old_stream_listener_id = StreamId()
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId()
+
+        _two_last_throws[old_stream_listener_id.id] = []
+        _two_last_throws[new_stream_listener_id.id] = []
+
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "dotusdt@depth@100ms",
                 "data": {
@@ -520,7 +532,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.NEW].append(
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "adausdt@depth@100ms",
                 "data": {
@@ -581,7 +593,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.NEW].append(
+        _two_last_throws[new_stream_listener_id.id].append(
             {
                 "stream": "trxusdt@depth@100ms",
                 "data": {
@@ -603,7 +615,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "trxusdt@depth@100ms",
                 "data": {
@@ -625,7 +637,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "dotusdt@depth@100ms",
                 "data": {
@@ -654,7 +666,7 @@ class TestSupervisedQueue:
             }
         )
 
-        _two_last_throws[StreamAge.OLD].append(
+        _two_last_throws[old_stream_listener_id.id].append(
             {
                 "stream": "adausdt@depth@100ms",
                 "data": {
@@ -716,12 +728,12 @@ class TestSupervisedQueue:
 
         )
 
-        sorted_dict = SupervisedQueue.sort_entries_by_symbol(_two_last_throws)
+        sorted_dict = SupervisedQueue._sort_entries_by_symbol(_two_last_throws)
 
-        assert sorted_dict[StreamAge.NEW][0]['stream'] == 'adausdt@depth@100ms'
-        assert sorted_dict[StreamAge.NEW][1]['stream'] == 'dotusdt@depth@100ms'
-        assert sorted_dict[StreamAge.NEW][2]['stream'] == 'trxusdt@depth@100ms'
+        assert sorted_dict[new_stream_listener_id.id][0]['stream'] == 'adausdt@depth@100ms'
+        assert sorted_dict[new_stream_listener_id.id][1]['stream'] == 'dotusdt@depth@100ms'
+        assert sorted_dict[new_stream_listener_id.id][2]['stream'] == 'trxusdt@depth@100ms'
 
-        assert sorted_dict[StreamAge.OLD][0]['stream'] == 'adausdt@depth@100ms'
-        assert sorted_dict[StreamAge.OLD][1]['stream'] == 'dotusdt@depth@100ms'
-        assert sorted_dict[StreamAge.OLD][2]['stream'] == 'trxusdt@depth@100ms'
+        assert sorted_dict[old_stream_listener_id.id][0]['stream'] == 'adausdt@depth@100ms'
+        assert sorted_dict[old_stream_listener_id.id][1]['stream'] == 'dotusdt@depth@100ms'
+        assert sorted_dict[old_stream_listener_id.id][2]['stream'] == 'trxusdt@depth@100ms'

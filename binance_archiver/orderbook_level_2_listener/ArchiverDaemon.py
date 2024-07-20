@@ -107,7 +107,7 @@ class ArchiverDaemon:
         self.orderbook_stream_message_queue.set_websocket_switch_indicator(did_websockets_switch_successfully)
 
         stream_listener = StreamListener()
-        stream_listener.stream_age = StreamAge.OLD
+        queue.currently_accepted_stream_id = stream_listener.id.id
 
         self.executor.submit(stream_listener.run_listener, queue, pairs, stream_type, market, self.logger)
 
@@ -115,7 +115,6 @@ class ArchiverDaemon:
             time.sleep(websockets_lifetime_seconds - websocket_overlap_seconds)
 
             new_stream_listener = StreamListener()
-            new_stream_listener.stream_age = StreamAge.NEW
 
             self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market, self.logger)
 
@@ -126,25 +125,6 @@ class ArchiverDaemon:
             stream_listener.end()
 
             stream_listener = new_stream_listener
-
-        # while True:
-        #     time.sleep(websockets_lifetime_seconds - websocket_overlap_seconds)
-        #
-        #     self.logger.info(f'{market} {stream_type}: Websocket lifetime will run out in: '
-        #                      f'{websocket_overlap_seconds} seconds, '
-        #                      f'launching new stream listener')
-        #
-        #     new_stream_listener = StreamListener(self.logger)
-        #     new_stream_listener.stream_age = StreamAge.NEW
-        #
-        #     self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market)
-        #
-        #     time.sleep(websocket_overlap_seconds)
-        #
-        #     stream_listener.end()
-        #
-        #     stream_listener = new_stream_listener
-        #     stream_listener.stream_age = StreamAge.OLD
 
     def _snapshot_daemon(self, pairs: List[str], market: Market, dump_path: str, interval: int, save_to_json: bool,
                          save_to_zip: bool, send_zip_to_blob: bool) -> None:

@@ -1,11 +1,11 @@
 import threading
 from logging import Logger
-from typing import List
+from typing import List, Tuple
 import time
 from websocket import WebSocketApp, ABNF
 
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.stream_age_enum import StreamAge
+from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
 from binance_archiver.orderbook_level_2_listener.supervisor import Supervisor
 from binance_archiver.orderbook_level_2_listener.url_factory import URLFactory
@@ -14,14 +14,9 @@ from binance_archiver.orderbook_level_2_listener.url_factory import URLFactory
 class StreamListener:
     def __init__(self):
         self.stream_type: StreamType | None = None
-        self.shutdown_flag: threading.Event() = threading.Event()
-        self.stream_age: StreamAge | None = None
-
-    def get_id_data(self) -> dict:
-        return {
-            'stream_type': self.stream_type,
-            'stream_age': self.stream_age
-        }
+        self.shutdown_flag: threading.Event = threading.Event()
+        self.id: StreamId = StreamId()
+        self.pairs_amount = None
 
     def run_listener(self, queue, pairs: List[str], stream_type: StreamType, market: Market, logger: Logger) -> None:
 
@@ -46,13 +41,10 @@ class StreamListener:
         url_method = stream_url_methods.get(stream_type, None)
         url = url_method(market, pairs)
 
-        pairs_amount = len(pairs)
-
         def _on_message(ws, message):
-            logger.info(f"{self.stream_age} {market} {stream_type}: {message}")
-            id_data = self.get_id_data()
-            id_data['pairs_amount'] = pairs_amount
-            queue.put(id_data=id_data, message=message)
+            logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            self.id.pairs_amount = len(pairs)
+            queue.put(stream_listener_id=self.id, message=message)
             supervisor.notify()
 
         def _on_error(ws, error):
@@ -60,7 +52,7 @@ class StreamListener:
 
         def _on_close(ws, close_status_code, close_msg):
             logger.info(f"{market} {stream_type}: WebSocket connection closed, "
-                             f"{close_msg} (code: {close_status_code})")
+                        f"{close_msg} (code: {close_status_code})")
             supervisor.shutdown_supervisor()
             ws.close()
 
@@ -90,7 +82,7 @@ class StreamListener:
 
             if supervisor_signal_shutdown_flag.is_set():
                 logger.error(f"{market} {stream_type}: "
-                                  f"Stop event set by Supervisor, breaking the loop and reconnecting")
+                             f"Stop event set by Supervisor, breaking the loop and reconnecting")
                 websocket_app.close()
                 break
 

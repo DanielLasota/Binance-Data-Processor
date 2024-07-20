@@ -3,9 +3,8 @@ import json
 import pprint
 import threading
 from queue import Queue
-from typing import Any, List, Dict
+from typing import Any, Dict
 
-from binance_archiver.orderbook_level_2_listener.stream_age_enum import StreamAge
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
 
 
@@ -14,12 +13,12 @@ class SupervisedQueue:
         self.logger = logger
         self.queue = Queue()
         self.stream_type = stream_type
-        self.currently_accepted_stream_age = StreamAge.OLD
         self.lock = threading.Lock()
+        self.currently_accepted_stream_id = None
 
         choose = {
-            StreamType.DIFFERENCE_DEPTH: self._put_difference_depth_message,
-            StreamType.TRADE: self._put_trade_message
+            StreamType.DIFFERENCE_DEPTH: self.put_difference_depth_message,
+            StreamType.TRADE: self.put_trade_message
         }
 
         self.put = choose.get(stream_type, None)
@@ -27,74 +26,67 @@ class SupervisedQueue:
         if stream_type == StreamType.DIFFERENCE_DEPTH:
             self.did_websockets_switch_successfully = False
 
-            self._two_last_throws = {
-                StreamAge.NEW: [],
-                StreamAge.OLD: []
-            }
+            self._two_last_throws = {}
 
-    def _add_to_compare(self, id_data, message):
+    def _add_to_compare(self, stream_listener_id, message):
         message_dict = json.loads(message)
+        id_index = stream_listener_id.id
 
-        if id_data['stream_age'] == StreamAge.NEW:
-            if len(self._two_last_throws[StreamAge.NEW]) > 0:
-                if message_dict['data']['E'] > self._two_last_throws[StreamAge.NEW][-1]['data']['E'] + 10:
-                    self._two_last_throws[StreamAge.NEW] = []
-            self._two_last_throws[StreamAge.NEW].append(message_dict)
+        if id_index not in self._two_last_throws:
+            self._two_last_throws[id_index] = []
 
-        if id_data['stream_age'] == StreamAge.OLD:
-            if len(self._two_last_throws[StreamAge.OLD]) > 0:
-                if message_dict['data']['E'] > self._two_last_throws[StreamAge.OLD][-1]['data']['E'] + 10:
-                    self._two_last_throws[StreamAge.OLD] = []
-            self._two_last_throws[StreamAge.OLD].append(message_dict)
+        if len(self._two_last_throws[id_index]) > 0:
+            if message_dict['data']['E'] > self._two_last_throws[id_index][-1]['data']['E'] + 10:
+                self._two_last_throws[id_index].clear()
+        self._two_last_throws[id_index].append(message_dict)
 
-        if self._two_last_throws[StreamAge.NEW] == self._two_last_throws[StreamAge.OLD]:
-            print('huj VVV')
-            pprint.pprint(self._two_last_throws)
-            print('huj ^^^')
-
-        amount_of_listened_pairs = id_data['pairs_amount']
+        amount_of_listened_pairs = stream_listener_id.pairs_amount
         do_they_match = self._compare_two_last_throws(amount_of_listened_pairs, self._two_last_throws)
 
         if do_they_match is True:
-            print('Messages match')
+            print('matches')
+            pprint.pprint(self._two_last_throws)
 
     @staticmethod
-    def _compare_two_last_throws(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool:
+    def _compare_two_last_throws(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool | None:
 
-        if len(two_last_throws[StreamAge.NEW]) == len(two_last_throws[StreamAge.OLD]) == amount_of_listened_pairs:
+        keys = list(two_last_throws.keys())
+
+        if len(keys) < 2:
+            return
+
+        if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
 
             print('lens are equal')
 
-            pprint.pprint(two_last_throws)
-
             copied_two_last_throws = copy.deepcopy(two_last_throws)
 
-            sorted_and_copied_two_last_throws = SupervisedQueue.sort_entries_by_symbol(copied_two_last_throws)
+            sorted_and_copied_two_last_throws = SupervisedQueue._sort_entries_by_symbol(copied_two_last_throws)
 
             for stream_age in sorted_and_copied_two_last_throws:
                 for entry in sorted_and_copied_two_last_throws[stream_age]:
                     entry['data'].pop('E', None)
 
-            if sorted_and_copied_two_last_throws[StreamAge.NEW] == sorted_and_copied_two_last_throws[StreamAge.OLD]:
+            if sorted_and_copied_two_last_throws[keys[0]] == sorted_and_copied_two_last_throws[keys[1]]:
                 return True
 
         return False
 
     @staticmethod
-    def sort_entries_by_symbol(two_last_throws: Dict) -> Dict:
-        for stream_age in two_last_throws:
-            two_last_throws[stream_age].sort(key=lambda entry: entry['data']['s'])
+    def _sort_entries_by_symbol(two_last_throws: Dict) -> Dict:
+        for stream_id in two_last_throws:
+            two_last_throws[stream_id].sort(key=lambda entry: entry['data']['s'])
         return two_last_throws
 
-    def _put_difference_depth_message(self, id_data, message):
+    def put_difference_depth_message(self, stream_listener_id, message):
 
         with self.lock:
-            self._add_to_compare(id_data, message)
+            self._add_to_compare(stream_listener_id, message)
 
-            if id_data['stream_age'] == self.currently_accepted_stream_age:
+            if stream_listener_id == self.currently_accepted_stream_id:
                 self.queue.put(message)
 
-    def _put_trade_message(self, message):
+    def put_trade_message(self, message):
         self.queue.put(message)
 
     def get(self) -> Any:
