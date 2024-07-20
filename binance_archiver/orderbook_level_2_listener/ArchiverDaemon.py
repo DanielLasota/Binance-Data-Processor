@@ -94,7 +94,7 @@ class ArchiverDaemon:
             stream_type: StreamType,
             market: Market,
             websockets_lifetime_seconds,
-            websocket_overlap_seconds):
+            websocket_overlap_seconds) -> None:
 
         queues = {
             StreamType.TRADE: self.transaction_stream_message_queue,
@@ -106,18 +106,18 @@ class ArchiverDaemon:
         did_websockets_switch_successfully = False
         self.orderbook_stream_message_queue.set_websocket_switch_indicator(did_websockets_switch_successfully)
 
-        stream_listener = StreamListener(self.logger)
+        stream_listener = StreamListener()
         stream_listener.stream_age = StreamAge.OLD
 
-        self.executor.submit(stream_listener.run_listener, queue, pairs, stream_type, market)
+        self.executor.submit(stream_listener.run_listener, queue, pairs, stream_type, market, self.logger)
 
         while True:
             time.sleep(websockets_lifetime_seconds - websocket_overlap_seconds)
 
-            new_stream_listener = StreamListener(self.logger)
+            new_stream_listener = StreamListener()
             new_stream_listener.stream_age = StreamAge.NEW
 
-            self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market)
+            self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market, self.logger)
 
             while did_websockets_switch_successfully is False:
                 time.sleep(0.01)

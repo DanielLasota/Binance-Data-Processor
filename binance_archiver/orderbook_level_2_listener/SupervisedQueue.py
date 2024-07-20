@@ -2,7 +2,6 @@ import copy
 import json
 import pprint
 import threading
-import time
 from queue import Queue
 from typing import Any, List, Dict
 
@@ -48,16 +47,6 @@ class SupervisedQueue:
                     self._two_last_throws[StreamAge.OLD] = []
             self._two_last_throws[StreamAge.OLD].append(message_dict)
 
-        # if id_data['stream_age'] == StreamAge.OLD:
-        #     print(f'states ov self._last_timestamp_input[OLD]: {time.time_ns()}')
-        #     for _ in self._two_last_throws[StreamAge.OLD]:
-        #         print(_)
-        #
-        # if id_data['stream_age'] == StreamAge.NEW:
-        #     print(f'states ov self._last_timestamp_input[NEW]: {time.time_ns()}')
-        #     for _ in self._two_last_throws[StreamAge.NEW]:
-        #         print(_)
-
         if self._two_last_throws[StreamAge.NEW] == self._two_last_throws[StreamAge.OLD]:
             print('huj VVV')
             pprint.pprint(self._two_last_throws)
@@ -67,7 +56,7 @@ class SupervisedQueue:
         do_they_match = self._compare_two_last_throws(amount_of_listened_pairs, self._two_last_throws)
 
         if do_they_match is True:
-            print('ugabuga')
+            print('Messages match')
 
     @staticmethod
     def _compare_two_last_throws(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool:

@@ -12,11 +12,7 @@ from binance_archiver.orderbook_level_2_listener.url_factory import URLFactory
 
 
 class StreamListener:
-    def __init__(
-            self,
-            logger: Logger,
-    ):
-        self.logger: Logger = logger
+    def __init__(self):
         self.stream_type: StreamType | None = None
         self.shutdown_flag: threading.Event() = threading.Event()
         self.stream_age: StreamAge | None = None
@@ -27,14 +23,14 @@ class StreamListener:
             'stream_age': self.stream_age
         }
 
-    def run_listener(self, queue, pairs: List[str], stream_type: StreamType, market: Market) -> None:
+    def run_listener(self, queue, pairs: List[str], stream_type: StreamType, market: Market, logger: Logger) -> None:
 
         self.stream_type = stream_type
 
         supervisor_signal_shutdown_flag = threading.Event()
 
         supervisor = Supervisor(
-            logger=self.logger,
+            logger=logger,
             stream_type=stream_type,
             market=market,
             check_interval_in_seconds=5,
@@ -53,17 +49,17 @@ class StreamListener:
         pairs_amount = len(pairs)
 
         def _on_message(ws, message):
-            self.logger.info(f"{self.stream_age} {market} {stream_type}: {message}")
+            logger.info(f"{self.stream_age} {market} {stream_type}: {message}")
             id_data = self.get_id_data()
             id_data['pairs_amount'] = pairs_amount
             queue.put(id_data=id_data, message=message)
             supervisor.notify()
 
         def _on_error(ws, error):
-            self.logger.error(f"{market} {stream_type}: {error}")
+            logger.error(f"{market} {stream_type}: {error}")
 
         def _on_close(ws, close_status_code, close_msg):
-            self.logger.info(f"{market} {stream_type}: WebSocket connection closed, "
+            logger.info(f"{market} {stream_type}: WebSocket connection closed, "
                              f"{close_msg} (code: {close_status_code})")
             supervisor.shutdown_supervisor()
             ws.close()
@@ -72,7 +68,7 @@ class StreamListener:
             ws.send("", ABNF.OPCODE_PONG)
 
         def _on_open(ws):
-            self.logger.info(f"{market} {stream_type}: WebSocket connection opened")
+            logger.info(f"{market} {stream_type}: WebSocket connection opened")
 
         websocket_app = WebSocketApp(
             url,
@@ -88,12 +84,12 @@ class StreamListener:
 
         while True:
             if self.shutdown_flag.is_set():
-                self.logger.info("shutdown_flag is set, breaking the loop")
+                logger.info("shutdown_flag is set, breaking the loop")
                 websocket_app.close()
                 break
 
             if supervisor_signal_shutdown_flag.is_set():
-                self.logger.error(f"{market} {stream_type}: "
+                logger.error(f"{market} {stream_type}: "
                                   f"Stop event set by Supervisor, breaking the loop and reconnecting")
                 websocket_app.close()
                 break
