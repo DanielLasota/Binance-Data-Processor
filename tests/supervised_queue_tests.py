@@ -1,10 +1,6 @@
 import time
 
 from binance_archiver.orderbook_level_2_listener.SupervisedQueue import SupervisedQueue
-from binance_archiver.orderbook_level_2_listener.stream_age_enum import StreamAge
-
-import re
-from datetime import datetime, timezone
 
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 

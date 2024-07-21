@@ -57,7 +57,7 @@ if __name__ == "__main__":
             "websocket_life_time_seconds": 60,
             "websocket_overlap_seconds": 30,
             "save_to_json": True,
-            "save_to_zip": False,
+            "save_to_zip": True,
             "send_zip_to_blob": False
         }
     }

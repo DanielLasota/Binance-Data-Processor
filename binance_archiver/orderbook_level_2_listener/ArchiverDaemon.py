@@ -17,7 +17,6 @@ from .market_enum import Market
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
-from .stream_age_enum import StreamAge
 from .stream_type_enum import StreamType
 from .url_factory import URLFactory
 
@@ -103,8 +102,6 @@ class ArchiverDaemon:
 
         queue = queues.get(stream_type, None)
         queue.set_pairs_amount = len(pairs)
-        did_websockets_switch_successfully = False
-        self.orderbook_stream_message_queue.set_websocket_switch_indicator(did_websockets_switch_successfully)
 
         stream_listener = StreamListener()
         queue.currently_accepted_stream_id = stream_listener.id.id
@@ -118,10 +115,10 @@ class ArchiverDaemon:
 
             self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market, self.logger)
 
-            while did_websockets_switch_successfully is False:
+            while queue.did_websockets_switch_successfully is False:
                 time.sleep(0.01)
 
-            did_websockets_switch_successfully = False
+            queue.did_websockets_switch_successfully = False
             stream_listener.end()
 
             stream_listener = new_stream_listener
