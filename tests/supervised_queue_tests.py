@@ -1,6 +1,6 @@
 import time
 
-from binance_archiver.orderbook_level_2_listener.SupervisedQueue import SupervisedQueue
+from binance_archiver.orderbook_level_2_listener.DifferenceDepthQueue import DifferenceDepthQueue
 
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 
@@ -241,7 +241,7 @@ class TestSupervisedQueue:
             }
         )
 
-        do_they_match = SupervisedQueue._compare_two_last_throws(3, _two_last_throws)
+        do_they_match = DifferenceDepthQueue._compare_two_last_throws(3, _two_last_throws)
 
         assert do_they_match is True
 
@@ -485,7 +485,7 @@ class TestSupervisedQueue:
         )
         # old trx entry is different from new trx entry
 
-        do_they_match = SupervisedQueue._compare_two_last_throws(3, _two_last_throws)
+        do_they_match = DifferenceDepthQueue._compare_two_last_throws(3, _two_last_throws)
 
         assert do_they_match is False
 
@@ -724,7 +724,7 @@ class TestSupervisedQueue:
 
         )
 
-        sorted_dict = SupervisedQueue._sort_entries_by_symbol(_two_last_throws)
+        sorted_dict = DifferenceDepthQueue._sort_entries_by_symbol(_two_last_throws)
 
         assert sorted_dict[new_stream_listener_id.id][0]['stream'] == 'adausdt@depth@100ms'
         assert sorted_dict[new_stream_listener_id.id][1]['stream'] == 'dotusdt@depth@100ms'

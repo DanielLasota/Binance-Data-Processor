@@ -3,10 +3,11 @@ import time
 from typing import List
 import pprint
 
-from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
+# from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.ArchiverDaemon import ArchiverDaemon
 from binance_archiver.logo import logo
+from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
 
 
 class DaemonManager:
@@ -20,15 +21,15 @@ class DaemonManager:
             container_name: str | None = None,
     ) -> None:
         self.config = config
-        self.logger = setup_logger(dump_path_to_log_file, dump_to_file=True)
         self.dump_path = dump_path
         self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
         self.container_name = container_name
         self.daemons = []
+        self.logger = setup_logger(dump_path_to_log_file, dump_logs_to_files=False)
 
     def run(self) -> None:
 
-        self.logger.info('\n%s',logo)
+        self.logger.info('\n%s', logo)
         self.logger.info('Starting Binance Archiver...')
         self.logger.info("Configuration:\n%s", pprint.pformat(self.config, indent=1))
 
@@ -39,8 +40,8 @@ class DaemonManager:
             send_zip_to_blob=self.config['daemons']['send_zip_to_blob']
         )
 
-        while True:
-            time.sleep(10)
+        # while True:
+        #     time.sleep(10)
 
     def _start_daemon(
             self,

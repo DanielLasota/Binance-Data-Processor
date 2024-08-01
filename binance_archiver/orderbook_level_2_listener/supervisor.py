@@ -1,7 +1,7 @@
 import time
 import threading
 from datetime import datetime, timezone
-import logging
+# import logging
 
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
@@ -10,14 +10,12 @@ from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamT
 class Supervisor:
     def __init__(
             self,
-            logger: logging.Logger,
             stream_type: StreamType,
             market: Market,
             check_interval_in_seconds,
             max_interval_without_messages_in_seconds,
             on_error_callback=None
     ) -> None:
-        self.logger = logger
         self.stream_type = stream_type
         self.market = market
         self.on_error_callback = on_error_callback
@@ -39,7 +37,7 @@ class Supervisor:
                 time_since_last_message = (int(datetime.now(timezone.utc).timestamp())
                                            - self.last_message_time_epoch_seconds_utc)
             if time_since_last_message > self.max_interval_without_messages_in_seconds:
-                self.logger.info(
+                print(
                     f'{self.market} {self.stream_type}: '
                     f'Supervisor: No entry for {self.max_interval_without_messages_in_seconds} seconds, '
                     f'sending restart signal.'

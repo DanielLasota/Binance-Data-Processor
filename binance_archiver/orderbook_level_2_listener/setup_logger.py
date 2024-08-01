@@ -4,13 +4,13 @@ from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
 
-def setup_logger(log_file_path: str, dump_to_file: bool | None = False) -> logging.Logger:
+def setup_logger(log_file_path: str, dump_logs_to_files: bool | None = False) -> logging.Logger:
     logger = logging.getLogger('DaemonManager')
     logger.setLevel(logging.DEBUG)
 
     now_utc = datetime.utcnow().strftime('%d-%m-%YT%H-%M-%SZ')
 
-    if dump_to_file is True:
+    if dump_logs_to_files is True:
         file_handler = RotatingFileHandler(
             f"{log_file_path}archiver{now_utc}.log",
             maxBytes=5 * 1024 * 1024,
@@ -27,5 +27,15 @@ def setup_logger(log_file_path: str, dump_to_file: bool | None = False) -> loggi
     console_formatter = logging.Formatter('%(asctime)sZ - %(levelname)s - %(message)s')
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
+
+    logger.raiseExceptions = True
+    logger.logThreads = True
+    logger.logMultiprocessing = True
+    logger.logProcesses = True
+
+    logging.raiseExceptions = True
+    logging.logThreads = True
+    logging.logMultiprocessing = True
+    logging.logProcesses = True
 
     return logger

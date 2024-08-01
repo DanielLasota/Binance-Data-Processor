@@ -10,9 +10,9 @@ from collections import defaultdict
 from azure.storage.blob import BlobServiceClient
 import io
 
-from . import SupervisedQueue
+from . import DifferenceDepthQueue
 from .StreamListener import StreamListener
-from .SupervisedQueue import SupervisedQueue
+from .DifferenceDepthQueue import DifferenceDepthQueue
 from .market_enum import Market
 import requests
 from concurrent.futures import ThreadPoolExecutor
@@ -36,18 +36,18 @@ class ArchiverDaemon:
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
         self.container_name = container_name
-        self.orderbook_stream_message_queue = SupervisedQueue(logger, stream_type=StreamType.DIFFERENCE_DEPTH)
-        self.transaction_stream_message_queue = SupervisedQueue(logger, stream_type=StreamType.TRADE)
-        self.executor = ThreadPoolExecutor(max_workers=10)
+        self.orderbook_stream_message_queue = DifferenceDepthQueue(stream_type=StreamType.DIFFERENCE_DEPTH)
+        self.transaction_stream_message_queue = DifferenceDepthQueue(stream_type=StreamType.TRADE)
+        self.executor = ThreadPoolExecutor(max_workers=12)
 
     def run(
             self,
             pairs: List[str],
             market: Market,
             file_duration_seconds: int,
-            dump_path: str | None = None,
-            websockets_lifetime_seconds: int = 60 * 60 * 8,
-            websocket_overlap_seconds: int = 60,
+            dump_path: str | None,
+            websockets_lifetime_seconds: int,
+            websocket_overlap_seconds: int,
             save_to_json: bool = False,
             save_to_zip: bool = False,
             send_zip_to_blob: bool = True
@@ -56,14 +56,14 @@ class ArchiverDaemon:
         self.start_stream_supervisor_service(pairs, StreamType.DIFFERENCE_DEPTH, market, websockets_lifetime_seconds,
                                              websocket_overlap_seconds)
 
-        # self.start_stream_service_supervisor(pairs, StreamType.TRADE, market, websockets_lifetime_seconds,
+        # self.start_stream_supervisor_service(pairs, StreamType.TRADE, market, websockets_lifetime_seconds,
         #                                      websocket_overlap_seconds)
 
-        self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-                                           send_zip_to_blob)
+        # self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
+        #                                    send_zip_to_blob)
 
         # self.start_transaction_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-        # send_zip_to_blob)
+        #                                      send_zip_to_blob)
 
         # self.start_snapshot_daemon(pairs, market, dump_path, self.snapshot_fetcher_interval_seconds, save_to_json,
         #                            save_to_zip, send_zip_to_blob)
@@ -87,6 +87,11 @@ class ArchiverDaemon:
         self.executor.submit(self._snapshot_daemon, pairs, market, dump_path, interval, save_to_json, save_to_zip,
                              send_zip_to_blob)
 
+    # def check_flag(self, executor):
+    #     while True:
+    #         print(f'executor._shutdown {executor._shutdown}')
+    #         time.sleep(0.1)
+
     def _stream_service_supervisor(
             self,
             pairs: List[str],
@@ -104,24 +109,58 @@ class ArchiverDaemon:
         queue.set_pairs_amount = len(pairs)
 
         stream_listener = StreamListener()
+
         queue.currently_accepted_stream_id = stream_listener.id.id
 
-        self.executor.submit(stream_listener.run_listener, queue, pairs, stream_type, market, self.logger)
+        self.executor.submit(stream_listener.run_listener, queue, pairs, stream_type, market)
+        print('started genesis listener')
+
+        # self.executor.submit(self.check_flag, self.executor)
+
+        i = 1
 
         while True:
+            print('VVVVV')
+            print(f'1self.executor._shutdown {self.executor._shutdown}')
+            print(f'iteration: {i}')
+            print(f'queue qsize: {queue.qsize()}')
+            queue.clear()
+            print(f'queue qsize after clear: {queue.qsize()}')
+            print(f'2self.executor._shutdown {self.executor._shutdown}')
+
+            print(f'amount of workers: {len(self.executor._threads)}')
+            print(f'3self.executor._shutdown {self.executor._shutdown}')
+
             time.sleep(websockets_lifetime_seconds - websocket_overlap_seconds)
 
+            print('constructing new listener')
+            print(f'4self.executor._shutdown {self.executor._shutdown}')
             new_stream_listener = StreamListener()
+            print(f'5self.executor._shutdown {self.executor._shutdown}')
+            print('constructed new listener successfully, launching new .run_listener thread...')
 
-            self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market, self.logger)
+            print(f'self.executor._broken {self.executor._broken}')
+            print(f'6self.executor._shutdown {self.executor._shutdown}')
+
+            self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market)
+            print('started new listener')
+            print(f'7self.executor._shutdown {self.executor._shutdown}')
 
             while queue.did_websockets_switch_successfully is False:
-                time.sleep(0.01)
+                time.sleep(1)
+
+            print('switched successfully')
 
             queue.did_websockets_switch_successfully = False
             stream_listener.end()
+            print(f'8self.executor._shutdown {self.executor._shutdown}')
+
+            print('ended old listener successfully')
 
             stream_listener = new_stream_listener
+            print(f'9self.executor._shutdown {self.executor._shutdown}')
+
+            i = i + 1
 
     def _snapshot_daemon(self, pairs: List[str], market: Market, dump_path: str, interval: int, save_to_json: bool,
                          save_to_zip: bool, send_zip_to_blob: bool) -> None:
@@ -146,7 +185,7 @@ class ArchiverDaemon:
                         self._send_zipped_json_to_blob(snapshot, file_name)
 
                 except Exception as e:
-                    self.logger.error(f'error whilst fetching snapshot: {market} {StreamType.DEPTH_SNAPSHOT}: {e}')
+                    self.logger.info(f'error whilst fetching snapshot: {market} {StreamType.DEPTH_SNAPSHOT}: {e}')
 
             time.sleep(interval)
 
@@ -198,7 +237,7 @@ class ArchiverDaemon:
                 break
             time.sleep(interval)
 
-    def _process_stream_data(self, queue: SupervisedQueue, market: Market, dump_path: str, stream_type: StreamType,
+    def _process_stream_data(self, queue: DifferenceDepthQueue, market: Market, dump_path: str, stream_type: StreamType,
                              save_to_json: bool, save_to_zip: bool, send_zip_to_blob: bool) -> None:
         if not queue.empty():
             stream_data = defaultdict(list)
@@ -211,9 +250,9 @@ class ArchiverDaemon:
                     stream = message["stream"]
                     stream_data[stream].append(message)
                 except json.JSONDecodeError as e:
-                    self.logger.error(f"JSON decode error: {e}")
+                    self.logger.info(f"JSON decode error: {e}")
                 except Exception as e:
-                    self.logger.error(f"Error processing message: {e}")
+                    self.logger.info(f"Error processing message: {e}")
 
             for stream, data in stream_data.items():
                 _pair = stream.split('@')[0]
@@ -234,7 +273,7 @@ class ArchiverDaemon:
             with open(file_path, 'w') as f:
                 json.dump(data, f)
         except IOError as e:
-            self.logger.error(f"IO error when writing to file {file_path}: {e}")
+            self.logger.info(f"IO error when writing to file {file_path}: {e}")
 
     def _save_to_zip(self, data, file_name, file_path):
         zip_file_path = f"{file_path}.zip"
@@ -244,7 +283,7 @@ class ArchiverDaemon:
                 json_filename = f"{file_name}.json"
                 zipf.writestr(json_filename, json_data)
         except IOError as e:
-            self.logger.error(f"IO error when writing to zip file {zip_file_path}: {e}")
+            self.logger.info(f"IO error when writing to zip file {zip_file_path}: {e}")
 
     def _send_zipped_json_to_blob(self, data, file_name):
         try:
@@ -264,7 +303,7 @@ class ArchiverDaemon:
             blob_client.upload_blob(zip_buffer, overwrite=True)
             self.logger.info(f"Successfully uploaded {file_name}.zip to blob storage.")
         except Exception as e:
-            self.logger.error(f"Error uploading zip to blob: {e}")
+            self.logger.info(f"Error uploading zip to blob: {e}")
 
     def get_file_name(self, pair: str, market: Market, stream_type: StreamType, extension: str = 'json') -> str:
 
