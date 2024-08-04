@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import json
 
 from binance_archiver import DaemonManager
+from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
 
 if __name__ == "__main__":
     load_dotenv('C:/Users/daniellasota/archer.env')
@@ -46,28 +47,25 @@ if __name__ == "__main__":
     # }
 
     config = {
-        "daemons": {
-            "markets": {
-                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"]
-            },
-            "file_duration_seconds": 60,
-            "snapshot_fetcher_interval_seconds": 60,
-            "websocket_life_time_seconds": 30,
-            "websocket_overlap_seconds": 5,
-            "save_to_json": True,
-            "save_to_zip": False,
-            "send_zip_to_blob": False
-        }
+        "markets": {
+            "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                     "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"]
+        },
+        "file_duration_seconds": 60,
+        "snapshot_fetcher_interval_seconds": 60,
+        "websocket_life_time_seconds": 30,
+        "websocket_overlap_seconds": 5,
+        "save_to_json": True,
+        "save_to_zip": False,
+        "send_zip_to_blob": False
     }
 
-    manager = DaemonManager(
-        config=config,
+    launch_data_sink(
+        config,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-        container_name=container_name
+        container_name=container_name,
+        dump_path_to_log_file='logs/'
     )
-
-    manager.run()
 
 '''
 ContainerAppConsoleLogs_CL

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import pprint
 import time
 import zipfile
 from datetime import datetime, timezone
@@ -10,10 +11,12 @@ from azure.storage.blob import BlobServiceClient
 import io
 import threading
 
+from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
 from .market_enum import Market
 import requests
+from binance_archiver.logo import logo
 
 from .stream_type_enum import StreamType
 from .trade_queue import TradeQueue
@@ -26,45 +29,62 @@ class ArchiverDaemon:
             logger: logging.Logger,
             azure_blob_parameters_with_key: str,
             container_name: str,
-            snapshot_fetcher_interval_seconds: int = 20
     ) -> None:
-        self.snapshot_fetcher_interval_seconds = snapshot_fetcher_interval_seconds
         self.logger = logger
         self.global_shutdown_flag: bool = False
-        self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
         self.container_name = container_name
 
-        self.orderbook_stream_message_queue = DifferenceDepthQueue()
-        self.transaction_stream_message_queue = TradeQueue()
+        self.spot_orderbook_stream_message_queue = DifferenceDepthQueue()
+        self.spot_transaction_stream_message_queue = TradeQueue()
+        self.usd_m_futures_orderbook_stream_message_queue = DifferenceDepthQueue()
+        self.usd_m_futures_transaction_stream_message_queue = TradeQueue()
+        self.coin_m_orderbook_stream_message_queue = DifferenceDepthQueue()
+        self.coin_m_transaction_stream_message_queue = TradeQueue()
+
+        self.queue_lookup = {
+            (Market.SPOT, StreamType.DIFFERENCE_DEPTH): self.spot_orderbook_stream_message_queue,
+            (Market.SPOT, StreamType.TRADE): self.spot_transaction_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.usd_m_futures_orderbook_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.TRADE): self.usd_m_futures_transaction_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.coin_m_orderbook_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_transaction_stream_message_queue
+        }
+
+    def _get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
+        # Retrieve the appropriate queue based on market and stream type
+        return self.queue_lookup.get((market, stream_type))
 
     def run(
             self,
-            pairs: List[str],
-            market: Market,
+            instruments: Dict,
             file_duration_seconds: int,
             dump_path: str | None,
             websockets_lifetime_seconds: int,
             websocket_overlap_seconds: int,
             save_to_json: bool = False,
             save_to_zip: bool = False,
-            send_zip_to_blob: bool = True
+            send_zip_to_blob: bool = True,
+            snapshot_fetcher_interval_seconds: int = 60
     ) -> None:
 
-        self.start_stream_supervisor_service(pairs, StreamType.DIFFERENCE_DEPTH, market, websockets_lifetime_seconds,
-                                             websocket_overlap_seconds)
+        for market, pairs in instruments['daemons']['markets'].items():
+            market = Market(market.upper())
 
-        self.start_stream_supervisor_service(pairs, StreamType.TRADE, market, websockets_lifetime_seconds,
-                                             websocket_overlap_seconds)
+            self.start_stream_supervisor_service(pairs, StreamType.DIFFERENCE_DEPTH, market, websockets_lifetime_seconds,
+                                                 websocket_overlap_seconds)
 
-        self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-                                           send_zip_to_blob)
+            self.start_stream_supervisor_service(pairs, StreamType.TRADE, market, websockets_lifetime_seconds,
+                                                 websocket_overlap_seconds)
 
-        self.start_transaction_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-                                             send_zip_to_blob)
+            self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
+                                               send_zip_to_blob)
 
-        self.start_snapshot_daemon(pairs, market, dump_path, self.snapshot_fetcher_interval_seconds, save_to_json,
-                                   save_to_zip, send_zip_to_blob)
+            self.start_transaction_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
+                                                 send_zip_to_blob)
+
+            self.start_snapshot_daemon(pairs, market, dump_path, snapshot_fetcher_interval_seconds, save_to_json,
+                                       save_to_zip, send_zip_to_blob)
 
     def start_stream_supervisor_service(self, pairs, stream_type, market, websockets_lifetime_seconds,
                                         websocket_overlap_seconds) -> None:
@@ -75,10 +95,10 @@ class ArchiverDaemon:
 
     def start_transaction_stream_writer(self, market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
                                         send_zip_to_blob) -> None:
-
+        queue = self._get_queue(market, StreamType.TRADE)
         thread = threading.Thread(
             target=self._stream_writer,
-            args=(market, file_duration_seconds, dump_path, StreamType.TRADE, save_to_json, save_to_zip,
+            args=(queue, market, file_duration_seconds, dump_path, StreamType.TRADE, save_to_json, save_to_zip,
                   send_zip_to_blob
                   )
         )
@@ -111,12 +131,7 @@ class ArchiverDaemon:
             websocket_overlap_seconds: int
     ) -> None:
 
-        queues = {
-            StreamType.TRADE: self.transaction_stream_message_queue,
-            StreamType.DIFFERENCE_DEPTH: self.orderbook_stream_message_queue
-        }
-
-        queue = queues.get(stream_type, None)
+        queue = self._get_queue(market, stream_type)
         queue.set_pairs_amount = len(pairs)
 
         stream_listener = StreamListener(
@@ -210,7 +225,7 @@ class ArchiverDaemon:
         except Exception as e:
             raise RuntimeError(f"An unexpected error occurred: {e}") from e
 
-    def _stream_writer(self, market: Any, duration: int, dump_path: str, stream_type: Any, save_to_json, save_to_zip,
+    def _stream_writer(self, queue: market: Any, duration: int, dump_path: str, stream_type: Any, save_to_json, save_to_zip,
                        send_zip_to_blob) -> None:
 
         queues = {
@@ -336,3 +351,37 @@ class ArchiverDaemon:
     @staticmethod
     def _get_utc_timestamp_epoch_seconds() -> int:
         return round(datetime.now(timezone.utc).timestamp())
+
+
+def launch_data_sink(
+        config,
+        dump_path: str,
+        azure_blob_parameters_with_key: str | None = None,
+        container_name: str | None = None,
+        dump_path_to_log_file: str | None = None,
+        dump_logs_to_files: bool = False,
+):
+
+    logger = setup_logger(dump_path_to_log_file, dump_logs_to_files=dump_logs_to_files)
+
+    logger.info('\n%s', logo)
+    logger.info('Starting Binance Archiver...')
+    logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
+
+    archiver_daemon = ArchiverDaemon(
+        logger=logger,
+        azure_blob_parameters_with_key=azure_blob_parameters_with_key,
+        container_name=container_name
+    )
+
+    archiver_daemon.run(
+        instruments=config['markets'],
+        file_duration_seconds=config['daemons']['file_duration_seconds'],
+        dump_path=dump_path,
+        websockets_lifetime_seconds=config['daemons']['websocket_life_time_seconds'],
+        websocket_overlap_seconds=config['daemons']['websocket_overlap_seconds'],
+        save_to_json=config['daemons']['save_to_json'],
+        save_to_zip=config['daemons']['save_to_zip'],
+        send_zip_to_blob=config['daemons']['send_zip_to_blob'],
+        snapshot_fetcher_interval_seconds=config['daemons']['snapshot_fetcher_interval_seconds']
+    )
