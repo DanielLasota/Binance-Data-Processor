@@ -2,19 +2,21 @@ from queue import Queue
 from typing import Any
 
 
-class UniqueQueue:
+class TradeQueue:
     def __init__(self):
         self.queue = Queue()
         self.unique_elements = set()
+        self.did_websockets_switch_successfully = False
 
-    def put(self, message: str, received_timestamp) -> bool:
-        return self._put_with_no_repetitions(message, received_timestamp)
+    def put_message(self, message: str, timestamp_of_receive) -> bool:
+        return self._put_with_no_repetitions(message, timestamp_of_receive)
 
     def _put_with_no_repetitions(self, message: str, received_timestamp) -> bool:
         if message not in self.unique_elements:
             self.unique_elements.add(message)
             self.queue.put((message, received_timestamp))
             return True
+        self.did_websockets_switch_successfully = True
         return False
 
     def get(self) -> Any:

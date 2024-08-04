@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import threading
 import time
 import zipfile
 from datetime import datetime, timezone
@@ -9,15 +8,15 @@ from typing import List, Any, Dict, Tuple
 from collections import defaultdict
 from azure.storage.blob import BlobServiceClient
 import io
+import threading
 
-from . import DifferenceDepthQueue
-from .StreamListener import StreamListener
-from .DifferenceDepthQueue import DifferenceDepthQueue
+from .stream_listener import StreamListener
+from .difference_depth_queue import DifferenceDepthQueue
 from .market_enum import Market
 import requests
-from concurrent.futures import ThreadPoolExecutor
 
 from .stream_type_enum import StreamType
+from .trade_queue import TradeQueue
 from .url_factory import URLFactory
 
 
@@ -31,14 +30,13 @@ class ArchiverDaemon:
     ) -> None:
         self.snapshot_fetcher_interval_seconds = snapshot_fetcher_interval_seconds
         self.logger = logger
-        self.global_shutdown_flag = threading.Event()
-        self.lock: threading.Lock = threading.Lock()
+        self.global_shutdown_flag: bool = False
         self.last_file_change_time = datetime.now()
         self.blob_service_client = BlobServiceClient.from_connection_string(azure_blob_parameters_with_key)
         self.container_name = container_name
-        self.orderbook_stream_message_queue = DifferenceDepthQueue(stream_type=StreamType.DIFFERENCE_DEPTH)
-        self.transaction_stream_message_queue = DifferenceDepthQueue(stream_type=StreamType.TRADE)
-        self.executor = ThreadPoolExecutor(max_workers=12)
+
+        self.orderbook_stream_message_queue = DifferenceDepthQueue()
+        self.transaction_stream_message_queue = TradeQueue()
 
     def run(
             self,
@@ -56,49 +54,62 @@ class ArchiverDaemon:
         self.start_stream_supervisor_service(pairs, StreamType.DIFFERENCE_DEPTH, market, websockets_lifetime_seconds,
                                              websocket_overlap_seconds)
 
-        # self.start_stream_supervisor_service(pairs, StreamType.TRADE, market, websockets_lifetime_seconds,
-        #                                      websocket_overlap_seconds)
+        self.start_stream_supervisor_service(pairs, StreamType.TRADE, market, websockets_lifetime_seconds,
+                                             websocket_overlap_seconds)
 
-        # self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-        #                                    send_zip_to_blob)
+        self.start_orderbook_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
+                                           send_zip_to_blob)
 
-        # self.start_transaction_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
-        #                                      send_zip_to_blob)
+        self.start_transaction_stream_writer(market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
+                                             send_zip_to_blob)
 
-        # self.start_snapshot_daemon(pairs, market, dump_path, self.snapshot_fetcher_interval_seconds, save_to_json,
-        #                            save_to_zip, send_zip_to_blob)
+        self.start_snapshot_daemon(pairs, market, dump_path, self.snapshot_fetcher_interval_seconds, save_to_json,
+                                   save_to_zip, send_zip_to_blob)
 
     def start_stream_supervisor_service(self, pairs, stream_type, market, websockets_lifetime_seconds,
                                         websocket_overlap_seconds) -> None:
-        self.executor.submit(self._stream_service_supervisor, pairs, stream_type, market, websockets_lifetime_seconds,
-                             websocket_overlap_seconds)
+        thread = threading.Thread(
+            target=self._stream_service_supervisor,
+            args=(pairs, stream_type, market, websockets_lifetime_seconds, websocket_overlap_seconds))
+        thread.start()
 
     def start_transaction_stream_writer(self, market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
                                         send_zip_to_blob) -> None:
-        self.executor.submit(self._stream_writer, market, file_duration_seconds, dump_path, StreamType.TRADE,
-                             save_to_json, save_to_zip, send_zip_to_blob)
+
+        thread = threading.Thread(
+            target=self._stream_writer,
+            args=(market, file_duration_seconds, dump_path, StreamType.TRADE, save_to_json, save_to_zip,
+                  send_zip_to_blob
+                  )
+        )
+        thread.start()
 
     def start_orderbook_stream_writer(self, market, file_duration_seconds, dump_path, save_to_json, save_to_zip,
                                       send_zip_to_blob) -> None:
-        self.executor.submit(self._stream_writer, market, file_duration_seconds, dump_path, StreamType.DIFFERENCE_DEPTH,
-                             save_to_json, save_to_zip, send_zip_to_blob)
+        thread = threading.Thread(
+            target=self._stream_writer,
+            args=(market, file_duration_seconds, dump_path, StreamType.DIFFERENCE_DEPTH, save_to_json, save_to_zip,
+                  send_zip_to_blob
+                  )
+        )
+        thread.start()
 
     def start_snapshot_daemon(self, pairs, market, dump_path, interval, save_to_json, save_to_zip, send_zip_to_blob):
-        self.executor.submit(self._snapshot_daemon, pairs, market, dump_path, interval, save_to_json, save_to_zip,
-                             send_zip_to_blob)
 
-    # def check_flag(self, executor):
-    #     while True:
-    #         print(f'executor._shutdown {executor._shutdown}')
-    #         time.sleep(0.1)
+        thread = threading.Thread(
+            target=self._snapshot_daemon,
+            args=(pairs, market, dump_path, interval, save_to_json, save_to_zip, send_zip_to_blob)
+        )
+        thread.start()
 
     def _stream_service_supervisor(
             self,
             pairs: List[str],
             stream_type: StreamType,
             market: Market,
-            websockets_lifetime_seconds,
-            websocket_overlap_seconds) -> None:
+            websockets_lifetime_seconds: int,
+            websocket_overlap_seconds: int
+    ) -> None:
 
         queues = {
             StreamType.TRADE: self.transaction_stream_message_queue,
@@ -108,64 +119,51 @@ class ArchiverDaemon:
         queue = queues.get(stream_type, None)
         queue.set_pairs_amount = len(pairs)
 
-        stream_listener = StreamListener()
+        stream_listener = StreamListener(
+            queue=queue,
+            pairs=pairs,
+            stream_type=stream_type,
+            market=market
+        )
 
-        queue.currently_accepted_stream_id = stream_listener.id.id
+        if stream_type is StreamType.DIFFERENCE_DEPTH:
+            queue.currently_accepted_stream_id = stream_listener.id.id
 
-        self.executor.submit(stream_listener.run_listener, queue, pairs, stream_type, market)
-        print('started genesis listener')
-
-        # self.executor.submit(self.check_flag, self.executor)
-
-        i = 1
+        old_stream_listener_thread = threading.Thread(target=stream_listener.websocket_app.run_forever)
+        old_stream_listener_thread.daemon = True
+        old_stream_listener_thread.start()
 
         while True:
-            print('VVVVV')
-            print(f'1self.executor._shutdown {self.executor._shutdown}')
-            print(f'iteration: {i}')
-            print(f'queue qsize: {queue.qsize()}')
-            queue.clear()
-            print(f'queue qsize after clear: {queue.qsize()}')
-            print(f'2self.executor._shutdown {self.executor._shutdown}')
-
-            print(f'amount of workers: {len(self.executor._threads)}')
-            print(f'3self.executor._shutdown {self.executor._shutdown}')
-
             time.sleep(websockets_lifetime_seconds - websocket_overlap_seconds)
 
-            print('constructing new listener')
-            print(f'4self.executor._shutdown {self.executor._shutdown}')
-            new_stream_listener = StreamListener()
-            print(f'5self.executor._shutdown {self.executor._shutdown}')
-            print('constructed new listener successfully, launching new .run_listener thread...')
+            new_stream_listener = StreamListener(
+                queue=queue,
+                pairs=pairs,
+                stream_type=stream_type,
+                market=market)
 
-            print(f'self.executor._broken {self.executor._broken}')
-            print(f'6self.executor._shutdown {self.executor._shutdown}')
-
-            self.executor.submit(new_stream_listener.run_listener, queue, pairs, stream_type, market)
-            print('started new listener')
-            print(f'7self.executor._shutdown {self.executor._shutdown}')
+            new_stream_listener_thread = threading.Thread(target=new_stream_listener.websocket_app.run_forever)
+            new_stream_listener_thread.daemon = True
+            new_stream_listener_thread.start()
 
             while queue.did_websockets_switch_successfully is False:
                 time.sleep(1)
 
             print('switched successfully')
 
+            stream_listener.websocket_app.close()
             queue.did_websockets_switch_successfully = False
-            stream_listener.end()
-            print(f'8self.executor._shutdown {self.executor._shutdown}')
-
-            print('ended old listener successfully')
 
             stream_listener = new_stream_listener
-            print(f'9self.executor._shutdown {self.executor._shutdown}')
+            old_stream_listener_thread = new_stream_listener_thread
 
-            i = i + 1
+            del new_stream_listener
+            del new_stream_listener_thread
 
     def _snapshot_daemon(self, pairs: List[str], market: Market, dump_path: str, interval: int, save_to_json: bool,
                          save_to_zip: bool, send_zip_to_blob: bool) -> None:
 
-        while not self.global_shutdown_flag.is_set():
+        while self.global_shutdown_flag is False:
             for pair in pairs:
                 try:
                     snapshot, request_timestamp, receive_timestamp = self._get_snapshot(pair, market)
@@ -222,7 +220,7 @@ class ArchiverDaemon:
 
         queue = queues.get(stream_type, None)
 
-        while not self.global_shutdown_flag.is_set():
+        while self.global_shutdown_flag is False:
             self._process_stream_data(queue, market, dump_path, stream_type, save_to_json, save_to_zip,
                                       send_zip_to_blob)
             self._sleep_with_flag_check(duration)
@@ -233,7 +231,7 @@ class ArchiverDaemon:
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 2
         for _ in range(0, duration, interval):
-            if self.global_shutdown_flag.is_set():
+            if self.global_shutdown_flag is True:
                 break
             time.sleep(interval)
 
@@ -317,8 +315,8 @@ class ArchiverDaemon:
         }
 
         data_type_mapping = {
-            StreamType.DIFFERENCE_DEPTH: 'binance_l2lob_delta_broadcast',
-            StreamType.DEPTH_SNAPSHOT: 'binance_l2lob_snapshot',
+            StreamType.DIFFERENCE_DEPTH: 'binance_difference_depth',
+            StreamType.DEPTH_SNAPSHOT: 'binance_snapshot',
             StreamType.TRADE: 'binance_transaction_broadcast'
         }
 

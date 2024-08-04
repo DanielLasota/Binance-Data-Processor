@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timezone
 
-from binance_archiver.orderbook_level_2_listener.ArchiverDaemon import ArchiverDaemon
+from binance_archiver.orderbook_level_2_listener.archiver_daemon import ArchiverDaemon
 
 
 class TestArchiverDaemon:

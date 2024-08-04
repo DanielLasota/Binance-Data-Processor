@@ -1,4 +1,4 @@
-from binance_archiver.daemon_manager.DaemonManager import DaemonManager
+from binance_archiver.daemon_manager.daemon_manager import DaemonManager
 
 __docstring__ = '''
 Sample usage:

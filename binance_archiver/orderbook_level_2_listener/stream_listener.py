@@ -1,26 +1,30 @@
-import threading
+import time
 from typing import List
 from websocket import WebSocketApp, ABNF
 
+from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
 from binance_archiver.orderbook_level_2_listener.supervisor import Supervisor
+from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
 from binance_archiver.orderbook_level_2_listener.url_factory import URLFactory
 
 
 class StreamListener:
-    def __init__(self):
-        self.stream_type: StreamType | None = None
-        self.shutdown_flag: bool = False
+    def __init__(
+            self,
+            queue: TradeQueue | DifferenceDepthQueue,
+            pairs: List[str],
+            stream_type: StreamType,
+            market: Market
+    ):
         self.id: StreamId = StreamId()
-        self.pairs_amount = None
-        print('_constructed new StreamListener')
+        self.pairs_amount: int | None = None
+        self.websocket_app: WebSocketApp = self._construct_websocket_app(queue, pairs, stream_type, market)
 
-    def run_listener(self, queue, pairs: List[str], stream_type: StreamType, market: Market) -> None:
-        print('_invocated run_listener')
-        self.stream_type = stream_type
-
+    def _construct_websocket_app(self, queue: DifferenceDepthQueue | TradeQueue, pairs: List[str],
+                                 stream_type: StreamType, market: Market) -> WebSocketApp:
         # supervisor_signal_shutdown_flag = threading.Event()
 
         # print('_setting up supervisor')
@@ -42,10 +46,17 @@ class StreamListener:
         url_method = stream_url_methods.get(stream_type, None)
         url = url_method(market, pairs)
 
-        def _on_message(ws, message):
+        def _on_difference_depth_message(ws, message):
             # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
             self.id.pairs_amount = len(pairs)
             queue.put_message(stream_listener_id=self.id, message=message)
+            # supervisor.notify()
+
+        def _on_trade_message(ws, message):
+            # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            timestamp_of_receive = int(time.time() * 1000 + 0.5)
+            self.id.pairs_amount = len(pairs)
+            queue.put_message(message=message, timestamp_of_receive=timestamp_of_receive)
             # supervisor.notify()
 
         def _on_error(ws, error):
@@ -63,48 +74,13 @@ class StreamListener:
         def _on_open(ws):
             print(f"{market} {stream_type}: WebSocket connection opened")
 
-        print('_setting up websocket app')
         websocket_app = WebSocketApp(
-            url,
-            on_message=_on_message,
+            url=url,
+            on_message=_on_trade_message if stream_type == StreamType.TRADE else _on_difference_depth_message,
             on_error=_on_error,
             on_close=_on_close,
             on_ping=_on_ping,
-            on_open=_on_open
+            on_open=_on_open,
         )
-        print('_websocket app fully set up')
 
-        print('_websocket thread is fully set up, starting websocket thread...')
-
-        websocket_thread = threading.Thread(target=websocket_app.run_forever)
-        websocket_thread.start()
-
-        print('_started websocket thread')
-
-        # while True:
-        #     if self.shutdown_flag.is_set():
-        #         print("shutdown_flag is set, breaking the loop")
-        #         websocket_app.close()
-        #         break
-        #     #
-        #     # if supervisor_signal_shutdown_flag.is_set():
-        #     #     logger.error(f"{market} {stream_type}: "
-        #     #                  f"Stop event set by Supervisor, breaking the loop and reconnecting")
-        #     #     websocket_app.close()
-        #     #     break
-        #
-        #     # time.sleep(1)
-
-        while self.shutdown_flag is False:
-            x=1
-            # time.sleep(0.1)
-
-        print('shutdown flag is set, ending websocket thread...  ')
-
-        websocket_app.close()
-        # websocket_thread.join()
-
-        print('_ended websocket thread')
-
-    def end(self):
-        self.shutdown_flag = True
+        return websocket_app

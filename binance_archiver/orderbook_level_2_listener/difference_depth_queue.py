@@ -10,10 +10,8 @@ from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamT
 
 
 class DifferenceDepthQueue:
-    def __init__(self, stream_type: StreamType):
+    def __init__(self):
         self.queue = Queue()
-        self.unique_trade_elements = set()
-        self.stream_type = stream_type
         self.lock = threading.Lock()
         self.currently_accepted_stream_id = None
         self.no_longer_accepted_stream_id = None
@@ -58,11 +56,7 @@ class DifferenceDepthQueue:
         if len(keys) < 2:
             return
 
-        if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]):
-            pprint.pprint(two_last_throws)
-
         if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
-            print('len matches')
             copied_two_last_throws = copy.deepcopy(two_last_throws)
 
             sorted_and_copied_two_last_throws = DifferenceDepthQueue._sort_entries_by_symbol(copied_two_last_throws)

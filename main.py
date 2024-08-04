@@ -51,12 +51,12 @@ if __name__ == "__main__":
                 "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
                          "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"]
             },
-            "file_duration_seconds": 30,
+            "file_duration_seconds": 60,
             "snapshot_fetcher_interval_seconds": 60,
             "websocket_life_time_seconds": 30,
             "websocket_overlap_seconds": 5,
             "save_to_json": True,
-            "save_to_zip": True,
+            "save_to_zip": False,
             "send_zip_to_blob": False
         }
     }

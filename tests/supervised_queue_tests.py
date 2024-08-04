@@ -1,6 +1,6 @@
 import time
 
-from binance_archiver.orderbook_level_2_listener.DifferenceDepthQueue import DifferenceDepthQueue
+from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
 
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 

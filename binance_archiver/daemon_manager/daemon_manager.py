@@ -5,7 +5,7 @@ import pprint
 
 # from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.ArchiverDaemon import ArchiverDaemon
+from binance_archiver.orderbook_level_2_listener.archiver_daemon import ArchiverDaemon
 from binance_archiver.logo import logo
 from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
 

@@ -5,21 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="stop daemons add">
-      <change afterPath="$PROJECT_DIR$/binance_archiver/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/binance_archiver/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Binance Archiver.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Binance Archiver.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/abstract_base_classes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/abstract_base_classes/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/abstract_base_classes/observer.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/abstract_base_classes/observer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/daemon_manager/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/daemon_manager/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/daemon_manager/daemon_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/abstract_base_classes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/stream_listener_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/abstract_base_classes/observer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/daemon_manager/DaemonManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/daemon_manager/daemon_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/ArchiverDaemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/ArchiverDaemon_backup.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/DifferenceDepthQueue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/NoSignalException.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/no_signal_exception.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/StreamListener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/TradeQueue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/trade_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/UniqueQueue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/unique_queue.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/market_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/market_enum.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/orderbook_level_2_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/orderbook_level_2_listener.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/setup_logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/url_factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/url_factory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/ArchiverDaemonTests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/ArchiverDaemonTests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/supervised_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/supervised_queue_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,6 +36,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -60,23 +67,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Docker.docker-compose.yml.algo: Compose Deployment.executor&quot;: &quot;Run&quot;,
-    &quot;Docker.dockerfile.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.tools&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Docker.docker-compose.yml.algo: Compose Deployment.executor": "Run",
+    "Docker.dockerfile.executor": "Run",
+    "Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct.executor": "Run",
+    "Python tests.pytest for supervised_queue_tests.TestSupervisedQueue.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "dev__daniel__lasota",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "configurable.group.tools",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver" />
@@ -95,7 +107,6 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="Python 3.11 (Binance-Archiver)" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -122,30 +133,98 @@
       </deployment>
       <method v="2" />
     </configuration>
-    <configuration name="docker-compose.yml.algo: Compose Deployment" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
-      <deployment type="docker-compose.yml">
-        <settings>
-          <option name="services">
-            <list>
-              <option value="algo" />
-            </list>
-          </option>
-          <option name="sourceFilePath" value="docker-compose.yml" />
-        </settings>
-      </deployment>
+    <configuration name="pytest for ArchiverDaemonTests.TestArchiverDaemon" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;ArchiverDaemonTests.TestArchiverDaemon&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="dockerfile" type="docker-deploy" factoryName="dockerfile" temporary="true" server-name="Docker">
-      <deployment type="dockerfile">
-        <settings>
-          <option name="sourceFilePath" value="dockerfile" />
-        </settings>
-      </deployment>
+    <configuration name="pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for supervised_queue_tests.TestSupervisedQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;supervised_queue_tests.TestSupervisedQueue&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Docker.docker-compose.yml.algo: Compose Deployment" />
+        <item itemvalue="Python tests.pytest for supervised_queue_tests.TestSupervisedQueue" />
+        <item itemvalue="Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp" />
       </list>
     </recent_temporary>
   </component>
