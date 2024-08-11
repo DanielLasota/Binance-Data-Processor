@@ -5,7 +5,7 @@ from binance_archiver.orderbook_level_2_listener.difference_depth_queue import D
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 
 
-class TestSupervisedQueue:
+class TestDifferenceDepthQueue:
 
     def test_given_two_equal_throws_does_method_return_true(self):
         _two_last_throws = {}

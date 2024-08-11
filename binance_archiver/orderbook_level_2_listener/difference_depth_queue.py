@@ -76,23 +76,20 @@ class DifferenceDepthQueue:
             two_last_throws[stream_id].sort(key=lambda entry: entry['data']['s'])
         return two_last_throws
 
-    def put_message(self, stream_listener_id: StreamId, message):
-        try:
-            with self.lock:
-                self._add_to_compare(stream_listener_id, message)
+    def put_queue_message(self, message, stream_listener_id: StreamId, timestamp_of_receive: int):
+        with self.lock:
+            self._add_to_compare(stream_listener_id, message)
 
-                if stream_listener_id.id == self.currently_accepted_stream_id:
-                    self.queue.put(message)
-        except Exception as e:
-            print(f'put_message error: {e}')
+            if stream_listener_id.id == self.currently_accepted_stream_id:
+                self.queue.put((message,timestamp_of_receive))
 
     def get(self) -> Any:
-        message = self.queue.get()
-        return message
+        entry = self.queue.get()
+        return entry
 
     def get_nowait(self) -> Any:
-        message = self.queue.get_nowait()
-        return message
+        entry = self.queue.get_nowait()
+        return entry
 
     def clear(self) -> None:
         self.queue.queue.clear()

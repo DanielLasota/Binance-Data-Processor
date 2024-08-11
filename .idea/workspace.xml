@@ -4,10 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor ThreadPoolExecutor into threading">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="pre daemon manager update">
+      <change beforePath="$PROJECT_DIR$/.idea/Binance Archiver.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Binance Archiver.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/daemon_manager/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/daemon_manager/daemon_manager.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/trade_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/trade_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/unique_queue.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/sample_config.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/ArchiverDaemonTests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/supervised_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/difference_depth_queue_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,28 +65,39 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Docker.docker-compose.yml.algo: Compose Deployment.executor&quot;: &quot;Run&quot;,
-    &quot;Docker.dockerfile.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for supervised_queue_tests.TestSupervisedQueue.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;dev__daniel__lasota&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.tools&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Docker.docker-compose.yml.algo: Compose Deployment.executor": "Run",
+    "Docker.dockerfile.executor": "Run",
+    "Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_azure_blob_parameters_with_key_is_none_or_empty_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_config_has_no_instrument_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_get_actual_epoch_timestamp_are_timestamps_actual.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_get_actual_epoch_timestamp_are_timestamps_in_utc.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_market_type_is_empty_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_not_handled_market_type_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_too_many_markets_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_timestamps_are_in_utc.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct.executor": "Run",
+    "Python tests.pytest for supervised_queue_tests.TestSupervisedQueue.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "dev__daniel__lasota",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.sourceCode.Python",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver" />
@@ -119,7 +142,7 @@
       </deployment>
       <method v="2" />
     </configuration>
-    <configuration name="pytest for ArchiverDaemonTests.TestArchiverDaemon" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -132,11 +155,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;ArchiverDaemonTests.TestArchiverDaemon&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_azure_blob_parameters_with_key_is_none_or_empty_then_is_exception_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -149,11 +172,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_azure_blob_parameters_with_key_is_none_or_empty_then_is_exception_thrown&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_not_handled_market_type_then_is_exception_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -166,11 +189,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_not_handled_market_type_then_is_exception_thrown&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -183,11 +206,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for supervised_queue_tests.TestSupervisedQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -200,17 +223,17 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;supervised_queue_tests.TestSupervisedQueue&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for supervised_queue_tests.TestSupervisedQueue" />
-        <item itemvalue="Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_azure_blob_parameters_with_key_is_none_or_empty_then_is_exception_thrown" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_not_handled_market_type_then_is_exception_thrown" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
       </list>
     </recent_temporary>
   </component>
@@ -521,11 +544,29 @@
       <option name="project" value="LOCAL" />
       <updated>1722768820530</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="pre daemon manager update">
+      <option name="closed" value="true" />
+      <created>1722805550326</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1722805550326</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ID_ORDER">
+      <list>
+        <option value="Default.Root" />
+        <option value="Default.Author" />
+        <option value="Default.Date" />
+        <option value="Default.Subject" />
+      </list>
+    </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -551,7 +592,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="is not none update" />
     <MESSAGE value="update to blob update" />
     <MESSAGE value="requirements" />
     <MESSAGE value="makedirs fix" />
@@ -576,7 +616,8 @@
     <MESSAGE value="logger optimisation" />
     <MESSAGE value="stop daemons add" />
     <MESSAGE value="refactor ThreadPoolExecutor into threading" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor ThreadPoolExecutor into threading" />
+    <MESSAGE value="pre daemon manager update" />
+    <option name="LAST_COMMIT_MESSAGE" value="pre daemon manager update" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

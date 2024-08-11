@@ -4,7 +4,6 @@ from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import json
 
-from binance_archiver import DaemonManager
 from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
 
 if __name__ == "__main__":
@@ -21,6 +20,8 @@ if __name__ == "__main__":
     config = json.loads(client.get_secret(config_secret_name).value)
     azure_blob_parameters_with_key = client.get_secret(blob_parameters_secret_name).value
     container_name = client.get_secret(container_name_secret_name).value
+
+    print(azure_blob_parameters_with_key)
 
     # config = {
     #     "daemons": {
@@ -47,16 +48,16 @@ if __name__ == "__main__":
     # }
 
     config = {
-        "markets": {
-            "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                     "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"]
+        "instruments": {
+            "spot": ["BTCUSDT", "ETHUSDT"],
+            "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
         },
-        "file_duration_seconds": 60,
+        "file_duration_seconds": 30,
         "snapshot_fetcher_interval_seconds": 60,
-        "websocket_life_time_seconds": 30,
-        "websocket_overlap_seconds": 5,
+        "websocket_life_time_seconds": 70,
         "save_to_json": True,
-        "save_to_zip": False,
+        "save_to_zip": True,
         "send_zip_to_blob": False
     }
 
@@ -64,7 +65,6 @@ if __name__ == "__main__":
         config,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
         container_name=container_name,
-        dump_path_to_log_file='logs/'
     )
 
 '''

@@ -8,3 +8,4 @@ python-dotenv
 #requests
 websocket-client
 pytest
+requests

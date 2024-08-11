@@ -8,16 +8,15 @@ class TradeQueue:
         self.unique_elements = set()
         self.did_websockets_switch_successfully = False
 
-    def put_message(self, message: str, timestamp_of_receive) -> bool:
-        return self._put_with_no_repetitions(message, timestamp_of_receive)
+    def put_trade_message(self, message: str, timestamp_of_receive) -> None:
+        self._put_with_no_repetitions(message, timestamp_of_receive)
 
-    def _put_with_no_repetitions(self, message: str, received_timestamp) -> bool:
+    def _put_with_no_repetitions(self, message: str, received_timestamp) -> None:
         if message not in self.unique_elements:
             self.unique_elements.add(message)
             self.queue.put((message, received_timestamp))
-            return True
-        self.did_websockets_switch_successfully = True
-        return False
+        else:
+            self.did_websockets_switch_successfully = True
 
     def get(self) -> Any:
         message, received_timestamp = self.queue.get()
