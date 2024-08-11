@@ -21,8 +21,6 @@ if __name__ == "__main__":
     azure_blob_parameters_with_key = client.get_secret(blob_parameters_secret_name).value
     container_name = client.get_secret(container_name_secret_name).value
 
-    print(azure_blob_parameters_with_key)
-
     # config = {
     #     "daemons": {
     #         "markets": {
@@ -57,14 +55,14 @@ if __name__ == "__main__":
         "snapshot_fetcher_interval_seconds": 60,
         "websocket_life_time_seconds": 70,
         "save_to_json": True,
-        "save_to_zip": True,
+        "save_to_zip": False,
         "send_zip_to_blob": False
     }
 
     launch_data_sink(
         config,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-        container_name=container_name,
+        container_name=container_name
     )
 
 '''
@@ -73,4 +71,3 @@ ContainerAppConsoleLogs_CL
 | project TimeGenerated, Log_s
 | sort by TimeGenerated desc
 '''
-

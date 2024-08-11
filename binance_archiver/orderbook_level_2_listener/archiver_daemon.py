@@ -27,15 +27,17 @@ class ArchiverDaemon:
     def __init__(
         self,
         logger: logging.Logger,
-        azure_blob_parameters_with_key: str,
-        container_name: str,
+        azure_blob_parameters_with_key: str | None = None,
+        container_name: str | None = None
     ) -> None:
         self.logger = logger
         self.global_shutdown_flag: bool = False
-        self.blob_service_client = BlobServiceClient.from_connection_string(
-            azure_blob_parameters_with_key
-        )
-        self.container_name = container_name
+
+        if azure_blob_parameters_with_key and container_name is not None:
+            self.blob_service_client = BlobServiceClient.from_connection_string(
+                azure_blob_parameters_with_key
+            )
+            self.container_name = container_name
 
         self.spot_orderbook_stream_message_queue = DifferenceDepthQueue()
         self.spot_transaction_stream_message_queue = TradeQueue()
@@ -52,7 +54,7 @@ class ArchiverDaemon:
             (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.usd_m_futures_orderbook_stream_message_queue,
             (Market.USD_M_FUTURES, StreamType.TRADE): self.usd_m_futures_transaction_stream_message_queue,
             (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.coin_m_orderbook_stream_message_queue,
-            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_transaction_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_transaction_stream_message_queue
         }
 
     def _get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
@@ -61,26 +63,26 @@ class ArchiverDaemon:
     def run(
         self,
         instruments: Dict,
-        file_duration_seconds: int,
         dump_path: str | None,
+        file_duration_seconds: int,
         websockets_lifetime_seconds: int,
+        snapshot_fetcher_interval_seconds: int,
         save_to_json: bool = False,
         save_to_zip: bool = False,
-        send_zip_to_blob: bool = True,
-        snapshot_fetcher_interval_seconds: int = 60,
+        send_zip_to_blob: bool = False
     ) -> None:
 
         for market, pairs in instruments.items():
             market_enum = Market[market.upper()]
 
-            self.start_stream_supervisor_service(
+            self.start_stream_service(
                     pairs,
                     StreamType.DIFFERENCE_DEPTH,
                     market_enum,
                     websockets_lifetime_seconds
             )
 
-            self.start_stream_supervisor_service(
+            self.start_stream_service(
                     pairs,
                     StreamType.TRADE,
                     market_enum,
@@ -117,7 +119,7 @@ class ArchiverDaemon:
                     send_zip_to_blob
             )
 
-    def start_stream_supervisor_service(
+    def start_stream_service(
         self,
         pairs: List[str],
         stream_type: StreamType,
@@ -145,7 +147,7 @@ class ArchiverDaemon:
         stream_type: StreamType,
         save_to_json: bool,
         save_to_zip: bool,
-        send_zip_to_blob: bool,
+        send_zip_to_blob: bool
     ) -> None:
 
         queue = self._get_queue(market, stream_type)
@@ -170,7 +172,7 @@ class ArchiverDaemon:
         pairs: List[str],
         stream_type: StreamType,
         market: Market,
-        websockets_lifetime_seconds: int,
+        websockets_lifetime_seconds: int
     ) -> None:
 
         queue.set_pairs_amount = len(pairs)
@@ -223,7 +225,7 @@ class ArchiverDaemon:
         interval,
         save_to_json,
         save_to_zip,
-        send_zip_to_blob,
+        send_zip_to_blob
     ):
         thread = threading.Thread(
                 target=self._snapshot_daemon,
@@ -247,7 +249,7 @@ class ArchiverDaemon:
         interval: int,
         save_to_json: bool,
         save_to_zip: bool,
-        send_zip_to_blob: bool,
+        send_zip_to_blob: bool
     ) -> None:
 
         while self.global_shutdown_flag is False:
@@ -309,7 +311,7 @@ class ArchiverDaemon:
         stream_type: StreamType,
         save_to_json: bool,
         save_to_zip: bool,
-        send_zip_to_blob: bool,
+        send_zip_to_blob: bool
     ):
 
         while self.global_shutdown_flag is False:
@@ -353,7 +355,7 @@ class ArchiverDaemon:
         stream_type: StreamType,
         save_to_json: bool,
         save_to_zip: bool,
-        send_zip_to_blob: bool,
+        send_zip_to_blob: bool
     ) -> None:
 
         if not queue.empty():
@@ -423,7 +425,7 @@ class ArchiverDaemon:
         pair: str,
         market: Market,
         stream_type: StreamType,
-        extension: str = "json",
+        extension: str = "json"
     ) -> str:
 
         pair_lower = pair.lower()
@@ -467,13 +469,16 @@ class BadAzureParameters(Exception):
     ...
 
 
+class WebSocketLifeTimeException(Exception):
+    ...
+
+
 def launch_data_sink(
     config,
     dump_path: str = "dump/",
     azure_blob_parameters_with_key: str | None = None,
     container_name: str | None = None,
-    dump_path_to_log_file: str | None = None,
-    dump_logs_to_files: bool = False
+    dump_path_to_log_file: str | None = None
 ):
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
 
@@ -494,7 +499,10 @@ def launch_data_sink(
     if config['send_zip_to_blob'] and (not azure_blob_parameters_with_key or not container_name):
         raise BadAzureParameters('Azure blob parameters with key or container name is missing or empty')
 
-    logger = setup_logger(dump_path_to_log_file, dump_logs_to_files=dump_logs_to_files)
+    if 60 > config["websocket_life_time_seconds"] > 60*60*23:
+        raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
+
+    logger = setup_logger(dump_path_to_log_file)
 
     logger.info("\n%s", logo)
     logger.info("Starting Binance Archiver...")
@@ -516,11 +524,11 @@ def launch_data_sink(
 
     archiver_daemon.run(
         instruments=config["instruments"],
-        file_duration_seconds=config["file_duration_seconds"],
         dump_path=dump_path,
+        file_duration_seconds=config["file_duration_seconds"],
         websockets_lifetime_seconds=config["websocket_life_time_seconds"],
+        snapshot_fetcher_interval_seconds=config["snapshot_fetcher_interval_seconds"],
         save_to_json=config["save_to_json"],
         save_to_zip=config["save_to_zip"],
-        send_zip_to_blob=config["send_zip_to_blob"],
-        snapshot_fetcher_interval_seconds=config["snapshot_fetcher_interval_seconds"],
+        send_zip_to_blob=config["send_zip_to_blob"]
     )

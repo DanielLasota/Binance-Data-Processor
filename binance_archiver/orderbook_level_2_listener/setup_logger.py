@@ -2,17 +2,21 @@ import logging
 import time
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+import os
 
 
-def setup_logger(log_file_path: str, dump_logs_to_files: bool | None = False) -> logging.Logger:
+def setup_logger(log_file_path: str | None = None) -> logging.Logger:
     logger = logging.getLogger('DaemonManager')
     logger.setLevel(logging.DEBUG)
 
     now_utc = datetime.utcnow().strftime('%d-%m-%YT%H-%M-%SZ')
 
-    if dump_logs_to_files is True:
+    if log_file_path:
+        if not os.path.exists(log_file_path):
+            os.makedirs(log_file_path)
+
         file_handler = RotatingFileHandler(
-            f"{log_file_path}archiver{now_utc}.log",
+            f"{log_file_path}/archiver_{now_utc}.log",
             maxBytes=5 * 1024 * 1024,
             backupCount=3
         )

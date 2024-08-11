@@ -1,8 +1,35 @@
 from queue import Queue
 from typing import Any
+import threading
+
+
+class ClassInstancesAmountLimitException(Exception):
+    ...
 
 
 class TradeQueue:
+    _instances = []
+    _lock = threading.Lock()
+    _instances_amount_limit = 6
+
+    def __new__(cls, *args, **kwargs):
+        with cls._lock:
+            if len(cls._instances) >= cls._instances_amount_limit:
+                raise ClassInstancesAmountLimitException(f"Cannot create more than {cls._instances_amount_limit} "
+                                                         f"instances of TradeQueue")
+            instance = super(TradeQueue, cls).__new__(cls)
+            cls._instances.append(instance)
+            return instance
+
+    @classmethod
+    def get_instance_count(cls):
+        return len(cls._instances)
+
+    @classmethod
+    def clear_instances(cls):
+        with cls._lock:
+            cls._instances.clear()
+
     def __init__(self):
         self.queue = Queue()
         self.unique_elements = set()

@@ -3,10 +3,73 @@ from datetime import datetime, timezone
 
 import pytest
 
+import binance_archiver.orderbook_level_2_listener.difference_depth_queue
 from binance_archiver.orderbook_level_2_listener.archiver_daemon import ArchiverDaemon, BadConfigException, launch_data_sink, BadAzureParameters
+from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
+from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
 
 
 class TestArchiverDaemon:
+
+    def test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false(self):
+        logger = setup_logger()
+        archiver_daemon = ArchiverDaemon(logger=logger)
+
+        assert archiver_daemon.global_shutdown_flag is False
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
+
+    def test_given_archiver_daemon_when_init_then_queues_are_set_properly(self):
+        logger = setup_logger()
+        archiver_daemon = ArchiverDaemon(logger=logger)
+
+        assert isinstance(archiver_daemon.spot_orderbook_stream_message_queue, DifferenceDepthQueue)
+        assert isinstance(archiver_daemon.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
+        assert isinstance(archiver_daemon.coin_m_orderbook_stream_message_queue, DifferenceDepthQueue)
+
+        assert isinstance(archiver_daemon.spot_transaction_stream_message_queue, TradeQueue)
+        assert isinstance(archiver_daemon.usd_m_futures_transaction_stream_message_queue, TradeQueue)
+        assert isinstance(archiver_daemon.coin_m_transaction_stream_message_queue, TradeQueue)
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
+
+    def test_given_archiver_daemon_when_init_7_trade_queue_instances_exception_is_thrown(self):
+
+        logger = setup_logger()
+        archiver_daemon = ArchiverDaemon(logger=logger)
+
+        archiver_daemon.fourth = TradeQueue()
+        archiver_daemon.fifth = TradeQueue()
+        archiver_daemon.sixth = TradeQueue()
+
+        with pytest.raises(
+                binance_archiver.orderbook_level_2_listener.trade_queue.ClassInstancesAmountLimitException
+        ) as excinfo:
+            archiver_daemon.seventh = TradeQueue()
+
+        assert str(excinfo.value) == "Cannot create more than 6 instances of TradeQueue"
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
+
+    def test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown(self):
+
+        logger = setup_logger()
+        archiver_daemon = ArchiverDaemon(logger=logger)
+
+        archiver_daemon.fourth = DifferenceDepthQueue()
+        archiver_daemon.fifth = DifferenceDepthQueue()
+        archiver_daemon.sixth = DifferenceDepthQueue()
+
+        with pytest.raises(
+                binance_archiver.orderbook_level_2_listener.difference_depth_queue.ClassInstancesAmountLimitException
+        ) as excinfo:
+            archiver_daemon.seventh = DifferenceDepthQueue()
+
+        assert str(excinfo.value) == (f"Cannot create more than 6 instances of "
+                                      f"DifferenceDepthQueue")
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
 
     def test_given_config_has_no_instrument_then_is_exception_thrown(self):
 
