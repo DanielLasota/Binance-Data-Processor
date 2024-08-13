@@ -4,13 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="daemon_manager.py delete&#10;concurrent.futures delete&#10;threading add&#10;tests add&#10;queue.lookup add&#10;received_timestamps add&#10;trade_queue.py add">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="queues singleton with limit of 6 add&#10;&#10;tests add">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/setup_logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/trade_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/trade_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -66,6 +61,7 @@
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_trade_queue_instances_exception_is_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_amount_is_accurate.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_are_set_properly.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_azure_blob_parameters_with_key_is_none_or_empty_then_is_exception_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_config_has_no_instrument_then_is_exception_thrown.executor": "Run",
@@ -102,7 +98,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -155,23 +151,6 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_trade_queue_instances_exception_is_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -206,7 +185,7 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_too_many_markets_then_is_exception_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_amount_is_accurate" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -219,17 +198,34 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_too_many_markets_then_is_exception_thrown&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_amount_is_accurate&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_are_set_properly" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_are_set_properly&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_amount_is_accurate" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_are_set_properly" />
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false" />
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_trade_queue_instances_exception_is_thrown" />
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown" />
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_too_many_markets_then_is_exception_thrown" />
       </list>
     </recent_temporary>
   </component>
@@ -556,7 +552,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723375971689</updated>
     </task>
-    <option name="localTasksCounter" value="37" />
+    <task id="LOCAL-00037" summary="queues singleton with limit of 6 add&#10;&#10;tests add">
+      <option name="closed" value="true" />
+      <created>1723412334425</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1723412334425</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -596,7 +600,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="requirements" />
     <MESSAGE value="makedirs fix" />
     <MESSAGE value="os path create fix" />
     <MESSAGE value="docker-compose.yml add" />
@@ -621,7 +624,8 @@
     <MESSAGE value="refactor ThreadPoolExecutor into threading" />
     <MESSAGE value="pre daemon manager update" />
     <MESSAGE value="daemon_manager.py delete&#10;concurrent.futures delete&#10;threading add&#10;tests add&#10;queue.lookup add&#10;received_timestamps add&#10;trade_queue.py add" />
-    <option name="LAST_COMMIT_MESSAGE" value="daemon_manager.py delete&#10;concurrent.futures delete&#10;threading add&#10;tests add&#10;queue.lookup add&#10;received_timestamps add&#10;trade_queue.py add" />
+    <MESSAGE value="queues singleton with limit of 6 add&#10;&#10;tests add" />
+    <option name="LAST_COMMIT_MESSAGE" value="queues singleton with limit of 6 add&#10;&#10;tests add" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
