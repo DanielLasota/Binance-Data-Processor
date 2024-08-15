@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="run method test add &#10;global_shutdown_flag bool to threading.Event&#10;add shutdown method which is not working properly&#10;add thread names&#10;refactor _stream_service_supervisor">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="shutdown method update&#10;last threads tests add">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" afterDir="false" />
@@ -63,6 +64,7 @@
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given__get_queue_is_accurate_queue_hook_returned.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_run_call_when_threads_invocation_then_accurate_set_of_threads_are_started.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_trade_queue_instances_exception_is_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false.executor": "Run",
@@ -73,12 +75,14 @@
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_is_called_then_no_threads_are_left.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_azure_blob_parameters_with_key_is_none_or_empty_then_is_exception_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_config_has_no_instrument_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_get_actual_epoch_timestamp_are_timestamps_actual.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_get_actual_epoch_timestamp_are_timestamps_in_utc.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_market_type_is_empty_then_is_exception_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_not_handled_market_type_then_is_exception_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_too_many_markets_then_is_exception_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_timestamps_are_in_utc.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp.executor": "Run",
@@ -176,7 +180,7 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -189,11 +193,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -206,11 +210,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -223,17 +227,17 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_is_called_then_no_threads_are_left&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left" />
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" />
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_is_called_then_no_threads_are_left" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters" />
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_run_call_when_threads_invocation_then_accurate_set_of_threads_are_started" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times" />
       </list>
     </recent_temporary>
   </component>
@@ -584,7 +588,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723686452771</updated>
     </task>
-    <option name="localTasksCounter" value="40" />
+    <task id="LOCAL-00040" summary="shutdown method update&#10;last threads tests add">
+      <option name="closed" value="true" />
+      <created>1723729765023</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1723729765023</updated>
+    </task>
+    <option name="localTasksCounter" value="41" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -624,7 +636,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="docker-compose.yml add" />
     <MESSAGE value="pre - reformat commit&#10;add init function with lob snapshots" />
     <MESSAGE value="abc remove" />
     <MESSAGE value="add snapshot save commit" />
@@ -649,7 +660,8 @@
     <MESSAGE value="queues singleton with limit of 6 add&#10;&#10;tests add" />
     <MESSAGE value="arhciver_daemon __init__ tests add" />
     <MESSAGE value="run method test add &#10;global_shutdown_flag bool to threading.Event&#10;add shutdown method which is not working properly&#10;add thread names&#10;refactor _stream_service_supervisor" />
-    <option name="LAST_COMMIT_MESSAGE" value="run method test add &#10;global_shutdown_flag bool to threading.Event&#10;add shutdown method which is not working properly&#10;add thread names&#10;refactor _stream_service_supervisor" />
+    <MESSAGE value="shutdown method update&#10;last threads tests add" />
+    <option name="LAST_COMMIT_MESSAGE" value="shutdown method update&#10;last threads tests add" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

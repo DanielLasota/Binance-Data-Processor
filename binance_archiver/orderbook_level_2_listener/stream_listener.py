@@ -14,6 +14,14 @@ from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
 from binance_archiver.orderbook_level_2_listener.url_factory import URLFactory
 
 
+class PairsLengthException(Exception):
+    ...
+
+
+class WrongListInstanceException(Exception):
+    ...
+
+
 class StreamListener:
     def __init__(
         self,
@@ -22,8 +30,13 @@ class StreamListener:
         stream_type: StreamType,
         market: Market
     ):
+        if not isinstance(pairs, list):
+            raise WrongListInstanceException('pairs argument is not a list')
+        if len(pairs) == 0:
+            raise PairsLengthException('pairs len is zero')
+
         self.id: StreamId = StreamId()
-        self.pairs_amount: int | None = None
+        self.pairs_amount: int = len(pairs)
         self.websocket_app: WebSocketApp = self._construct_websocket_app(queue, pairs, stream_type, market)
 
     def _construct_websocket_app(

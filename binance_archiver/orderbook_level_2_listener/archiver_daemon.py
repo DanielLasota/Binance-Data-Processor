@@ -231,9 +231,9 @@ class ArchiverDaemon:
 
             while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
                 time.sleep(0.1)
+            print("switched successfully")
 
             if not global_shutdown_flag.is_set():
-                print("switched successfully")
                 queue.did_websockets_switch_successfully = False
 
                 old_stream_listener.websocket_app.close()
@@ -247,8 +247,6 @@ class ArchiverDaemon:
                 new_stream_listener_thread = None
 
         if new_stream_listener is not None:
-            # while new_stream_listener.websocket_app.sock.connected is False:
-            #     time.sleep(1)
             for i in range(10):
                 if new_stream_listener.websocket_app.sock.connected is False:
                     time.sleep(1)
@@ -263,11 +261,13 @@ class ArchiverDaemon:
                     old_stream_listener.websocket_app.close()
                     break
 
-        if new_stream_listener is not None and new_stream_listener.websocket_app.sock and new_stream_listener.websocket_app.sock.connected is False:
+        if (new_stream_listener is not None and new_stream_listener.websocket_app.sock
+                and new_stream_listener.websocket_app.sock.connected is False):
             new_stream_listener = None
             new_stream_listener_thread = None
 
-        if old_stream_listener is not None and old_stream_listener.websocket_app.sock and old_stream_listener.websocket_app.sock.connected is False:
+        if (old_stream_listener is not None and old_stream_listener.websocket_app.sock
+                and old_stream_listener.websocket_app.sock.connected is False):
             old_stream_listener = None
             old_stream_listener_thread = None
 

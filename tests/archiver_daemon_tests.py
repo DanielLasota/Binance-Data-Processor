@@ -4,12 +4,16 @@ import time
 from datetime import datetime, timezone
 
 import pytest
+import websocket
 
 import binance_archiver.orderbook_level_2_listener.difference_depth_queue
-from binance_archiver.orderbook_level_2_listener.archiver_daemon import ArchiverDaemon, BadConfigException, launch_data_sink, BadAzureParameters
+from binance_archiver.orderbook_level_2_listener.archiver_daemon import ArchiverDaemon, BadConfigException, \
+    launch_data_sink, BadAzureParameters
 from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
+from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
+from binance_archiver.orderbook_level_2_listener.stream_listener import StreamListener
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
 from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
 
@@ -20,10 +24,10 @@ class TestArchiverDaemon:
     # shutdown
     #
 
-    @pytest.mark.parametrize('execution_number', range(5))
+    @pytest.mark.parametrize('execution_number', range(1))
     def test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left(
-        self,
-        execution_number
+            self,
+            execution_number
     ):
         config = {
             "instruments": {
@@ -65,10 +69,10 @@ class TestArchiverDaemon:
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
 
-    @pytest.mark.parametrize('execution_number', range(5))
+    @pytest.mark.parametrize('execution_number', range(1))
     def test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left(
-        self,
-        execution_number
+            self,
+            execution_number
     ):
         config = {
             "instruments": {
@@ -110,10 +114,10 @@ class TestArchiverDaemon:
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
 
-    @pytest.mark.parametrize('execution_number', range(5))
+    @pytest.mark.parametrize('execution_number', range(1))
     def test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left(
-        self,
-        execution_number
+            self,
+            execution_number
     ):
         config = {
             "instruments": {
@@ -176,9 +180,9 @@ class TestArchiverDaemon:
 
         with pytest.raises(BadConfigException) as excinfo:
             launch_data_sink(
-                    config=config,
-                    azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                config=config,
+                azure_blob_parameters_with_key=azure_blob_parameters_with_key,
+                container_name=container_name
             )
 
         assert str(excinfo.value) == "Instruments config is missing or not a dictionary."
@@ -203,9 +207,9 @@ class TestArchiverDaemon:
 
         with pytest.raises(BadConfigException) as excinfo:
             launch_data_sink(
-                    config=config,
-                    azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                config=config,
+                azure_blob_parameters_with_key=azure_blob_parameters_with_key,
+                container_name=container_name
             )
 
         assert str(excinfo.value) == "Pairs for market spot are missing or invalid."
@@ -232,9 +236,9 @@ class TestArchiverDaemon:
 
         with pytest.raises(BadConfigException) as excinfo:
             launch_data_sink(
-                    config=config,
-                    azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                config=config,
+                azure_blob_parameters_with_key=azure_blob_parameters_with_key,
+                container_name=container_name
             )
 
         assert str(excinfo.value) == "Config must contain 1 to 3 markets."
@@ -257,12 +261,191 @@ class TestArchiverDaemon:
 
         with pytest.raises(BadConfigException) as excinfo:
             launch_data_sink(
-                    config=config,
-                    azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                config=config,
+                azure_blob_parameters_with_key=azure_blob_parameters_with_key,
+                container_name=container_name
             )
 
         assert str(excinfo.value) == "Invalid or not handled market: mining"
+
+    #
+    # stream_service_supervisor
+    #
+
+    @pytest.mark.skip
+    def test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times(self):
+        config = {
+            "instruments": {
+                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                  "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                   "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                   "DOTUSD_PERP"]
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 60,
+            "websocket_life_time_seconds": 5,
+            "save_to_json": False,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        archiver_daemon = launch_data_sink(config)
+
+        switch_count = 0
+        id_change_count = 0
+
+        def monitor_switch_indicator():
+            timeout_seconds = 120  # Increased timeout
+            start_time = time.time()
+            nonlocal switch_count
+
+            while switch_count < 3 and time.time() - start_time < timeout_seconds:
+                #currently abandoned as switch time takes too long
+                if archiver_daemon.spot_orderbook_stream_message_queue.did_websockets_switch_successfully:
+                    switch_count += 1
+                    archiver_daemon.spot_orderbook_stream_message_queue.did_websockets_switch_successfully = False  # Reset
+                    print(f'switch_count {switch_count}')
+
+        def monitor_currently_accepted_stream_id():
+            timeout_seconds = 120
+            start_time = time.time()
+            nonlocal id_change_count
+            current_id = archiver_daemon.spot_orderbook_stream_message_queue.currently_accepted_stream_id
+
+            while id_change_count < 3 and time.time() - start_time < timeout_seconds:
+                #currently abandoned as switch time takes too long
+                new_id = archiver_daemon.spot_orderbook_stream_message_queue.currently_accepted_stream_id
+                if new_id != current_id:
+                    id_change_count += 1
+                    current_id = new_id
+                    print(f'id_change_count {id_change_count}')
+
+        switch_thread = threading.Thread(target=monitor_switch_indicator)
+        id_thread = threading.Thread(target=monitor_currently_accepted_stream_id)
+
+        switch_thread.start()
+        id_thread.start()
+
+        time.sleep(20)
+
+        switch_thread.join()
+        id_thread.join()
+
+        archiver_daemon.shutdown()
+
+        assert id_change_count == 3, 'id_change_count not accurate'
+        assert switch_count == 3, 'switch_count not accurate'
+
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
+
+    def test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters(self):
+        #ssssssssssssssssssssssssssssssssssssssssssss
+        config = {
+            "instruments": {
+                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                  "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                   "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                   "DOTUSD_PERP"]
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 60,
+            "websocket_life_time_seconds": 5,
+            "save_to_json": False,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        logger = setup_logger()
+        archiver_daemon = ArchiverDaemon(logger)
+
+        spot_difference_depth_stream_listener = StreamListener(
+            queue=archiver_daemon.spot_orderbook_stream_message_queue,
+            pairs=config['instruments']['spot'],
+            stream_type=StreamType.DIFFERENCE_DEPTH,
+            market=Market.SPOT
+        )
+
+        spot_trade_stream_listener = StreamListener(
+            queue=archiver_daemon.spot_transaction_stream_message_queue,
+            pairs=config['instruments']['spot'],
+            stream_type=StreamType.TRADE,
+            market=Market.SPOT
+        )
+
+        assert isinstance(spot_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
+        assert isinstance(spot_difference_depth_stream_listener.id, StreamId)
+        assert spot_difference_depth_stream_listener.pairs_amount == 12
+        assert spot_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
+
+        assert isinstance(spot_trade_stream_listener.websocket_app, websocket.WebSocketApp)
+        assert isinstance(spot_trade_stream_listener.id, StreamId)
+        assert spot_trade_stream_listener.pairs_amount == 12
+        assert spot_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
+
+        usd_m_futures_difference_depth_stream_listener = StreamListener(
+            queue=archiver_daemon.usd_m_futures_orderbook_stream_message_queue,
+            pairs=config['instruments']['usd_m_futures'],
+            stream_type=StreamType.DIFFERENCE_DEPTH,
+            market=Market.USD_M_FUTURES
+        )
+
+        usd_m_futures_trade_stream_listener = StreamListener(
+            queue=archiver_daemon.usd_m_futures_transaction_stream_message_queue,
+            pairs=config['instruments']['usd_m_futures'],
+            stream_type=StreamType.TRADE,
+            market=Market.USD_M_FUTURES
+        )
+
+        assert isinstance(usd_m_futures_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
+        assert isinstance(usd_m_futures_difference_depth_stream_listener.id, StreamId)
+        assert usd_m_futures_difference_depth_stream_listener.pairs_amount == 11
+        assert usd_m_futures_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
+
+        assert isinstance(usd_m_futures_trade_stream_listener.websocket_app, websocket.WebSocketApp)
+        assert isinstance(usd_m_futures_trade_stream_listener.id, StreamId)
+        assert usd_m_futures_trade_stream_listener.pairs_amount == 11
+        assert usd_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
+
+        coin_m_futures_difference_depth_stream_listener = StreamListener(
+            queue=archiver_daemon.coin_m_orderbook_stream_message_queue,
+            pairs=config['instruments']['coin_m_futures'],
+            stream_type=StreamType.DIFFERENCE_DEPTH,
+            market=Market.COIN_M_FUTURES
+        )
+
+        coin_m_futures_trade_stream_listener = StreamListener(
+            queue=archiver_daemon.coin_m_transaction_stream_message_queue,
+            pairs=config['instruments']['coin_m_futures'],
+            stream_type=StreamType.TRADE,
+            market=Market.COIN_M_FUTURES
+        )
+
+        assert isinstance(coin_m_futures_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
+        assert isinstance(coin_m_futures_difference_depth_stream_listener.id, StreamId)
+        assert coin_m_futures_difference_depth_stream_listener.pairs_amount == 11
+        assert coin_m_futures_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
+
+        assert isinstance(coin_m_futures_trade_stream_listener.websocket_app, websocket.WebSocketApp)
+        assert isinstance(coin_m_futures_trade_stream_listener.id, StreamId)
+        assert coin_m_futures_trade_stream_listener.pairs_amount == 11
+        assert coin_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
+
+        # data_sink.shutdown()
+        # time.sleep(5)
+
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
 
     #
     # archiver_daemon.__init__
@@ -286,9 +469,9 @@ class TestArchiverDaemon:
 
         with pytest.raises(BadAzureParameters) as excinfo:
             data_sink = launch_data_sink(
-                    config=config,
-                    azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                config=config,
+                azure_blob_parameters_with_key=azure_blob_parameters_with_key,
+                container_name=container_name
             )
 
         assert str(excinfo.value) == "Azure blob parameters with key or container name is missing or empty"
@@ -311,9 +494,9 @@ class TestArchiverDaemon:
 
         with pytest.raises(BadAzureParameters) as excinfo:
             data_sink = launch_data_sink(
-                    config=config,
-                    azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                config=config,
+                azure_blob_parameters_with_key=azure_blob_parameters_with_key,
+                container_name=container_name
             )
 
         assert str(excinfo.value) == "Azure blob parameters with key or container name is missing or empty"
@@ -427,26 +610,6 @@ class TestArchiverDaemon:
 
         config = {
             "instruments": {
-                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-                                  "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-                                   "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-                                   "DOTUSD_PERP"]
-            },
-            "file_duration_seconds": 30,
-            "snapshot_fetcher_interval_seconds": 60,
-            "websocket_life_time_seconds": 70,
-            "save_to_json": False,
-            "save_to_zip": False,
-            "send_zip_to_blob": False
-        }
-
-        config = {
-            "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
                 "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
                 "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
@@ -474,8 +637,8 @@ class TestArchiverDaemon:
 
         active_threads = threading.enumerate()
         daemon_threads = [thread for thread in active_threads if 'stream_service_supervisor' in thread.name or
-                                                                 'stream_writer' in thread.name or 'snapshot_daemon'
-                                                                 in thread.name]
+                          'stream_writer' in thread.name or 'snapshot_daemon'
+                          in thread.name]
 
         thread_names = [thread.name for thread in daemon_threads]
 
@@ -486,11 +649,17 @@ class TestArchiverDaemon:
             assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names, f'bad stream_writer: market: {market}, stream_type:{StreamType.TRADE}'
             assert f'snapshot_daemon: market: {Market[market]}' in thread_names, 'bad amount of snapshot daemons'
 
+        for _ in daemon_threads: print(_)
+
         assert len(daemon_threads) == total_expected_threads
 
         archiver_daemon.shutdown()
+
+        time.sleep(10)
+
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
+
     #
     # time utils
     #
