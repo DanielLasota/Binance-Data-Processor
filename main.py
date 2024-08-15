@@ -1,4 +1,6 @@
 import os
+import time
+
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
@@ -54,16 +56,23 @@ if __name__ == "__main__":
         "file_duration_seconds": 30,
         "snapshot_fetcher_interval_seconds": 60,
         "websocket_life_time_seconds": 70,
-        "save_to_json": True,
+        "save_to_json": False,
         "save_to_zip": False,
         "send_zip_to_blob": False
     }
 
-    launch_data_sink(
+    data_sink = launch_data_sink(
         config,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
         container_name=container_name
     )
+
+    time.sleep(10)
+
+    print('hujhuj')
+
+    data_sink.shutdown()
+
 
 '''
 ContainerAppConsoleLogs_CL

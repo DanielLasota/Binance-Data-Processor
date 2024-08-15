@@ -2,8 +2,9 @@ import copy
 import json
 import threading
 from queue import Queue
-from typing import Any, Dict
+from typing import Any, Dict, final
 
+from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 
 
@@ -34,13 +35,19 @@ class DifferenceDepthQueue:
         with cls._lock:
             cls._instances.clear()
 
-    def __init__(self):
+    def __init__(self, market: Market):
+        self._market = market
         self.queue = Queue()
         self.lock = threading.Lock()
         self.currently_accepted_stream_id = None
         self.no_longer_accepted_stream_id = None
         self.did_websockets_switch_successfully = False
         self._two_last_throws = {}
+
+    @property
+    @final
+    def market(self):
+        return self._market
 
     def _add_to_compare(self, stream_listener_id, message):
         message_dict = json.loads(message)

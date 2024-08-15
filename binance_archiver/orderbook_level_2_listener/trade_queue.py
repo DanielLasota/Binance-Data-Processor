@@ -1,6 +1,8 @@
 from queue import Queue
-from typing import Any
+from typing import Any, final
 import threading
+
+from binance_archiver.orderbook_level_2_listener.market_enum import Market
 
 
 class ClassInstancesAmountLimitException(Exception):
@@ -30,15 +32,21 @@ class TradeQueue:
         with cls._lock:
             cls._instances.clear()
 
-    def __init__(self):
+    def __init__(self, market: Market):
+        self._market = market
         self.queue = Queue()
         self.unique_elements = set()
         self.did_websockets_switch_successfully = False
 
+    @property
+    @final
+    def market(self):
+        return self._market
+
     def put_trade_message(self, message: str, timestamp_of_receive) -> None:
         self._put_with_no_repetitions(message, timestamp_of_receive)
 
-    def _put_with_no_repetitions(self, message: str, received_timestamp) -> None:
+    def _put_with_no_repetitions(self, message: str, received_timestamp: int) -> None:
         if message not in self.unique_elements:
             self.unique_elements.add(message)
             self.queue.put((message, received_timestamp))
