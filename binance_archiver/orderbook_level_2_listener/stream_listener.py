@@ -1,3 +1,4 @@
+import threading
 import time
 from typing import List
 from websocket import WebSocketApp, ABNF
@@ -19,7 +20,7 @@ class StreamListener:
         queue: TradeQueue | DifferenceDepthQueue,
         pairs: List[str],
         stream_type: StreamType,
-        market: Market,
+        market: Market
     ):
         self.id: StreamId = StreamId()
         self.pairs_amount: int | None = None
@@ -69,21 +70,21 @@ class StreamListener:
             # supervisor.notify()
 
         def _on_error(ws, error):
-            print(f"_on_error: {market} {stream_type}: {error}")
+            print(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
 
         def _on_close(ws, close_status_code, close_msg):
             print(
-                f"_on_close{market} {stream_type}: WebSocket connection closed, "
+                f"_on_close: {market} {stream_type} {self.id.start_timestamp}: WebSocket connection closed, "
                 f"{close_msg} (code: {close_status_code})"
             )
             # supervisor.shutdown_supervisor()
-            ws.close()
+            # ws.close()
 
         def _on_ping(ws, message):
             ws.send("", ABNF.OPCODE_PONG)
 
         def _on_open(ws):
-            print(f"{market} {stream_type}: WebSocket connection opened")
+            print(f"_on_open : {market} {stream_type} {self.id.start_timestamp}: WebSocket connection opened")
 
         websocket_app = WebSocketApp(
             url=url,

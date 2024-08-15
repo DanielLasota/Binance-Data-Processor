@@ -64,13 +64,25 @@ class ArchiverDaemon:
         self.logger.info("Shutting down ArchiverDaemon...")
         self.global_shutdown_flag.set()
 
-        time.sleep(10)
+        self.logger.info('shutting down data_sink ...')
+        self.logger.info('active threads left: ')
 
-        self.logger.info('active threads: ')
-        for thread in threading.enumerate():
-            if thread is not threading.current_thread():
-                self.logger.info(f"thread: {thread} thread.name: {thread.name} is_alive: {thread.is_alive()}")
-                # thread.join()
+        # for thread in threading.enumerate():
+        #     if thread is not threading.current_thread():
+        #         if thread.is_alive():
+        #             thread.join()
+
+        remaining_threads = [
+            thread for thread in threading.enumerate()
+            if thread is not threading.current_thread()
+        ]
+
+        if remaining_threads:
+            self.logger.warning(f"Some threads are still alive:")
+            for thread in remaining_threads:
+                self.logger.warning(f"Thread {thread.name} is still alive.")
+        else:
+            self.logger.info("All threads have been successfully stopped.")
 
     def run(
         self,
@@ -185,51 +197,6 @@ class ArchiverDaemon:
         )
         thread.start()
 
-    # @staticmethod
-    # def _stream_service_supervisor(
-    #     queue: DifferenceDepthQueue | TradeQueue,
-    #     pairs: List[str],
-    #     stream_type: StreamType,
-    #     market: Market,
-    #     websockets_lifetime_seconds: int,
-    #     global_shutdown_flag: bool
-    # ) -> None:
-    #
-    #     queue.set_pairs_amount = len(pairs)
-    #
-    #     stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
-    #
-    #     if stream_type is StreamType.DIFFERENCE_DEPTH:
-    #         queue.currently_accepted_stream_id = stream_listener.id.id
-    #
-    #     old_stream_listener_thread = threading.Thread(target=stream_listener.websocket_app.run_forever)
-    #
-    #     old_stream_listener_thread.daemon = True
-    #     old_stream_listener_thread.start()
-    #
-    #     while global_shutdown_flag is False:
-    #         time.sleep(websockets_lifetime_seconds)
-    #
-    #         new_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
-    #
-    #         new_stream_listener_thread = threading.Thread(target=new_stream_listener.websocket_app.run_forever)
-    #
-    #         new_stream_listener_thread.daemon = True
-    #         new_stream_listener_thread.start()
-    #
-    #         while queue.did_websockets_switch_successfully is False: time.sleep(1)
-    #
-    #         print("switched successfully")
-    #
-    #         stream_listener.websocket_app.close()
-    #         queue.did_websockets_switch_successfully = False
-    #
-    #         stream_listener = new_stream_listener
-    #         old_stream_listener_thread = new_stream_listener_thread
-    #
-    #         del new_stream_listener
-    #         del new_stream_listener_thread
-
     @staticmethod
     def _stream_service_supervisor(
         queue: DifferenceDepthQueue | TradeQueue,
@@ -262,26 +229,47 @@ class ArchiverDaemon:
                                                           daemon=True)
             new_stream_listener_thread.start()
 
-            while queue.did_websockets_switch_successfully is False:
-                time.sleep(1)
-
-            print("switched successfully")
-            queue.did_websockets_switch_successfully = False
-
-            old_stream_listener.websocket_app.close()
-
-            while old_stream_listener_thread.is_alive() is True:
+            while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
                 time.sleep(0.1)
 
-            old_stream_listener = new_stream_listener
-            old_stream_listener_thread = new_stream_listener_thread
+            if not global_shutdown_flag.is_set():
+                print("switched successfully")
+                queue.did_websockets_switch_successfully = False
 
-            new_stream_listener_thread = None
+                old_stream_listener.websocket_app.close()
+
+                while old_stream_listener_thread.is_alive() is True:
+                    time.sleep(1)
+
+                old_stream_listener = new_stream_listener
+                old_stream_listener_thread = new_stream_listener_thread
+
+                new_stream_listener_thread = None
 
         if new_stream_listener is not None:
-            new_stream_listener.websocket_app.close()
+            # while new_stream_listener.websocket_app.sock.connected is False:
+            #     time.sleep(1)
+            for i in range(10):
+                if new_stream_listener.websocket_app.sock.connected is False:
+                    time.sleep(1)
+                else:
+                    new_stream_listener.websocket_app.close()
+                    break
         if old_stream_listener is not None:
-            old_stream_listener.websocket_app.close()
+            for i in range(10):
+                if old_stream_listener.websocket_app.sock.connected is False:
+                    time.sleep(1)
+                else:
+                    old_stream_listener.websocket_app.close()
+                    break
+
+        if new_stream_listener is not None and new_stream_listener.websocket_app.sock and new_stream_listener.websocket_app.sock.connected is False:
+            new_stream_listener = None
+            new_stream_listener_thread = None
+
+        if old_stream_listener is not None and old_stream_listener.websocket_app.sock and old_stream_listener.websocket_app.sock.connected is False:
+            old_stream_listener = None
+            old_stream_listener_thread = None
 
     def _stream_writer(
         self,

@@ -17,6 +17,145 @@ from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
 class TestArchiverDaemon:
 
     #
+    # shutdown
+    #
+
+    @pytest.mark.parametrize('execution_number', range(5))
+    def test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left(
+        self,
+        execution_number
+    ):
+        config = {
+            "instruments": {
+                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                  "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                   "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                   "DOTUSD_PERP"]
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 60,
+            "websocket_life_time_seconds": 60,
+            "save_to_json": False,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        archiver_daemon = launch_data_sink(config)
+
+        time.sleep(10)
+
+        archiver_daemon.shutdown()
+
+        for _ in range(10):
+            active_threads = [
+                thread for thread in threading.enumerate()
+                if thread is not threading.current_thread()
+            ]
+            if not active_threads:
+                break
+            time.sleep(1)
+
+        assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
+                                          f": {[thread.name for thread in active_threads]}")
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
+
+    @pytest.mark.parametrize('execution_number', range(5))
+    def test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left(
+        self,
+        execution_number
+    ):
+        config = {
+            "instruments": {
+                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                  "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                   "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                   "DOTUSD_PERP"]
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 60,
+            "websocket_life_time_seconds": 5,
+            "save_to_json": False,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        archiver_daemon = launch_data_sink(config)
+
+        time.sleep(10)
+
+        archiver_daemon.shutdown()
+
+        for _ in range(10):
+            active_threads = [
+                thread for thread in threading.enumerate()
+                if thread is not threading.current_thread()
+            ]
+            if not active_threads:
+                break
+            time.sleep(1)
+
+        assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
+                                          f": {[thread.name for thread in active_threads]}")
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
+
+    @pytest.mark.parametrize('execution_number', range(5))
+    def test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left(
+        self,
+        execution_number
+    ):
+        config = {
+            "instruments": {
+                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                  "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                   "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                   "DOTUSD_PERP"]
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 60,
+            "websocket_life_time_seconds": 10,
+            "save_to_json": False,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        archiver_daemon = launch_data_sink(config)
+
+        time.sleep(30)
+
+        archiver_daemon.shutdown()
+
+        for _ in range(10):
+            active_threads = [
+                thread for thread in threading.enumerate()
+                if thread is not threading.current_thread()
+            ]
+            if not active_threads:
+                break
+            time.sleep(1)
+
+        assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
+                                          f": {[thread.name for thread in active_threads]}")
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
+
+    #
     # launch_data_sink
     #
 
@@ -153,9 +292,6 @@ class TestArchiverDaemon:
             )
 
         assert str(excinfo.value) == "Azure blob parameters with key or container name is missing or empty"
-        data_sink.shutdown()
-        time.sleep(5)
-        data_sink = None
 
     def test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown(self):
         config = {
@@ -181,9 +317,6 @@ class TestArchiverDaemon:
             )
 
         assert str(excinfo.value) == "Azure blob parameters with key or container name is missing or empty"
-        data_sink.shutdown()
-        time.sleep(5)
-        data_sink = None
 
     def test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false(self):
         logger = setup_logger()
@@ -221,7 +354,7 @@ class TestArchiverDaemon:
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
 
-    def test_given_archiver_daemon_when_init_7_trade_queue_instances_exception_is_thrown(self):
+    def test_given_archiver_daemon_when_init_then_7_trade_queue_instances_exception_is_thrown(self):
 
         logger = setup_logger()
         archiver_daemon = ArchiverDaemon(logger=logger)
@@ -240,7 +373,7 @@ class TestArchiverDaemon:
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
 
-    def test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown(self):
+    def test_given_archiver_daemon_when_init_then_7_difference_depth_queue_instances_is_exception_is_thrown(self):
 
         logger = setup_logger()
         archiver_daemon = ArchiverDaemon(logger=logger)
@@ -263,7 +396,7 @@ class TestArchiverDaemon:
     # archiver_daemon.get_queue
     #
 
-    def test_given__get_queue_is_accurate_queue_hook_returned(self):
+    def test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned(self):
         logger = setup_logger()
         archiver_daemon = ArchiverDaemon(logger=logger)
 
@@ -344,8 +477,6 @@ class TestArchiverDaemon:
                                                                  'stream_writer' in thread.name or 'snapshot_daemon'
                                                                  in thread.name]
 
-        #
-
         thread_names = [thread.name for thread in daemon_threads]
 
         for market in ["SPOT", "USD_M_FUTURES", "COIN_M_FUTURES"]:
@@ -358,7 +489,8 @@ class TestArchiverDaemon:
         assert len(daemon_threads) == total_expected_threads
 
         archiver_daemon.shutdown()
-
+        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
     #
     # time utils
     #
