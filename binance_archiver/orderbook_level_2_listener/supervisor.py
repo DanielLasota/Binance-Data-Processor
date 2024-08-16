@@ -24,7 +24,7 @@ class Supervisor:
         self.max_interval_without_messages_in_seconds = max_interval_without_messages_in_seconds
         self.running = True
         self.lock = threading.Lock()
-        self.thread = threading.Thread(target=self._monitor_last_message_time)
+        self.thread = threading.Thread(target=self._monitor_last_message_time, name=f'{self.stream_type} {self.market}')
         self.thread.start()
 
     def notify(self):

@@ -113,7 +113,7 @@ class DifferenceDepthQueue:
             self._add_to_compare(stream_listener_id, message)
 
             if stream_listener_id.id == self.currently_accepted_stream_id:
-                self.queue.put((message,timestamp_of_receive))
+                self.queue.put((message, timestamp_of_receive))
 
     def get(self) -> Any:
         entry = self.queue.get()
