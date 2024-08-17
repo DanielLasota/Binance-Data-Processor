@@ -25,37 +25,37 @@ if __name__ == "__main__":
 
     config = {
         "instruments": {
-            "spot": ["BTCUSDT", "ETHUSDT"],
+            # "spot": ["BTCUSDT", "ETHUSDT"],
             "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
-            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+            # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
         },
         "file_duration_seconds": 30,
-        "snapshot_fetcher_interval_seconds": 30,
-        "websocket_life_time_seconds": 10,
-        "save_to_json": False,
+        "snapshot_fetcher_interval_seconds": 1000,
+        "websocket_life_time_seconds": 1000,
+        "save_to_json": True,
         "save_to_zip": False,
         "send_zip_to_blob": False
     }
 
-    config = {
-        "instruments": {
-            "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-            "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-                "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-                "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-                "DOTUSD_PERP"]
-        },
-        "file_duration_seconds": 30,
-        "snapshot_fetcher_interval_seconds": 60,
-        "websocket_life_time_seconds": 10,
-        "save_to_json": False,
-        "save_to_zip": False,
-        "send_zip_to_blob": False
-    }
+    # config = {
+    #     "instruments": {
+    #         "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+    #             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+    #
+    #         # "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+    #         #     "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+    #         #
+    #         # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+    #         #     "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+    #         #     "DOTUSD_PERP"]
+    #     },
+    #     "file_duration_seconds": 120,
+    #     "snapshot_fetcher_interval_seconds": 60,
+    #     "websocket_life_time_seconds": 60,
+    #     "save_to_json": False,
+    #     "save_to_zip": False,
+    #     "send_zip_to_blob": False
+    # }
 
     data_sink = launch_data_sink(
         config,
@@ -63,12 +63,9 @@ if __name__ == "__main__":
         container_name=container_name
     )
 
-    time.sleep(10)
+    # time.sleep(10)
 
-    print('hujhuj')
-
-    print('closing data_sink')
-    data_sink.shutdown()
+    # data_sink.shutdown()
 
 
 '''
