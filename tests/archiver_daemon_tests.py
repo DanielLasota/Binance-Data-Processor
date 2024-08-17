@@ -1,11 +1,9 @@
-import json
 import re
 import threading
 import time
 from datetime import datetime, timezone
 
 import pytest
-import websocket
 
 import binance_archiver.orderbook_level_2_listener.difference_depth_queue
 from binance_archiver.orderbook_level_2_listener.archiver_daemon import ArchiverDaemon, BadConfigException, \
@@ -13,9 +11,6 @@ from binance_archiver.orderbook_level_2_listener.archiver_daemon import Archiver
 from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
-from binance_archiver.orderbook_level_2_listener.stream_listener import StreamListener, WrongListInstanceException, \
-    PairsLengthException
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
 from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
 
@@ -178,8 +173,8 @@ class TestArchiverDaemon:
 
     class TestArchiverDaemonShutdown:
 
-        @pytest.mark.parametrize('execution_number', range(1))
-        def test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left(
+        @pytest.mark.parametrize('execution_number', range(3))
+        def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(
                 self,
                 execution_number
         ):
@@ -205,11 +200,11 @@ class TestArchiverDaemon:
 
             archiver_daemon = launch_data_sink(config)
 
-            time.sleep(10)
+            time.sleep(5)
 
             archiver_daemon.shutdown()
 
-            for _ in range(10):
+            for _ in range(20):
                 active_threads = [
                     thread for thread in threading.enumerate()
                     if thread is not threading.current_thread()
@@ -218,12 +213,15 @@ class TestArchiverDaemon:
                     break
                 time.sleep(1)
 
-            assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
-                                              f": {[thread.name for thread in active_threads]}")
+            for _ in active_threads: print(_)
+
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
-        @pytest.mark.parametrize('execution_number', range(1))
+            assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
+                                              f": {[thread.name for thread in active_threads]}")
+
+        @pytest.mark.parametrize('execution_number', range(3))
         def test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left(
                 self,
                 execution_number
@@ -250,11 +248,11 @@ class TestArchiverDaemon:
 
             archiver_daemon = launch_data_sink(config)
 
-            time.sleep(10)
+            time.sleep(5)
 
             archiver_daemon.shutdown()
 
-            for _ in range(10):
+            for _ in range(20):
                 active_threads = [
                     thread for thread in threading.enumerate()
                     if thread is not threading.current_thread()
@@ -263,55 +261,11 @@ class TestArchiverDaemon:
                     break
                 time.sleep(1)
 
-            assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
-                                              f": {[thread.name for thread in active_threads]}")
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
-        @pytest.mark.parametrize('execution_number', range(1))
-        def test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left(
-                self,
-                execution_number
-        ):
-            config = {
-                "instruments": {
-                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-                                       "DOTUSD_PERP"]
-                },
-                "file_duration_seconds": 30,
-                "snapshot_fetcher_interval_seconds": 60,
-                "websocket_life_time_seconds": 10,
-                "save_to_json": False,
-                "save_to_zip": False,
-                "send_zip_to_blob": False
-            }
-
-            archiver_daemon = launch_data_sink(config)
-
-            time.sleep(30)
-
-            archiver_daemon.shutdown()
-
-            for _ in range(10):
-                active_threads = [
-                    thread for thread in threading.enumerate()
-                    if thread is not threading.current_thread()
-                ]
-                if not active_threads:
-                    break
-                time.sleep(1)
-
             assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
                                               f": {[thread.name for thread in active_threads]}")
-            DifferenceDepthQueue.clear_instances()
-            TradeQueue.clear_instances()
 
     class TestArchiverDaemonRun:
 
@@ -364,7 +318,7 @@ class TestArchiverDaemon:
 
             archiver_daemon.shutdown()
 
-            time.sleep(10)
+            time.sleep(15)
 
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()

@@ -107,13 +107,13 @@ class ArchiverDaemon:
                     self.global_shutdown_flag
             )
 
-            # self.start_stream_service_supervisor(
-            #         pairs,
-            #         StreamType.TRADE,
-            #         market_enum,
-            #         websockets_lifetime_seconds,
-            #         self.global_shutdown_flag
-            # )
+            self.start_stream_service_supervisor(
+                    pairs,
+                    StreamType.TRADE,
+                    market_enum,
+                    websockets_lifetime_seconds,
+                    self.global_shutdown_flag
+            )
 
             self.start_stream_writer(
                     market_enum,
@@ -125,25 +125,25 @@ class ArchiverDaemon:
                     send_zip_to_blob
             )
 
-            # self.start_stream_writer(
-            #         market_enum,
-            #         file_duration_seconds,
-            #         dump_path,
-            #         StreamType.TRADE,
-            #         save_to_json,
-            #         save_to_zip,
-            #         send_zip_to_blob
-            # )
+            self.start_stream_writer(
+                    market_enum,
+                    file_duration_seconds,
+                    dump_path,
+                    StreamType.TRADE,
+                    save_to_json,
+                    save_to_zip,
+                    send_zip_to_blob
+            )
 
-            # self.start_snapshot_daemon(
-            #         pairs,
-            #         market_enum,
-            #         dump_path,
-            #         snapshot_fetcher_interval_seconds,
-            #         save_to_json,
-            #         save_to_zip,
-            #         send_zip_to_blob
-            # )
+            self.start_snapshot_daemon(
+                    pairs,
+                    market_enum,
+                    dump_path,
+                    snapshot_fetcher_interval_seconds,
+                    save_to_json,
+                    save_to_zip,
+                    send_zip_to_blob
+            )
 
     def start_stream_service_supervisor(
         self,
@@ -215,11 +215,7 @@ class ArchiverDaemon:
         if stream_type is StreamType.DIFFERENCE_DEPTH:
             queue.currently_accepted_stream_id = old_stream_listener.id.id
 
-        old_stream_listener_thread = threading.Thread(target=old_stream_listener.websocket_app.run_forever,
-                                                      kwargs={'reconnect': True},
-                                                      daemon=True
-                                                      )
-        old_stream_listener_thread.start()
+        old_stream_listener.start_websocket_app()
 
         new_stream_listener = None
 
@@ -227,11 +223,7 @@ class ArchiverDaemon:
             sleep_with_flag_check(websockets_lifetime_seconds)
 
             new_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
-            new_stream_listener_thread = threading.Thread(target=new_stream_listener.websocket_app.run_forever,
-                                                          kwargs={'reconnect': True},
-                                                          daemon=True
-                                                          )
-            new_stream_listener_thread.start()
+            new_stream_listener.start_websocket_app()
 
             while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
                 time.sleep(1)
@@ -242,11 +234,10 @@ class ArchiverDaemon:
 
                 old_stream_listener.websocket_app.close()
 
-                while old_stream_listener_thread.is_alive() is True:
-                    time.sleep(1)
+                old_stream_listener.thread.join()
 
                 old_stream_listener = new_stream_listener
-                old_stream_listener_thread = new_stream_listener_thread
+                old_stream_listener.thread = new_stream_listener.thread
 
                 new_stream_listener_thread = None
 

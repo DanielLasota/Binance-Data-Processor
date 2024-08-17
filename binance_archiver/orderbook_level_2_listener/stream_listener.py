@@ -35,11 +35,36 @@ class StreamListener:
         if len(pairs) == 0:
             raise PairsLengthException('pairs len is zero')
 
-        self.supervisor_signal_shutdown_flag: threading.Event = threading.Event()
+        self.queue = queue
+        self.pairs = pairs
+        self.stream_type = stream_type
+        self.market = market
+
         self.id: StreamId = StreamId()
         self.pairs_amount: int = len(pairs)
-        self.websocket_app: WebSocketApp = self._construct_websocket_app(queue, pairs, stream_type, market)
-        # self.supervisor: Supervisor
+        self.websocket_app: WebSocketApp = self._construct_websocket_app(self.queue, self.pairs, self.stream_type, self.market)
+        self.thread: threading.Thread | None = None
+        self._supervisor: Supervisor
+
+    def start_websocket_app(self):
+        self.thread = threading.Thread(target=self.websocket_app.run_forever, kwargs={'reconnect': 2}, daemon=True)
+        self.thread.start()
+
+    def restart_websocket_app(self):
+        self.websocket_app.close()
+
+        while self.websocket_app.sock:
+            if self.websocket_app.sock.connected is False:
+                break
+            time.sleep(1)
+
+        if self.thread is not None:
+            self.thread.join()
+
+        self.websocket_app = None
+        self.websocket_app = self._construct_websocket_app(self.queue, self.pairs, self.stream_type, self.market)
+
+        self.start_websocket_app()
 
     def _construct_websocket_app(
         self,
@@ -48,15 +73,14 @@ class StreamListener:
         stream_type: StreamType,
         market: Market
     ) -> WebSocketApp:
-        # supervisor_signal_shutdown_flag = self.supervisor_signal_shutdown_flag
 
-        # self.supervisor = Supervisor(
-        #     stream_type=stream_type,
-        #     market=market,
-        #     check_interval_in_seconds=5,
-        #     max_interval_without_messages_in_seconds=10,
-        #     on_error_callback=lambda: supervisor_signal_shutdown_flag.set()
-        # )
+        self._supervisor = Supervisor(
+            stream_type=stream_type,
+            market=market,
+            check_interval_in_seconds=5,
+            max_interval_without_messages_in_seconds=10,
+            on_error_callback=lambda: self.restart_websocket_app()
+        )
 
         stream_url_methods = {
             StreamType.DIFFERENCE_DEPTH: URLFactory.get_orderbook_stream_url,
@@ -67,19 +91,19 @@ class StreamListener:
         url = url_method(market, pairs)
 
         def _on_difference_depth_message(ws, message):
-            print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)
             queue.put_queue_message(stream_listener_id=self.id, message=message,
                                     timestamp_of_receive=timestamp_of_receive)
-            # self.supervisor.notify()
+            self._supervisor.notify()
 
         def _on_trade_message(ws, message):
-            print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)
             queue.put_trade_message(message=message, timestamp_of_receive=timestamp_of_receive)
-            # self.supervisor.notify()
+            self._supervisor.notify()
 
         def _on_error(ws, error):
             print(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
@@ -89,8 +113,7 @@ class StreamListener:
                 f"_on_close: {market} {stream_type} {self.id.start_timestamp}: WebSocket connection closed, "
                 f"{close_msg} (code: {close_status_code})"
             )
-            # self.supervisor.shutdown_supervisor()
-            # ws.close()
+            self._supervisor.shutdown_supervisor()
 
         def _on_ping(ws, message):
             ws.send("", ABNF.OPCODE_PONG)

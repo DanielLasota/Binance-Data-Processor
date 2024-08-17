@@ -79,7 +79,6 @@ class DifferenceDepthQueue:
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True
-        print('info from diff depth queue, did_websockets_switch_successfully=True')
 
     @staticmethod
     def _compare_two_last_throws(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool | None:

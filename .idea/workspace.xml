@@ -4,12 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="stream_listener.py update&#10;archiver_daemon_tests.py reformat">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="pre-supervisor update commit">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/supervisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/supervisor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/stream_listener_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/stream_listener_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,8 +63,29 @@
     "Docker.docker-compose.yml.algo: Compose Deployment.executor": "Run",
     "Docker.dockerfile.executor": "Run",
     "Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonGetQueue.test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_7_difference_depth_queue_instances_is_exception_is_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_7_trade_queue_instances_exception_is_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_queues_amount_is_accurate.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_queues_are_set_properly.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonRun.test_given_archiver_daemon_run_call_when_threads_invocation_then_accurate_set_of_threads_are_started.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_get_utc_formatted_timestamp.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_get_utc_timestamp_epoch_milliseconds.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_get_utc_timestamp_epoch_seconds.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_given_get_actual_epoch_timestamp_are_timestamps_in_utc.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_config_has_no_instrument_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_market_type_is_empty_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_not_handled_market_type_then_is_exception_thrown.executor": "Run",
+    "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_too_many_markets_then_is_exception_thrown.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.Test_archiver_daemon_init.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.executor": "Run",
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_archiver_daemon.executor": "Run",
@@ -103,11 +127,20 @@
     "Python tests.pytest for stream_listener_tests.TestStreamListener.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_last_message_time_epoch_seconds_utc_is_changed.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_message_received_then_supervisor_is_notified.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_with_pairs_amount_of_zero_then_exception_is_thrown.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_with_pairs_argument_as_str_then_exception_is_thrown.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_connected_then_error_is_being_logged.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_last_message_time_epoch_seconds_utc_is_changed.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_message_income_stops_then_supervisors_sets_flag_to_stop.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_message_received_then_supervisor_is_notified.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_on_close_then_close_message_is_being_logged.executor": "Run",
+    "Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_on_open_then_message_is_being_logged.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListenerNew.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_difference_depth_stream_listener_when_connected_then_message_is_correctly_passed_to_diff_queue.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters.executor": "Run",
@@ -139,7 +172,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -192,7 +225,7 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -205,11 +238,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -222,11 +255,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for stream_listener_tests.TestStreamListener" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -239,11 +272,11 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;stream_listener_tests.TestStreamListener&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_last_message_time_epoch_seconds_utc_is_changed" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -256,17 +289,17 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_last_message_time_epoch_seconds_utc_is_changed&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_last_message_time_epoch_seconds_utc_is_changed" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" />
       </list>
     </recent_temporary>
   </component>
@@ -641,7 +674,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723811354101</updated>
     </task>
-    <option name="localTasksCounter" value="43" />
+    <task id="LOCAL-00043" summary="pre-supervisor update commit">
+      <option name="closed" value="true" />
+      <created>1723884018999</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1723884018999</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -681,7 +722,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="add snapshot save commit" />
     <MESSAGE value="code minor changes" />
     <MESSAGE value="separate listener to queue and file writer" />
     <MESSAGE value="code refactor&#10;add 2 params &#10;check data is correct for single instrument" />
@@ -706,7 +746,8 @@
     <MESSAGE value="shutdown method update&#10;last threads tests add" />
     <MESSAGE value="test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters&#10;&#10;test add" />
     <MESSAGE value="stream_listener.py update&#10;archiver_daemon_tests.py reformat" />
-    <option name="LAST_COMMIT_MESSAGE" value="stream_listener.py update&#10;archiver_daemon_tests.py reformat" />
+    <MESSAGE value="pre-supervisor update commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="pre-supervisor update commit" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

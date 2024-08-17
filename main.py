@@ -25,13 +25,13 @@ if __name__ == "__main__":
 
     config = {
         "instruments": {
-            # "spot": ["BTCUSDT", "ETHUSDT"],
-            "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+            "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT", "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+            # "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
             # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
         },
         "file_duration_seconds": 30,
         "snapshot_fetcher_interval_seconds": 1000,
-        "websocket_life_time_seconds": 1000,
+        "websocket_life_time_seconds": 30,
         "save_to_json": True,
         "save_to_zip": False,
         "send_zip_to_blob": False
