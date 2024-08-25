@@ -44,7 +44,7 @@ class StreamListener:
         self.pairs_amount: int = len(pairs)
         self.websocket_app: WebSocketApp = self._construct_websocket_app(self.queue, self.pairs, self.stream_type, self.market)
         self.thread: threading.Thread | None = None
-        self._supervisor: BlackoutSupervisor
+        self._blackout_supervisor: BlackoutSupervisor
 
     def start_websocket_app(self):
         self.thread = threading.Thread(
@@ -54,7 +54,7 @@ class StreamListener:
             name=f'websocket app thread {self.stream_type} {self.market} {self.id.start_timestamp}'
         )
         self.thread.start()
-        self._supervisor.run()
+        self._blackout_supervisor.run()
 
     def restart_websocket_app(self):
         self.websocket_app.close()
@@ -80,7 +80,7 @@ class StreamListener:
         market: Market
     ) -> WebSocketApp:
 
-        self._supervisor = BlackoutSupervisor(
+        self._blackout_supervisor = BlackoutSupervisor(
             stream_type=stream_type,
             market=market,
             check_interval_in_seconds=5,
@@ -103,7 +103,7 @@ class StreamListener:
             self.id.pairs_amount = len(pairs)
             queue.put_queue_message(stream_listener_id=self.id, message=message,
                                     timestamp_of_receive=timestamp_of_receive)
-            self._supervisor.notify()
+            self._blackout_supervisor.notify()
 
         def _on_trade_message(ws, message):
             # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
@@ -111,7 +111,7 @@ class StreamListener:
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)
             queue.put_trade_message(message=message, timestamp_of_receive=timestamp_of_receive)
-            self._supervisor.notify()
+            self._blackout_supervisor.notify()
 
         def _on_error(ws, error):
             print(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
@@ -121,7 +121,7 @@ class StreamListener:
                 f"_on_close: {market} {stream_type} {self.id.start_timestamp}: WebSocket connection closed, "
                 f"{close_msg} (code: {close_status_code})"
             )
-            self._supervisor.shutdown_supervisor()
+            self._blackout_supervisor.shutdown_supervisor()
 
         def _on_ping(ws, message):
             ws.send("", ABNF.OPCODE_PONG)

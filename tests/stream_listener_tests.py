@@ -68,9 +68,9 @@ class TestStreamListener:
         assert spot_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
 
         spot_trade_stream_listener.websocket_app.close()
-        spot_trade_stream_listener._supervisor.shutdown_supervisor()
+        spot_trade_stream_listener._blackout_supervisor.shutdown_supervisor()
         spot_difference_depth_stream_listener.websocket_app.close()
-        spot_difference_depth_stream_listener._supervisor.shutdown_supervisor()
+        spot_difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
 
         usd_m_futures_difference_depth_stream_listener = StreamListener(
             queue=archiver_daemon.usd_m_futures_orderbook_stream_message_queue,
@@ -97,9 +97,9 @@ class TestStreamListener:
         assert usd_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
 
         usd_m_futures_difference_depth_stream_listener.websocket_app.close()
-        usd_m_futures_difference_depth_stream_listener._supervisor.shutdown_supervisor()
+        usd_m_futures_difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
         usd_m_futures_trade_stream_listener.websocket_app.close()
-        usd_m_futures_trade_stream_listener._supervisor.shutdown_supervisor()
+        usd_m_futures_trade_stream_listener._blackout_supervisor.shutdown_supervisor()
 
         coin_m_futures_difference_depth_stream_listener = StreamListener(
             queue=archiver_daemon.coin_m_orderbook_stream_message_queue,
@@ -126,9 +126,9 @@ class TestStreamListener:
         assert coin_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
 
         coin_m_futures_difference_depth_stream_listener.websocket_app.close()
-        coin_m_futures_difference_depth_stream_listener._supervisor.shutdown_supervisor()
+        coin_m_futures_difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
         coin_m_futures_trade_stream_listener.websocket_app.close()
-        coin_m_futures_trade_stream_listener._supervisor.shutdown_supervisor()
+        coin_m_futures_trade_stream_listener._blackout_supervisor.shutdown_supervisor()
 
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
@@ -201,7 +201,7 @@ class TestStreamListener:
         stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=StreamType.TRADE, market=Market.SPOT)
         stream_listener.websocket_app.on_open(stream_listener.websocket_app)
         stream_listener.websocket_app.close()
-        stream_listener._supervisor.shutdown_supervisor()
+        stream_listener._blackout_supervisor.shutdown_supervisor()
 
         captured = capsys.readouterr()
         assert "WebSocket connection opened" in captured.out
@@ -217,7 +217,7 @@ class TestStreamListener:
         close_msg = "Normal closure"
         stream_listener.websocket_app.on_close(stream_listener.websocket_app, close_status_code, close_msg)
         stream_listener.websocket_app.close()
-        stream_listener._supervisor.shutdown_supervisor()
+        stream_listener._blackout_supervisor.shutdown_supervisor()
 
         captured = capsys.readouterr()
         assert "WebSocket connection closed" in captured.out
@@ -234,7 +234,7 @@ class TestStreamListener:
         error_message = "Test error"
         stream_listener.websocket_app.on_error(stream_listener.websocket_app, error_message)
         stream_listener.websocket_app.close()
-        stream_listener._supervisor.shutdown_supervisor()
+        stream_listener._blackout_supervisor.shutdown_supervisor()
         TradeQueue.clear_instances()
 
         captured = capsys.readouterr()
@@ -366,7 +366,7 @@ class TestStreamListener:
         )
 
         with patch.object(trade_stream_listener, 'restart_websocket_app') as mock_restart, \
-                patch.object(trade_stream_listener._supervisor, 'notify') as mock_notify:
+                patch.object(trade_stream_listener._blackout_supervisor, 'notify') as mock_notify:
             trade_stream_listener.start_websocket_app()
 
             time.sleep(10)
@@ -380,8 +380,8 @@ class TestStreamListener:
 
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE} {Market.SPOT}'
 
-        assert trade_stream_listener._supervisor is not None, "Supervisor should be instantiated within StreamListener"
-        assert isinstance(trade_stream_listener._supervisor, BlackoutSupervisor)
+        assert trade_stream_listener._blackout_supervisor is not None, "Supervisor should be instantiated within StreamListener"
+        assert isinstance(trade_stream_listener._blackout_supervisor, BlackoutSupervisor)
 
         print('hujiksde')
         for name_ in active_threads:
@@ -421,7 +421,7 @@ class TestStreamListener:
         )
 
         with patch.object(difference_depth_queue_listener, 'restart_websocket_app') as mock_restart, \
-                patch.object(difference_depth_queue_listener._supervisor, 'notify') as mock_notify:
+                patch.object(difference_depth_queue_listener._blackout_supervisor, 'notify') as mock_notify:
             difference_depth_queue_listener.start_websocket_app()
 
             time.sleep(10)
@@ -436,8 +436,8 @@ class TestStreamListener:
 
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.DIFFERENCE_DEPTH} {Market.SPOT}'
 
-        assert difference_depth_queue_listener._supervisor is not None, "Supervisor should be instantiated within StreamListener"
-        assert isinstance(difference_depth_queue_listener._supervisor, BlackoutSupervisor)
+        assert difference_depth_queue_listener._blackout_supervisor is not None, "Supervisor should be instantiated within StreamListener"
+        assert isinstance(difference_depth_queue_listener._blackout_supervisor, BlackoutSupervisor)
         assert presumed_thread_name in active_threads
         assert len(active_threads) == 2
 
@@ -555,7 +555,7 @@ class TestStreamListener:
             market=Market.SPOT
         )
 
-        with patch.object(trade_stream_listener._supervisor, 'notify') as mock_notify:
+        with patch.object(trade_stream_listener._blackout_supervisor, 'notify') as mock_notify:
             simulated_message = '{"e": "trade", "E": 123456789, "s": "BTCUSDT", "t": 12345, "p": "0.001", "q": "100", "b": 88, "a": 50, "T": 123456785, "m": True, "M": True}'
 
             trade_stream_listener.websocket_app.on_message(trade_stream_listener.websocket_app, simulated_message)
@@ -592,7 +592,7 @@ class TestStreamListener:
             market=Market.SPOT
         )
 
-        with patch.object(difference_depth_queue_listener._supervisor, 'notify') as mock_notify:
+        with patch.object(difference_depth_queue_listener._blackout_supervisor, 'notify') as mock_notify:
             simulated_message = '{"e": "depthUpdate", "E": 123456789, "s": "BTCUSDT", "U": 157, "u": 160, "b": [["0.0024", "10"]], "a": [["0.0026", "100"]]}'
 
             difference_depth_queue_listener.websocket_app.on_message(difference_depth_queue_listener.websocket_app,
@@ -641,7 +641,7 @@ class TestOther:
         original_restart_websocket_app = trade_stream_listener.restart_websocket_app
         trade_stream_listener.restart_websocket_app = lambda: print("Mocked restart_websocket_app called")
 
-        original_notify = trade_stream_listener._supervisor.notify
+        original_notify = trade_stream_listener._blackout_supervisor.notify
         notify_called = False
 
         def mock_notify():
@@ -649,7 +649,7 @@ class TestOther:
             notify_called = True
             print("Mocked notify called")
 
-        trade_stream_listener._supervisor.notify = mock_notify
+        trade_stream_listener._blackout_supervisor.notify = mock_notify
 
         trade_stream_listener_thread = threading.Thread(target=trade_stream_listener.websocket_app.run_forever,
                                                         daemon=True)
@@ -670,8 +670,8 @@ class TestOther:
 
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE} {Market.SPOT}'
 
-        assert trade_stream_listener._supervisor is not None, "Supervisor should be instantiated within StreamListener"
-        assert isinstance(trade_stream_listener._supervisor, BlackoutSupervisor)
+        assert trade_stream_listener._blackout_supervisor is not None, "Supervisor should be instantiated within StreamListener"
+        assert isinstance(trade_stream_listener._blackout_supervisor, BlackoutSupervisor)
         assert presumed_thread_name in active_threads
         assert len(active_threads) == 2
 

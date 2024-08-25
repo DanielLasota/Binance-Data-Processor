@@ -99,7 +99,7 @@ class ArchiverDaemon:
         for market, pairs in instruments.items():
             market_enum = Market[market.upper()]
 
-            self.start_stream_service_supervisor(
+            self.start_stream_service(
                     pairs,
                     StreamType.DIFFERENCE_DEPTH,
                     market_enum,
@@ -107,7 +107,7 @@ class ArchiverDaemon:
                     self.global_shutdown_flag
             )
 
-            self.start_stream_service_supervisor(
+            self.start_stream_service(
                     pairs,
                     StreamType.TRADE,
                     market_enum,
@@ -145,7 +145,7 @@ class ArchiverDaemon:
                     send_zip_to_blob
             )
 
-    def start_stream_service_supervisor(
+    def start_stream_service(
         self,
         pairs: List[str],
         stream_type: StreamType,
@@ -154,20 +154,18 @@ class ArchiverDaemon:
         global_shutdown_flag: threading.Event
     ) -> None:
         queue = self._get_queue(market, stream_type)
-        iteration_root = {'iteration': 0}
 
         thread = threading.Thread(
-            target=self._stream_service_supervisor,
+            target=self._stream_service,
             args=(
                 queue,
                 pairs,
                 stream_type,
                 market,
                 websockets_lifetime_seconds,
-                global_shutdown_flag,
-                iteration_root
+                global_shutdown_flag
             ),
-            name=f'stream_service_supervisor: market: {market}, stream_type: {stream_type}'
+            name=f'stream_service: market: {market}, stream_type: {stream_type}'
         )
         thread.start()
 
@@ -200,7 +198,7 @@ class ArchiverDaemon:
         thread.start()
 
     @staticmethod
-    def _stream_service_supervisor(
+    def _stream_service(
         queue: DifferenceDepthQueue | TradeQueue,
         pairs: List[str],
         stream_type: StreamType,

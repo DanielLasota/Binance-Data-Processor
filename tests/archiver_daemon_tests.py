@@ -304,16 +304,18 @@ class TestArchiverDaemon:
                                       + expected_snapshot_daemon_threads)
 
             active_threads = threading.enumerate()
-            daemon_threads = [thread for thread in active_threads if 'stream_service_supervisor' in thread.name or
+            daemon_threads = [thread for thread in active_threads if 'stream_service' in thread.name or
                               'stream_writer' in thread.name or 'snapshot_daemon'
                               in thread.name]
 
             thread_names = [thread.name for thread in daemon_threads]
 
+            for _ in thread_names: print(_)
+
             for market in ["SPOT", "USD_M_FUTURES", "COIN_M_FUTURES"]:
-                assert (f'stream_service_supervisor: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names), f'bad stream_service_supervisor: market: {market}, stream_type:{StreamType.DIFFERENCE_DEPTH}'
-                assert f'stream_service_supervisor: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names, f'bad stream_service_supervisor: market: {market}, stream_type:{StreamType.TRADE}'
-                assert (f'stream_writer: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names), f'bad stream_writer: market: {market}, stream_type:{StreamType.DIFFERENCE_DEPTH}'
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names, f'bad stream_service: market: {market}, stream_type:{StreamType.DIFFERENCE_DEPTH}'
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names, f'bad stream_service: market: {market}, stream_type:{StreamType.TRADE}'
+                assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names, f'bad stream_writer: market: {market}, stream_type:{StreamType.DIFFERENCE_DEPTH}'
                 assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names, f'bad stream_writer: market: {market}, stream_type:{StreamType.TRADE}'
                 assert f'snapshot_daemon: market: {Market[market]}' in thread_names, 'bad amount of snapshot daemons'
 
@@ -322,17 +324,15 @@ class TestArchiverDaemon:
 
             assert len(daemon_threads) == total_expected_threads
 
-            print('hujhuj')
-
             archiver_daemon.shutdown()
 
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
-    class TestArchiverDaemonStreamServiceSupervisor:
+    class TestArchiverDaemonStreamService:
 
         @pytest.mark.skip
-        def test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times(self):
+        def test_given_difference_stream_service_when_start_then_stream_listeners_differs_couple_of_times(self):
             config = {
                 "instruments": {
                     "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
