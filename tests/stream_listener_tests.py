@@ -13,7 +13,7 @@ from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 from binance_archiver.orderbook_level_2_listener.stream_listener import StreamListener, WrongListInstanceException, \
     PairsLengthException
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
-from binance_archiver.orderbook_level_2_listener.supervisor import Supervisor
+from binance_archiver.orderbook_level_2_listener.blackoutsupervisor import BlackoutSupervisor
 from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
 
 
@@ -367,9 +367,8 @@ class TestStreamListener:
 
         with patch.object(trade_stream_listener, 'restart_websocket_app') as mock_restart, \
                 patch.object(trade_stream_listener._supervisor, 'notify') as mock_notify:
-            trade_stream_listener_thread = threading.Thread(target=trade_stream_listener.websocket_app.run_forever,
-                                                            daemon=True)
-            trade_stream_listener_thread.start()
+            trade_stream_listener.start_websocket_app()
+
             time.sleep(10)
             mock_notify.assert_called()
             mock_restart.assert_not_called()
@@ -382,7 +381,12 @@ class TestStreamListener:
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE} {Market.SPOT}'
 
         assert trade_stream_listener._supervisor is not None, "Supervisor should be instantiated within StreamListener"
-        assert isinstance(trade_stream_listener._supervisor, Supervisor)
+        assert isinstance(trade_stream_listener._supervisor, BlackoutSupervisor)
+
+        print('hujiksde')
+        for name_ in active_threads:
+            print(name_)
+
         assert presumed_thread_name in active_threads
         assert len(active_threads) == 2
 
@@ -418,11 +422,7 @@ class TestStreamListener:
 
         with patch.object(difference_depth_queue_listener, 'restart_websocket_app') as mock_restart, \
                 patch.object(difference_depth_queue_listener._supervisor, 'notify') as mock_notify:
-            difference_depth_stream_listener_thread = threading.Thread(
-                target=difference_depth_queue_listener.websocket_app.run_forever,
-                daemon=True
-            )
-            difference_depth_stream_listener_thread.start()
+            difference_depth_queue_listener.start_websocket_app()
 
             time.sleep(10)
             mock_notify.assert_called()
@@ -437,7 +437,7 @@ class TestStreamListener:
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.DIFFERENCE_DEPTH} {Market.SPOT}'
 
         assert difference_depth_queue_listener._supervisor is not None, "Supervisor should be instantiated within StreamListener"
-        assert isinstance(difference_depth_queue_listener._supervisor, Supervisor)
+        assert isinstance(difference_depth_queue_listener._supervisor, BlackoutSupervisor)
         assert presumed_thread_name in active_threads
         assert len(active_threads) == 2
 
@@ -671,7 +671,7 @@ class TestOther:
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE} {Market.SPOT}'
 
         assert trade_stream_listener._supervisor is not None, "Supervisor should be instantiated within StreamListener"
-        assert isinstance(trade_stream_listener._supervisor, Supervisor)
+        assert isinstance(trade_stream_listener._supervisor, BlackoutSupervisor)
         assert presumed_thread_name in active_threads
         assert len(active_threads) == 2
 

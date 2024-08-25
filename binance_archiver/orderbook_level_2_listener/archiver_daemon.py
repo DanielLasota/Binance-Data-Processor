@@ -5,7 +5,7 @@ import pprint
 import time
 import zipfile
 from datetime import datetime, timezone
-from typing import List, Any, Dict, Tuple, Callable
+from typing import List, Any, Dict, Tuple
 from collections import defaultdict
 from azure.storage.blob import BlobServiceClient
 import io
@@ -154,6 +154,8 @@ class ArchiverDaemon:
         global_shutdown_flag: threading.Event
     ) -> None:
         queue = self._get_queue(market, stream_type)
+        iteration_root = {'iteration': 0}
+
         thread = threading.Thread(
             target=self._stream_service_supervisor,
             args=(
@@ -163,7 +165,7 @@ class ArchiverDaemon:
                 market,
                 websockets_lifetime_seconds,
                 global_shutdown_flag,
-                self._sleep_with_flag_check
+                iteration_root
             ),
             name=f'stream_service_supervisor: market: {market}, stream_type: {stream_type}'
         )
@@ -191,7 +193,7 @@ class ArchiverDaemon:
                 stream_type,
                 save_to_json,
                 save_to_zip,
-                send_zip_to_blob,
+                send_zip_to_blob
             ),
             name=f'stream_writer: market: {market}, stream_type: {stream_type}'
         )
@@ -204,67 +206,84 @@ class ArchiverDaemon:
         stream_type: StreamType,
         market: Market,
         websockets_lifetime_seconds: int,
-        global_shutdown_flag: threading.Event,
-        sleep_with_flag_check: Callable[[int], None]
+        global_shutdown_flag: threading.Event()
     ) -> None:
 
-        queue.set_pairs_amount = len(pairs)
-
-        old_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
-
-        if stream_type is StreamType.DIFFERENCE_DEPTH:
-            queue.currently_accepted_stream_id = old_stream_listener.id.id
-
-        old_stream_listener.start_websocket_app()
-
-        new_stream_listener = None
+        def __sleep_with_flag_check(_global_shutdown_flag: threading.Event, duration: int) -> None:
+            interval = 1
+            for _ in range(0, duration, interval):
+                if _global_shutdown_flag.is_set():
+                    break
+                time.sleep(interval)
 
         while not global_shutdown_flag.is_set():
-            sleep_with_flag_check(websockets_lifetime_seconds)
 
-            new_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
-            new_stream_listener.start_websocket_app()
-
-            while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
-                time.sleep(1)
-            print("switched successfully")
-
-            if not global_shutdown_flag.is_set():
-                queue.did_websockets_switch_successfully = False
-
-                old_stream_listener.websocket_app.close()
-
-                old_stream_listener.thread.join()
-
-                old_stream_listener = new_stream_listener
-                old_stream_listener.thread = new_stream_listener.thread
-
-                new_stream_listener_thread = None
-
-        if new_stream_listener is not None:
-            for i in range(10):
-                if new_stream_listener.websocket_app.sock.connected is False:
-                    time.sleep(1)
-                else:
-                    new_stream_listener.websocket_app.close()
-                    break
-        if old_stream_listener is not None:
-            for i in range(10):
-                if old_stream_listener.websocket_app.sock.connected is False:
-                    time.sleep(1)
-                else:
-                    old_stream_listener.websocket_app.close()
-                    break
-
-        if (new_stream_listener is not None and new_stream_listener.websocket_app.sock
-                and new_stream_listener.websocket_app.sock.connected is False):
             new_stream_listener = None
-            new_stream_listener_thread = None
-
-        if (old_stream_listener is not None and old_stream_listener.websocket_app.sock
-                and old_stream_listener.websocket_app.sock.connected is False):
             old_stream_listener = None
-            old_stream_listener_thread = None
+
+            try:
+                queue.set_pairs_amount = len(pairs)
+
+                old_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
+
+                if stream_type is StreamType.DIFFERENCE_DEPTH:
+                    queue.currently_accepted_stream_id = old_stream_listener.id.id
+
+                old_stream_listener.start_websocket_app()
+
+                new_stream_listener = None
+
+                while not global_shutdown_flag.is_set():
+                    __sleep_with_flag_check(global_shutdown_flag, websockets_lifetime_seconds)
+
+                    new_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
+                    new_stream_listener.start_websocket_app()
+
+                    while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
+                        time.sleep(1)
+                    print("switched successfully")
+
+                    if not global_shutdown_flag.is_set():
+                        queue.did_websockets_switch_successfully = False
+
+                        old_stream_listener.websocket_app.close()
+
+                        old_stream_listener.thread.join()
+
+                        old_stream_listener = new_stream_listener
+                        old_stream_listener.thread = new_stream_listener.thread
+
+                        new_stream_listener_thread = None
+
+            except Exception as e:
+                print(f'{e}, sth bad happenedd')
+
+            finally:
+                if new_stream_listener is not None:
+                    for i in range(10):
+                        if new_stream_listener.websocket_app.sock.connected is False:
+                            time.sleep(1)
+                        else:
+                            new_stream_listener.websocket_app.close()
+                            break
+                if old_stream_listener is not None:
+                    for i in range(10):
+                        if old_stream_listener.websocket_app.sock.connected is False:
+                            time.sleep(1)
+                        else:
+                            old_stream_listener.websocket_app.close()
+                            break
+
+                if (new_stream_listener is not None and new_stream_listener.websocket_app.sock
+                        and new_stream_listener.websocket_app.sock.connected is False):
+                    new_stream_listener = None
+                    new_stream_listener_thread = None
+
+                if (old_stream_listener is not None and old_stream_listener.websocket_app.sock
+                        and old_stream_listener.websocket_app.sock.connected is False):
+                    old_stream_listener = None
+                    old_stream_listener_thread = None
+                time.sleep(6)
 
     def _stream_writer(
         self,
@@ -288,7 +307,6 @@ class ArchiverDaemon:
                 save_to_zip,
                 send_zip_to_blob,
             )
-
             self._sleep_with_flag_check(file_duration_seconds)
 
         self._process_stream_data(
@@ -529,6 +547,7 @@ def launch_data_sink(
     container_name: str | None = None,
     dump_path_to_log_file: str | None = None
 ):
+
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
 
     instruments = config.get("instruments")

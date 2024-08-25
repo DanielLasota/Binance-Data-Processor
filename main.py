@@ -1,14 +1,14 @@
 import os
-import time
-
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import json
+import threading
 
 from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
 
 if __name__ == "__main__":
+
     load_dotenv('C:/Users/daniellasota/archer.env')
     config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
     blob_parameters_secret_name = os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY_SECRET_NAME')
@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     config = {
         "instruments": {
-            "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT", "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+            "spot": ["BTCUSDT", "ETHUSDT"],
             # "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
             # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
         },
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     )
 
     # time.sleep(10)
-
+    #
     # data_sink.shutdown()
 
 

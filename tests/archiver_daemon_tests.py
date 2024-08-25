@@ -2,6 +2,7 @@ import re
 import threading
 import time
 from datetime import datetime, timezone
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -221,6 +222,8 @@ class TestArchiverDaemon:
             assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
                                               f": {[thread.name for thread in active_threads]}")
 
+            del archiver_daemon
+
         @pytest.mark.parametrize('execution_number', range(3))
         def test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left(
                 self,
@@ -267,6 +270,8 @@ class TestArchiverDaemon:
             assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
                                               f": {[thread.name for thread in active_threads]}")
 
+            del archiver_daemon
+
     class TestArchiverDaemonRun:
 
         def test_given_archiver_daemon_run_call_when_threads_invocation_then_accurate_set_of_threads_are_started(self):
@@ -312,13 +317,14 @@ class TestArchiverDaemon:
                 assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names, f'bad stream_writer: market: {market}, stream_type:{StreamType.TRADE}'
                 assert f'snapshot_daemon: market: {Market[market]}' in thread_names, 'bad amount of snapshot daemons'
 
-            for _ in daemon_threads: print(_)
+            for _ in daemon_threads:
+                print(_)
 
             assert len(daemon_threads) == total_expected_threads
 
-            archiver_daemon.shutdown()
+            print('hujhuj')
 
-            time.sleep(15)
+            archiver_daemon.shutdown()
 
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
