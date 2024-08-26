@@ -74,6 +74,8 @@ class ArchiverDaemon:
         #         if thread.is_alive():
         #             thread.join()
 
+        self.is_someone_overlapping_right_now_flag.clear()
+
         remaining_threads = [
             thread for thread in threading.enumerate()
             if thread is not threading.current_thread()
