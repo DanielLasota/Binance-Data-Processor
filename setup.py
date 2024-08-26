@@ -21,6 +21,6 @@ setup(
     author="Daniel Lasota",
     author_email="grossmann.root@gmail.com",
     description="A package for archiving Binance data",
-    keywords="binance archiver quant data ",
+    keywords="binance archiver quant data sprzedam opla",
     url="http://youtube.com"
 )

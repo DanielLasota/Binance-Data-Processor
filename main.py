@@ -3,7 +3,6 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import json
-import threading
 
 from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
 
@@ -26,8 +25,8 @@ if __name__ == "__main__":
     config = {
         "instruments": {
             "spot": ["BTCUSDT", "ETHUSDT"],
-            # "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
-            # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+            "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
         },
         "file_duration_seconds": 30,
         "snapshot_fetcher_interval_seconds": 1000,
@@ -42,19 +41,19 @@ if __name__ == "__main__":
     #         "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
     #             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
     #
-    #         # "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-    #         #     "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-    #         #
-    #         # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-    #         #     "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-    #         #     "DOTUSD_PERP"]
+    #         "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+    #             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+    #
+    #         "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+    #             "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+    #             "DOTUSD_PERP"]
     #     },
-    #     "file_duration_seconds": 120,
+    #     "file_duration_seconds": 300,
     #     "snapshot_fetcher_interval_seconds": 60,
-    #     "websocket_life_time_seconds": 60,
-    #     "save_to_json": False,
-    #     "save_to_zip": False,
-    #     "send_zip_to_blob": False
+    #     "websocket_life_time_seconds": 320,
+    #     "save_to_json": false,
+    #     "save_to_zip": false,
+    #     "send_zip_to_blob": true
     # }
 
     data_sink = launch_data_sink(
@@ -64,13 +63,4 @@ if __name__ == "__main__":
     )
 
     # time.sleep(10)
-    #
     # data_sink.shutdown()
-
-
-'''
-ContainerAppConsoleLogs_CL
-| where TimeGenerated >= ago(7d)
-| project TimeGenerated, Log_s
-| sort by TimeGenerated desc
-'''

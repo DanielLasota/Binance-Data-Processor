@@ -39,6 +39,8 @@ class ArchiverDaemon:
             )
             self.container_name = container_name
 
+        self.is_someone_overlapping_right_now_flag = threading.Event()
+
         self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT)
         self.spot_transaction_stream_message_queue = TradeQueue(market=Market.SPOT)
 
@@ -145,30 +147,6 @@ class ArchiverDaemon:
                     send_zip_to_blob
             )
 
-    def start_stream_service(
-        self,
-        pairs: List[str],
-        stream_type: StreamType,
-        market: Market,
-        websockets_lifetime_seconds: int,
-        global_shutdown_flag: threading.Event
-    ) -> None:
-        queue = self._get_queue(market, stream_type)
-
-        thread = threading.Thread(
-            target=self._stream_service,
-            args=(
-                queue,
-                pairs,
-                stream_type,
-                market,
-                websockets_lifetime_seconds,
-                global_shutdown_flag
-            ),
-            name=f'stream_service: market: {market}, stream_type: {stream_type}'
-        )
-        thread.start()
-
     def start_stream_writer(
         self,
         market: Market,
@@ -197,6 +175,31 @@ class ArchiverDaemon:
         )
         thread.start()
 
+    def start_stream_service(
+        self,
+        pairs: List[str],
+        stream_type: StreamType,
+        market: Market,
+        websockets_lifetime_seconds: int,
+        global_shutdown_flag: threading.Event
+    ) -> None:
+        queue = self._get_queue(market, stream_type)
+
+        thread = threading.Thread(
+            target=self._stream_service,
+            args=(
+                queue,
+                pairs,
+                stream_type,
+                market,
+                websockets_lifetime_seconds,
+                global_shutdown_flag,
+                self.is_someone_overlapping_right_now_flag
+            ),
+            name=f'stream_service: market: {market}, stream_type: {stream_type}'
+        )
+        thread.start()
+
     @staticmethod
     def _stream_service(
         queue: DifferenceDepthQueue | TradeQueue,
@@ -204,7 +207,8 @@ class ArchiverDaemon:
         stream_type: StreamType,
         market: Market,
         websockets_lifetime_seconds: int,
-        global_shutdown_flag: threading.Event()
+        global_shutdown_flag: threading.Event(),
+        is_someone_overlapping_right_now_flag: threading.Event
     ) -> None:
 
         def __sleep_with_flag_check(_global_shutdown_flag: threading.Event, duration: int) -> None:
@@ -234,11 +238,19 @@ class ArchiverDaemon:
                 while not global_shutdown_flag.is_set():
                     __sleep_with_flag_check(global_shutdown_flag, websockets_lifetime_seconds)
 
+                    while is_someone_overlapping_right_now_flag.is_set():
+                        print('waitin coz someone is overlapping right now')
+                        time.sleep(1)
+
+                    is_someone_overlapping_right_now_flag.set()
+
                     new_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
                     new_stream_listener.start_websocket_app()
 
                     while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
                         time.sleep(1)
+
+                    is_someone_overlapping_right_now_flag.clear()
                     print("switched successfully")
 
                     if not global_shutdown_flag.is_set():
