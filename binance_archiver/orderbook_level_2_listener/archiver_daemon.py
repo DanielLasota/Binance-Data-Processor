@@ -11,6 +11,7 @@ from azure.storage.blob import BlobServiceClient
 import io
 import threading
 
+from .flask_manager import FlaskManager
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
@@ -32,6 +33,9 @@ class ArchiverDaemon:
     ) -> None:
         self.logger = logger
         self.global_shutdown_flag: threading.Event = threading.Event()
+
+        self.flask_manager = FlaskManager()
+        self.flask_manager.run()
 
         if azure_blob_parameters_with_key and container_name is not None:
             self.blob_service_client = BlobServiceClient.from_connection_string(
@@ -75,6 +79,7 @@ class ArchiverDaemon:
         #             thread.join()
 
         self.is_someone_overlapping_right_now_flag.clear()
+        self.flask_manager.stop()
 
         remaining_threads = [
             thread for thread in threading.enumerate()

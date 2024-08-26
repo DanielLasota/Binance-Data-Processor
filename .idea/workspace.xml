@@ -4,9 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="is_someone_overlapping_right_now_flag clutch add">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="is_someone_overlapping_right_now_flag clutch shutdown fix">
+      <change afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/flask_manager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/observer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -176,7 +181,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue">
+  <component name="RunManager" selected="Python.main">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -198,14 +203,6 @@
       <option name="MODULE_MODE" value="false" />
       <option name="REDIRECT_INPUT" value="false" />
       <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="Dockerfile" type="docker-deploy" factoryName="dockerfile" temporary="true" server-name="Docker">
-      <deployment type="dockerfile">
-        <settings>
-          <option name="sourceFilePath" value="Dockerfile" />
-        </settings>
-      </deployment>
       <method v="2" />
     </configuration>
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
@@ -288,13 +285,30 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
+    <configuration name="pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified" />
-        <item itemvalue="Docker.Dockerfile" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
       </list>
     </recent_temporary>
   </component>
@@ -709,7 +723,15 @@
       <option name="project" value="LOCAL" />
       <updated>1724692742618</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="is_someone_overlapping_right_now_flag clutch shutdown fix">
+      <option name="closed" value="true" />
+      <created>1724693390335</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1724693390335</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -749,7 +771,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="change all to json" />
     <MESSAGE value="json update, coin m fix etc" />
     <MESSAGE value="instrument name fix, &#10;minor small fixes" />
     <MESSAGE value="threading optimize/encapsulate&#10;asyncio delete" />
@@ -774,7 +795,8 @@
     <MESSAGE value="stream_service_supervisor error handle fix" />
     <MESSAGE value="stream_service_supervisor rename to stream_service" />
     <MESSAGE value="is_someone_overlapping_right_now_flag clutch add" />
-    <option name="LAST_COMMIT_MESSAGE" value="is_someone_overlapping_right_now_flag clutch add" />
+    <MESSAGE value="is_someone_overlapping_right_now_flag clutch shutdown fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="is_someone_overlapping_right_now_flag clutch shutdown fix" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

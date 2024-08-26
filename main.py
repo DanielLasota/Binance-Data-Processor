@@ -3,6 +3,7 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import json
+import time
 
 from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
 
@@ -62,5 +63,5 @@ if __name__ == "__main__":
         container_name=container_name
     )
 
-    # time.sleep(10)
-    # data_sink.shutdown()
+    time.sleep(10)
+    data_sink.shutdown()
