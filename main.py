@@ -3,9 +3,9 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import json
+import time
 
-from binance_archiver import DaemonManager
-
+from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
 
 if __name__ == "__main__":
 
@@ -23,54 +23,45 @@ if __name__ == "__main__":
     azure_blob_parameters_with_key = client.get_secret(blob_parameters_secret_name).value
     container_name = client.get_secret(container_name_secret_name).value
 
-    # config = \
-    #     {
-    #         "daemons": {
-    #             "markets": {
-    #                 "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-    #                          "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+    config = {
+        "instruments": {
+            "spot": ["BTCUSDT", "ETHUSDT"],
+            "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+        },
+        "file_duration_seconds": 30,
+        "snapshot_fetcher_interval_seconds": 1000,
+        "websocket_life_time_seconds": 30,
+        "save_to_json": True,
+        "save_to_zip": False,
+        "send_zip_to_blob": False
+    }
+
+    # config = {
+    #     "instruments": {
+    #         "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+    #             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
     #
-    #                 "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-    #                                   "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+    #         "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+    #             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
     #
-    #                 "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-    #                                    "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-    #                                    "DOTUSD_PERP"]
-    #             },
-    #             "listen_duration": 300,
-    #             "snapshot_fetcher_interval_seconds": 20
-    #         }
-    #     }
+    #         "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+    #             "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+    #             "DOTUSD_PERP"]
+    #     },
+    #     "file_duration_seconds": 300,
+    #     "snapshot_fetcher_interval_seconds": 60,
+    #     "websocket_life_time_seconds": 320,
+    #     "save_to_json": false,
+    #     "save_to_zip": false,
+    #     "send_zip_to_blob": true
+    # }
 
-    # config = \
-    #     {
-    #         "daemons": {
-    #             "markets": {
-    #                 "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-    #                                   "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-    #             },
-    #             "listen_duration": 300,
-    #             "snapshot_fetcher_interval_seconds": 30
-    #         }
-    #     }
-
-    config = \
-        {
-            "daemons": {
-                "markets": {
-                    "coin_m_futures": ["BTCUSD_PERP"]
-                },
-                "listen_duration": 40,
-                "snapshot_fetcher_interval_seconds": 30,
-                "daemon_service_life_time_seconds": 60
-            }
-        }
-
-    manager = DaemonManager(
-        config=config,
+    data_sink = launch_data_sink(
+        config,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-        container_name=container_name,
-        remove_zip_after_upload=False
+        container_name=container_name
     )
 
-    manager.run()
+    time.sleep(10)
+    data_sink.shutdown()

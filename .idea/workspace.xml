@@ -4,22 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="stop daemons add">
-      <change afterPath="$PROJECT_DIR$/binance_archiver/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/binance_archiver/setup.py" afterDir="false" />
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="is_someone_overlapping_right_now_flag clutch shutdown fix">
+      <change afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/flask_manager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/observer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/abstract_base_classes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/abstract_base_classes/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/abstract_base_classes/observer.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/abstract_base_classes/observer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/daemon_manager/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/daemon_manager/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/daemon_manager/daemon_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/daemon_manager/daemon_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/market_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/market_enum.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/orderbook_level_2_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/orderbook_level_2_listener.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/setup_logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orderbook_level_2_listener/url_factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/url_factory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,6 +26,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -62,18 +59,117 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;Docker.Dockerfile.executor&quot;: &quot;Run&quot;,
     &quot;Docker.docker-compose.yml.algo: Compose Deployment.executor&quot;: &quot;Run&quot;,
     &quot;Docker.dockerfile.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonGetQueue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonGetQueue.test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_7_difference_depth_queue_instances_is_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_7_trade_queue_instances_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_queues_amount_is_accurate.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_archiver_daemon_when_init_then_queues_are_set_properly.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonInit.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonRun.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonRun.test_given_archiver_daemon_run_call_when_threads_invocation_then_accurate_set_of_threads_are_started.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_after_stream_switch_is_called_then_no_threads_are_left.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonStreamServiceSupervisor.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonStreamServiceSupervisor.test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonStreamServiceSupervisor.test_start_stream_service_supervisor_restarts_on_error.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_get_utc_formatted_timestamp.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_get_utc_timestamp_epoch_milliseconds.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_get_utc_timestamp_epoch_seconds.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils.test_given_get_actual_epoch_timestamp_are_timestamps_in_utc.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_config_has_no_instrument_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_market_type_is_empty_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_not_handled_market_type_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink.test_given_too_many_markets_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.Test_archiver_daemon_init.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_archiver_daemon.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_exception_handling_allows_loop_continuation.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given__get_queue_is_accurate_queue_hook_returned.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_run_call_when_threads_invocation_then_accurate_set_of_threads_are_started.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_difference_depth_queue_instances_is_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_7_trade_queue_instances_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_amount_is_accurate.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_init_then_queues_are_set_properly.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_before_stream_switch_is_called_then_no_threads_are_left.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_archiver_daemon_when_shutdown_method_is_called_then_no_threads_are_left.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_azure_blob_parameters_with_key_is_none_or_empty_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_config_has_no_instrument_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_difference_depth_stream_listener_when_connected_then_message_is_correctly_passed_to_diff_queue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_difference_stream_service_supervisor_when_start_then_stream_listeners_differs_couple_of_times.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_get_actual_epoch_timestamp_are_timestamps_actual.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_get_actual_epoch_timestamp_are_timestamps_in_utc.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_market_type_is_empty_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_not_handled_market_type_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_stream_listener_when_init_with_pairs_amount_of_zero_then_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_stream_listener_when_init_with_pairs_argument_as_str_then_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_too_many_markets_then_is_exception_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_given_trade_stream_listener_when_connected_then_message_is_correctly_passed_to_trade_queue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_init.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_iteration_count.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_on_close_behaves_as_expected.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_on_error_logs_error.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_on_open_logs_message.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_start_stream_service_supervisor_restarts_on_error.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_timestamps_are_in_utc.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_last_message_time_epoch_seconds_utc_is_changed.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_message_received_then_supervisor_is_notified.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_with_pairs_amount_of_zero_then_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_with_pairs_argument_as_str_then_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_connected_then_error_is_being_logged.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_last_message_time_epoch_seconds_utc_is_changed.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_message_income_stops_then_supervisors_sets_flag_to_stop.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_message_received_then_supervisor_is_notified.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_on_close_then_close_message_is_being_logged.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_on_open_then_message_is_being_logged.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_difference_depth_stream_listener_when_connected_then_message_is_correctly_passed_to_diff_queue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_stream_listener_when_init_with_pairs_amount_of_zero_then_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_stream_listener_when_init_with_pairs_argument_as_str_then_exception_is_thrown.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_trade_stream_listener_when_connected_then_error_is_being_logged.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_trade_stream_listener_when_connected_then_message_is_correctly_passed_to_trade_queue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_trade_stream_listener_when_on_close_then_close_message_is_being_logged.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_trade_stream_listener_when_on_open_then_message_is_being_logged.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for supervised_queue_tests.TestSupervisedQueue.executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;dev__daniel__lasota&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.tools&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.sourceCode.Python&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
@@ -95,7 +191,6 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="Python 3.11 (Binance-Archiver)" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -122,30 +217,98 @@
       </deployment>
       <method v="2" />
     </configuration>
-    <configuration name="docker-compose.yml.algo: Compose Deployment" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
-      <deployment type="docker-compose.yml">
-        <settings>
-          <option name="services">
-            <list>
-              <option value="algo" />
-            </list>
-          </option>
-          <option name="sourceFilePath" value="docker-compose.yml" />
-        </settings>
-      </deployment>
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="dockerfile" type="docker-deploy" factoryName="dockerfile" temporary="true" server-name="Docker">
-      <deployment type="dockerfile">
-        <settings>
-          <option name="sourceFilePath" value="dockerfile" />
-        </settings>
-      </deployment>
+    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for stream_listener_tests.TestStreamListener" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stream_listener_tests.TestStreamListener&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Docker.docker-compose.yml.algo: Compose Deployment" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
       </list>
     </recent_temporary>
   </component>
@@ -448,39 +611,166 @@
       <option name="project" value="LOCAL" />
       <updated>1715022838959</updated>
     </task>
-    <option name="localTasksCounter" value="34" />
+    <task id="LOCAL-00034" summary="refactor ThreadPoolExecutor into threading">
+      <option name="closed" value="true" />
+      <created>1722768820530</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1722768820530</updated>
+    </task>
+    <task id="LOCAL-00035" summary="pre daemon manager update">
+      <option name="closed" value="true" />
+      <created>1722805550326</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1722805550326</updated>
+    </task>
+    <task id="LOCAL-00036" summary="daemon_manager.py delete&#10;concurrent.futures delete&#10;threading add&#10;tests add&#10;queue.lookup add&#10;received_timestamps add&#10;trade_queue.py add">
+      <option name="closed" value="true" />
+      <created>1723375971689</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1723375971689</updated>
+    </task>
+    <task id="LOCAL-00037" summary="queues singleton with limit of 6 add&#10;&#10;tests add">
+      <option name="closed" value="true" />
+      <created>1723412334425</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1723412334425</updated>
+    </task>
+    <task id="LOCAL-00038" summary="arhciver_daemon __init__ tests add">
+      <option name="closed" value="true" />
+      <created>1723569862100</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1723569862101</updated>
+    </task>
+    <task id="LOCAL-00039" summary="run method test add &#10;global_shutdown_flag bool to threading.Event&#10;add shutdown method which is not working properly&#10;add thread names&#10;refactor _stream_service_supervisor">
+      <option name="closed" value="true" />
+      <created>1723686452771</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1723686452771</updated>
+    </task>
+    <task id="LOCAL-00040" summary="shutdown method update&#10;last threads tests add">
+      <option name="closed" value="true" />
+      <created>1723729765023</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1723729765023</updated>
+    </task>
+    <task id="LOCAL-00041" summary="test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters&#10;&#10;test add">
+      <option name="closed" value="true" />
+      <created>1723759743466</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1723759743466</updated>
+    </task>
+    <task id="LOCAL-00042" summary="stream_listener.py update&#10;archiver_daemon_tests.py reformat">
+      <option name="closed" value="true" />
+      <created>1723811354101</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1723811354101</updated>
+    </task>
+    <task id="LOCAL-00043" summary="pre-supervisor update commit">
+      <option name="closed" value="true" />
+      <created>1723884018999</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1723884018999</updated>
+    </task>
+    <task id="LOCAL-00044" summary="supervisor update&#10;tests update">
+      <option name="closed" value="true" />
+      <created>1723900262301</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1723900262301</updated>
+    </task>
+    <task id="LOCAL-00045" summary="stream_service_supervisor error handle fix">
+      <option name="closed" value="true" />
+      <created>1724600253879</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1724600253879</updated>
+    </task>
+    <task id="LOCAL-00046" summary="stream_service_supervisor rename to stream_service">
+      <option name="closed" value="true" />
+      <created>1724603298817</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1724603298817</updated>
+    </task>
+    <task id="LOCAL-00047" summary="is_someone_overlapping_right_now_flag clutch add">
+      <option name="closed" value="true" />
+      <created>1724692742618</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1724692742618</updated>
+    </task>
+    <task id="LOCAL-00048" summary="is_someone_overlapping_right_now_flag clutch shutdown fix">
+      <option name="closed" value="true" />
+      <created>1724693390335</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1724693390335</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ID_ORDER">
+      <list>
+        <option value="Default.Root" />
+        <option value="Default.Author" />
+        <option value="Default.Date" />
+        <option value="Default.Subject" />
+      </list>
+    </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="dev_daniel_lasota" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
           </value>
         </entry>
       </map>
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="zip dump_path fix" />
-    <MESSAGE value="is not none update" />
-    <MESSAGE value="update to blob update" />
-    <MESSAGE value="requirements" />
-    <MESSAGE value="makedirs fix" />
-    <MESSAGE value="os path create fix" />
-    <MESSAGE value="docker-compose.yml add" />
-    <MESSAGE value="pre - reformat commit&#10;add init function with lob snapshots" />
-    <MESSAGE value="abc remove" />
-    <MESSAGE value="add snapshot save commit" />
-    <MESSAGE value="code minor changes" />
-    <MESSAGE value="separate listener to queue and file writer" />
-    <MESSAGE value="code refactor&#10;add 2 params &#10;check data is correct for single instrument" />
-    <MESSAGE value="handle historical transactions" />
-    <MESSAGE value="change all to json" />
     <MESSAGE value="json update, coin m fix etc" />
     <MESSAGE value="instrument name fix, &#10;minor small fixes" />
     <MESSAGE value="threading optimize/encapsulate&#10;asyncio delete" />
@@ -491,7 +781,22 @@
     <MESSAGE value="change print to logger with .log override" />
     <MESSAGE value="logger optimisation" />
     <MESSAGE value="stop daemons add" />
-    <option name="LAST_COMMIT_MESSAGE" value="stop daemons add" />
+    <MESSAGE value="refactor ThreadPoolExecutor into threading" />
+    <MESSAGE value="pre daemon manager update" />
+    <MESSAGE value="daemon_manager.py delete&#10;concurrent.futures delete&#10;threading add&#10;tests add&#10;queue.lookup add&#10;received_timestamps add&#10;trade_queue.py add" />
+    <MESSAGE value="queues singleton with limit of 6 add&#10;&#10;tests add" />
+    <MESSAGE value="arhciver_daemon __init__ tests add" />
+    <MESSAGE value="run method test add &#10;global_shutdown_flag bool to threading.Event&#10;add shutdown method which is not working properly&#10;add thread names&#10;refactor _stream_service_supervisor" />
+    <MESSAGE value="shutdown method update&#10;last threads tests add" />
+    <MESSAGE value="test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters&#10;&#10;test add" />
+    <MESSAGE value="stream_listener.py update&#10;archiver_daemon_tests.py reformat" />
+    <MESSAGE value="pre-supervisor update commit" />
+    <MESSAGE value="supervisor update&#10;tests update" />
+    <MESSAGE value="stream_service_supervisor error handle fix" />
+    <MESSAGE value="stream_service_supervisor rename to stream_service" />
+    <MESSAGE value="is_someone_overlapping_right_now_flag clutch add" />
+    <MESSAGE value="is_someone_overlapping_right_now_flag clutch shutdown fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="is_someone_overlapping_right_now_flag clutch shutdown fix" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

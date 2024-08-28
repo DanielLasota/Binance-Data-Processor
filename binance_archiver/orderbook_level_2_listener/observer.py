@@ -13,4 +13,4 @@ class Observer(ABC):
 
     def notify_observers(self, data):
         for observer in self._observers:
-            observer.notify(data)
+            observer.update(data)

@@ -2,30 +2,44 @@ import logging
 import time
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+import os
 
 
-def setup_logger(log_file_path: str) -> logging.Logger:
+def setup_logger(log_file_path: str | None = None) -> logging.Logger:
     logger = logging.getLogger('DaemonManager')
     logger.setLevel(logging.DEBUG)
 
     now_utc = datetime.utcnow().strftime('%d-%m-%YT%H-%M-%SZ')
 
-    file_handler = RotatingFileHandler(
-        f"{log_file_path}archiver{now_utc}.log",
-        maxBytes=5 * 1024 * 1024,
-        backupCount=3
-    )
+    if log_file_path:
+        if not os.path.exists(log_file_path):
+            os.makedirs(log_file_path)
 
-    logging.Formatter.converter = time.gmtime
+        file_handler = RotatingFileHandler(
+            f"{log_file_path}/archiver_{now_utc}.log",
+            maxBytes=5 * 1024 * 1024,
+            backupCount=3
+        )
 
-    file_formatter = logging.Formatter('%(asctime)sUTC - %(levelname)s - %(message)s')
-    file_handler.setFormatter(file_formatter)
+        logging.Formatter.converter = time.gmtime
+
+        file_formatter = logging.Formatter('%(asctime)sZ - %(levelname)s - %(message)s')
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
 
     console_handler = logging.StreamHandler()
-    console_formatter = logging.Formatter('%(asctime)sUTC - %(levelname)s - %(message)s')
+    console_formatter = logging.Formatter('%(asctime)sZ - %(levelname)s - %(message)s')
     console_handler.setFormatter(console_formatter)
-
-    logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+
+    logger.raiseExceptions = True
+    logger.logThreads = True
+    logger.logMultiprocessing = True
+    logger.logProcesses = True
+
+    logging.raiseExceptions = True
+    logging.logThreads = True
+    logging.logMultiprocessing = True
+    logging.logProcesses = True
 
     return logger
