@@ -242,11 +242,14 @@ class ArchiverDaemon:
 
                 new_stream_listener = None
 
+                time.sleep(5)
+                old_stream_listener.subscribe_to_asset('xrpusdt')
+
                 while not global_shutdown_flag.is_set():
                     __sleep_with_flag_check(global_shutdown_flag, websockets_lifetime_seconds)
 
                     while is_someone_overlapping_right_now_flag.is_set():
-                        print('waitin coz someone is overlapping right now')
+                        # print('waitin coz someone is overlapping right now')
                         time.sleep(1)
 
                     is_someone_overlapping_right_now_flag.set()

@@ -9,9 +9,10 @@ from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_d
 
 if __name__ == "__main__":
 
-    load_dotenv('C:/Users/daniellasota/archer.env')
-    config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
+    load_dotenv('C:/Users/defrg/archer.env')
+
     blob_parameters_secret_name = os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY_SECRET_NAME')
+    config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
     container_name_secret_name = os.environ.get('CONTAINER_NAME_SECRET_NAME')
 
     client = SecretClient(
@@ -63,5 +64,5 @@ if __name__ == "__main__":
         container_name=container_name
     )
 
-    time.sleep(10)
-    data_sink.shutdown()
+    # time.sleep(10)
+    # data_sink.shutdown()

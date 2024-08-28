@@ -31,8 +31,8 @@ class TestArchiverDaemon:
                 "snapshot_fetcher_interval_seconds": 60,
                 "websocket_life_time_seconds": 70,
                 "save_to_json": False,
-                "save_to_zip": False,
-                "send_zip_to_blob": True
+                "save_to_zip": True,
+                "send_zip_to_blob": False
             }
 
             azure_blob_parameters_with_key = ''

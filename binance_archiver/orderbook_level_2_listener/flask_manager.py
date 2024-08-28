@@ -36,11 +36,9 @@ class FlaskManager(Observer):
 
         @self.app.route('/shutdown', methods=['POST'])
         def shutdown():
-            print('hujek')
             terminate_func = request.environ.get('werkzeug.server.shutdown')
             if terminate_func is not None:
                 terminate_func()
-            print('hujek2')
             return "Server shutting down..."
 
     def stream(self):
@@ -68,3 +66,8 @@ class FlaskManager(Observer):
                 print('joined')
             except requests.exceptions.RequestException as e:
                 print(f"Error during server shutdown: {e}")
+
+'''
+curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d '{"key": "value"}'
+'''
+
