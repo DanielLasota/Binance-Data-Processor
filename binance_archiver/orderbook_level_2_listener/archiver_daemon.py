@@ -69,37 +69,26 @@ class ArchiverDaemon:
 
         self.stream_listeners = {}
 
-    def change_subscription(self, type_, stream_type, market, asset):
-        old_stream_listener = self.stream_listeners.get((Market[market], StreamType[stream_type], 'old'))
+    def modify_subscription(self, type_: str, market: str, asset: str):
 
-        _queue = self._get_queue(market=market, stream_type=stream_type)
+        for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
+            for status in ['old', 'new']:
+                stream_listener = self.stream_listeners.get((Market[market], stream_type, status))
+                if stream_listener:
+                    stream_listener.change_subscription(action=type_, pair=asset.upper())
 
-        if old_stream_listener:
-            old_stream_listener.change_subscription(action=type_, pair=asset)
-        else:
-            ...
-            # print(f"No old_stream_listener found for market: {market} and stream type: {stream_type}")
-
-        new_stream_listener = self.stream_listeners.get((Market[market], StreamType[stream_type], 'new'))
-
-        if new_stream_listener:
-            new_stream_listener.change_subscription(action=type_, pair=asset)
-        else:
-            ...
-            # print(f"No new_stream_listener found for market: {market} and stream type: {stream_type}")
-
-        success = True
-        if success:
+        if type_ == 'subscribe':
             self.instruments[market.lower()].append(asset.upper())
+        elif type_ == 'unsubscribe':
+            self.instruments[market.lower()].remove(asset.upper())
 
     def command_line_interface(self, message):
         command = list(message.items())[0][0]
         arguments = list(message.items())[0][1]
 
         if command == 'modify_subscription':
-            self.change_subscription(
+            self.modify_subscription(
                 type_=arguments['type'],
-                stream_type=arguments['stream_type'],
                 market=arguments['market'],
                 asset=arguments['asset']
             )
@@ -184,7 +173,6 @@ class ArchiverDaemon:
             )
 
             self.start_snapshot_daemon(
-                    pairs,
                     market_enum,
                     dump_path,
                     snapshot_fetcher_interval_seconds,
@@ -228,7 +216,6 @@ class ArchiverDaemon:
         websockets_lifetime_seconds: int
     ) -> None:
         queue = self._get_queue(market, stream_type)
-
         pairs = self.instruments[market.name.lower()]
 
         thread = threading.Thread(
@@ -465,7 +452,6 @@ class ArchiverDaemon:
 
     def start_snapshot_daemon(
         self,
-        pairs,
         market,
         dump_path,
         interval,
@@ -473,6 +459,8 @@ class ArchiverDaemon:
         save_to_zip,
         send_zip_to_blob
     ):
+        pairs = self.instruments[market.name.lower()]
+
         thread = threading.Thread(
                 target=self._snapshot_daemon,
                 args=(
@@ -505,6 +493,7 @@ class ArchiverDaemon:
                     snapshot, request_timestamp, receive_timestamp = self._get_snapshot(
                         pair, market
                     )
+
                     snapshot["_rq"] = request_timestamp
                     snapshot["_rc"] = receive_timestamp
 

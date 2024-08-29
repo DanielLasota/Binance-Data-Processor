@@ -44,6 +44,6 @@ curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d '
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"key\": \"value\"}"
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{"modify_subscription": {"type": "subscribe", "stream_type": "DifferenceDepth", "market": "SPOT", "asset": "xrpusdt"}}"
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"modify_subscription\": {\"type\": \"subscribe\", \"stream_type\": \"DifferenceDepth\", \"market\": \"SPOT\", \"asset\": \"xrpusdt\"}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"modify_subscription\": {\"type\": \"subscribe\", \"stream_type\": \"DIFFERENCE_DEPTH\", \"market\": \"SPOT\", \"asset\": \"xrpusdt\"}}"
+curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"modify_subscription\": {\"type\": \"subscribe\", \"market\": \"SPOT\", \"asset\": \"xrpusdt\"}}"
 
 '''

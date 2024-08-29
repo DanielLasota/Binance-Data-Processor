@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="alpha iteration of subscription workz">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="subsciption modify improvement">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/flask_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/flask_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
@@ -345,14 +344,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00003" summary="archiver saves raw data">
-      <option name="closed" value="true" />
-      <created>1711924345199</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1711924345200</updated>
     </task>
     <task id="LOCAL-00004" summary="different markets add via argument">
       <option name="closed" value="true" />
@@ -738,7 +729,15 @@
       <option name="project" value="LOCAL" />
       <updated>1724935074036</updated>
     </task>
-    <option name="localTasksCounter" value="52" />
+    <task id="LOCAL-00052" summary="subsciption modify improvement">
+      <option name="closed" value="true" />
+      <created>1724939813317</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1724939813317</updated>
+    </task>
+    <option name="localTasksCounter" value="53" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -778,7 +777,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="code refactor, encapsulate methods, code quality hehe 340 lines to 200" />
     <MESSAGE value="code refactor" />
     <MESSAGE value="docs update" />
     <MESSAGE value="docs update, @100ms fix in coin m orderbook stream url" />
@@ -803,7 +801,8 @@
     <MESSAGE value="subscribe unsubscribe methods only add&#10;dokcerfile iteration" />
     <MESSAGE value="commandline interface function add&#10;change_subscription_add&#10;flask reformat&#10;flask callback add&#10;stream_listener.py change_subscription method add" />
     <MESSAGE value="alpha iteration of subscription workz" />
-    <option name="LAST_COMMIT_MESSAGE" value="alpha iteration of subscription workz" />
+    <MESSAGE value="subsciption modify improvement" />
+    <option name="LAST_COMMIT_MESSAGE" value="subsciption modify improvement" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
