@@ -73,10 +73,12 @@ class StreamListener:
 
         self.start_websocket_app()
 
-    def subscribe_to_asset(self, pair):
+    def change_subscription(self, pair, action="subscribe"):
         if not self.websocket_app.sock or not self.websocket_app.sock.connected:
-            print(f"Cannot subscribe, WebSocket is not connected")
+            print(f"Cannot {action}, WebSocket is not connected")
             return
+
+        pair = pair.lower()
 
         _internal_dict = {
             StreamType.DIFFERENCE_DEPTH: 'depth',
@@ -85,37 +87,24 @@ class StreamListener:
 
         _stream_type = _internal_dict.get(self.stream_type)
 
-        subscribe_message = {
-            "method": "SUBSCRIBE",
-            "params": [f"{pair}@{_stream_type}"],
-            "id": 1
-        }
-
-        print(subscribe_message)
-
-        self.websocket_app.send(json.dumps(subscribe_message))
-        print(f"Subscribe message sent for pairs: {self.pairs}")
-
-    def unsubscribe_to_asset(self, pair):
-        if not self.websocket_app.sock or not self.websocket_app.sock.connected:
-            print(f"Cannot unsubscribe, WebSocket is not connected")
+        if action.lower() == "subscribe":
+            method = "SUBSCRIBE"
+        elif action.lower() == "unsubscribe":
+            method = "UNSUBSCRIBE"
+        else:
+            print(f"Invalid action: {action}")
             return
 
-        _internal_dict = {
-            StreamType.DIFFERENCE_DEPTH: 'depth',
-            StreamType.TRADE: 'trade'
-        }
-
-        _stream_type = _internal_dict.get(self.stream_type)
-
-        unsubscribe_message = {
-            "method": "UNSUBSCRIBE",
+        message = {
+            "method": method,
             "params": [f"{pair}@{_stream_type}"],
             "id": 1
         }
 
-        self.websocket_app.send(json.dumps(unsubscribe_message))
-        print(f"Subscribe message sent for pairs: {self.pairs}")
+        print(message)
+
+        self.websocket_app.send(json.dumps(message))
+        print(f"{method} message sent for pair: {pair}")
 
     def _construct_websocket_app(
         self,
@@ -142,7 +131,7 @@ class StreamListener:
         url = url_method(market, pairs)
 
         def _on_difference_depth_message(ws, message):
-            print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)

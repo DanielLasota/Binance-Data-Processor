@@ -36,6 +36,7 @@ class ArchiverDaemon:
 
         self.flask_manager = FlaskManager()
         self.flask_manager.run()
+        self.flask_manager.set_callback(self.command_line_interface)
 
         if azure_blob_parameters_with_key and container_name is not None:
             self.blob_service_client = BlobServiceClient.from_connection_string(
@@ -62,6 +63,30 @@ class ArchiverDaemon:
             (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.coin_m_orderbook_stream_message_queue,
             (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_transaction_stream_message_queue
         }
+
+    def change_subscription(self, type_, stream_type, market, asset):
+        print(f'stream_type {stream_type}')
+        print(f'market {market}')
+        print(f'asset {asset}')
+        print(f'requested to change subscription: {type_} {StreamType[stream_type]} {Market[market]} {asset}')
+
+    def command_line_interface(self, message):
+        print(message)
+        command = list(message.items())[0][0]
+        arguments = list(message.items())[0][1]
+
+        if command == 'modify_subscription':
+            print(f'received modification request {message}')
+
+            self.change_subscription(
+                type_=arguments['type'],
+                stream_type=arguments['stream_type'],
+                market=arguments['market'],
+                asset=arguments['asset']
+            )
+
+        else:
+            print('bad command, try again')
 
     def _get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
         return self.queue_lookup.get((market, stream_type))
@@ -241,9 +266,6 @@ class ArchiverDaemon:
                 old_stream_listener.start_websocket_app()
 
                 new_stream_listener = None
-
-                time.sleep(5)
-                old_stream_listener.subscribe_to_asset('xrpusdt')
 
                 while not global_shutdown_flag.is_set():
                     __sleep_with_flag_check(global_shutdown_flag, websockets_lifetime_seconds)
