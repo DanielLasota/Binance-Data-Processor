@@ -73,7 +73,7 @@ class StreamListener:
 
         self.start_websocket_app()
 
-    def change_subscription(self, pair, action="subscribe"):
+    def change_subscription(self, pair, action):
         if not self.websocket_app.sock or not self.websocket_app.sock.connected:
             print(f"Cannot {action}, WebSocket is not connected")
             return

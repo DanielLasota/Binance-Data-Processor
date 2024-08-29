@@ -64,11 +64,30 @@ class ArchiverDaemon:
             (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_transaction_stream_message_queue
         }
 
+        self.stream_listeners = {}
+
     def change_subscription(self, type_, stream_type, market, asset):
         print(f'stream_type {stream_type}')
         print(f'market {market}')
         print(f'asset {asset}')
         print(f'requested to change subscription: {type_} {StreamType[stream_type]} {Market[market]} {asset}')
+
+        old_stream_listener = self.stream_listeners.get((Market[market], StreamType[stream_type], 'old'))
+
+        _queue = self._get_queue(market=market, stream_type=stream_type)
+
+        if old_stream_listener:
+            old_stream_listener.change_subscription(action=type_, pair=asset)
+        else:
+            print(f"No stream listener found for market: {market} and stream type: {stream_type}")
+
+        new_stream_listener = self.stream_listeners.get((Market[market], StreamType[stream_type], 'new'))
+
+        if new_stream_listener:
+            new_stream_listener.change_subscription(action=type_, pair=asset)
+        else:
+            print(f"No stream listener found for market: {market} and stream type: {stream_type}")
+
 
     def command_line_interface(self, message):
         print(message)
@@ -137,16 +156,14 @@ class ArchiverDaemon:
                     pairs,
                     StreamType.DIFFERENCE_DEPTH,
                     market_enum,
-                    websockets_lifetime_seconds,
-                    self.global_shutdown_flag
+                    websockets_lifetime_seconds
             )
 
             self.start_stream_service(
                     pairs,
                     StreamType.TRADE,
                     market_enum,
-                    websockets_lifetime_seconds,
-                    self.global_shutdown_flag
+                    websockets_lifetime_seconds
             )
 
             self.start_stream_writer(
@@ -212,8 +229,7 @@ class ArchiverDaemon:
         pairs: List[str],
         stream_type: StreamType,
         market: Market,
-        websockets_lifetime_seconds: int,
-        global_shutdown_flag: threading.Event
+        websockets_lifetime_seconds: int
     ) -> None:
         queue = self._get_queue(market, stream_type)
 
@@ -225,8 +241,9 @@ class ArchiverDaemon:
                 stream_type,
                 market,
                 websockets_lifetime_seconds,
-                global_shutdown_flag,
-                self.is_someone_overlapping_right_now_flag
+                self.global_shutdown_flag,
+                self.is_someone_overlapping_right_now_flag,
+                self.stream_listeners
             ),
             name=f'stream_service: market: {market}, stream_type: {stream_type}'
         )
@@ -240,7 +257,8 @@ class ArchiverDaemon:
         market: Market,
         websockets_lifetime_seconds: int,
         global_shutdown_flag: threading.Event(),
-        is_someone_overlapping_right_now_flag: threading.Event
+        is_someone_overlapping_right_now_flag: threading.Event,
+        stream_listeners: dict
     ) -> None:
 
         def __sleep_with_flag_check(_global_shutdown_flag: threading.Event, duration: int) -> None:
@@ -256,9 +274,8 @@ class ArchiverDaemon:
             old_stream_listener = None
 
             try:
-                queue.set_pairs_amount = len(pairs)
-
                 old_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
+                stream_listeners[(market, stream_type, 'old')] = old_stream_listener
 
                 if stream_type is StreamType.DIFFERENCE_DEPTH:
                     queue.currently_accepted_stream_id = old_stream_listener.id.id
@@ -278,6 +295,7 @@ class ArchiverDaemon:
 
                     new_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
                     new_stream_listener.start_websocket_app()
+                    stream_listeners[(market, stream_type, 'new')] = new_stream_listener
 
                     while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
                         time.sleep(1)
@@ -296,6 +314,9 @@ class ArchiverDaemon:
                         old_stream_listener.thread = new_stream_listener.thread
 
                         new_stream_listener_thread = None
+                        stream_listeners[(market, stream_type, 'new')] = None
+                        stream_listeners[(market, stream_type, 'old')] = None
+                        stream_listeners[(market, stream_type, 'old')] = new_stream_listener
 
             except Exception as e:
                 print(f'{e}, sth bad happenedd')
