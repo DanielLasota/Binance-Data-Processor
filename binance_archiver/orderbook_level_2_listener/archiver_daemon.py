@@ -27,10 +27,13 @@ from .url_factory import URLFactory
 class ArchiverDaemon:
     def __init__(
         self,
+        instruments: dict,
         logger: logging.Logger,
         azure_blob_parameters_with_key: str | None = None,
         container_name: str | None = None
     ) -> None:
+        self.instruments = instruments
+
         self.logger = logger
         self.global_shutdown_flag: threading.Event = threading.Event()
 
@@ -67,11 +70,6 @@ class ArchiverDaemon:
         self.stream_listeners = {}
 
     def change_subscription(self, type_, stream_type, market, asset):
-        print(f'stream_type {stream_type}')
-        print(f'market {market}')
-        print(f'asset {asset}')
-        print(f'requested to change subscription: {type_} {StreamType[stream_type]} {Market[market]} {asset}')
-
         old_stream_listener = self.stream_listeners.get((Market[market], StreamType[stream_type], 'old'))
 
         _queue = self._get_queue(market=market, stream_type=stream_type)
@@ -79,24 +77,26 @@ class ArchiverDaemon:
         if old_stream_listener:
             old_stream_listener.change_subscription(action=type_, pair=asset)
         else:
-            print(f"No stream listener found for market: {market} and stream type: {stream_type}")
+            ...
+            # print(f"No old_stream_listener found for market: {market} and stream type: {stream_type}")
 
         new_stream_listener = self.stream_listeners.get((Market[market], StreamType[stream_type], 'new'))
 
         if new_stream_listener:
             new_stream_listener.change_subscription(action=type_, pair=asset)
         else:
-            print(f"No stream listener found for market: {market} and stream type: {stream_type}")
+            ...
+            # print(f"No new_stream_listener found for market: {market} and stream type: {stream_type}")
 
+        success = True
+        if success:
+            self.instruments[market.lower()].append(asset.upper())
 
     def command_line_interface(self, message):
-        print(message)
         command = list(message.items())[0][0]
         arguments = list(message.items())[0][1]
 
         if command == 'modify_subscription':
-            print(f'received modification request {message}')
-
             self.change_subscription(
                 type_=arguments['type'],
                 stream_type=arguments['stream_type'],
@@ -139,7 +139,6 @@ class ArchiverDaemon:
 
     def run(
         self,
-        instruments: Dict,
         dump_path: str | None,
         file_duration_seconds: int,
         websockets_lifetime_seconds: int,
@@ -149,18 +148,16 @@ class ArchiverDaemon:
         send_zip_to_blob: bool = False
     ) -> None:
 
-        for market, pairs in instruments.items():
+        for market, pairs in self.instruments.items():
             market_enum = Market[market.upper()]
 
             self.start_stream_service(
-                    pairs,
                     StreamType.DIFFERENCE_DEPTH,
                     market_enum,
                     websockets_lifetime_seconds
             )
 
             self.start_stream_service(
-                    pairs,
                     StreamType.TRADE,
                     market_enum,
                     websockets_lifetime_seconds
@@ -226,12 +223,13 @@ class ArchiverDaemon:
 
     def start_stream_service(
         self,
-        pairs: List[str],
         stream_type: StreamType,
         market: Market,
         websockets_lifetime_seconds: int
     ) -> None:
         queue = self._get_queue(market, stream_type)
+
+        pairs = self.instruments[market.name.lower()]
 
         thread = threading.Thread(
             target=self._stream_service,
@@ -648,13 +646,13 @@ def launch_data_sink(
         os.makedirs(dump_path)
 
     archiver_daemon = ArchiverDaemon(
+        instruments=config["instruments"],
         logger=logger,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
         container_name=container_name
     )
 
     archiver_daemon.run(
-        instruments=config["instruments"],
         dump_path=dump_path,
         file_duration_seconds=config["file_duration_seconds"],
         websockets_lifetime_seconds=config["websocket_life_time_seconds"],

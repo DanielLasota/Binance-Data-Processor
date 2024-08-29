@@ -101,8 +101,6 @@ class StreamListener:
             "id": 1
         }
 
-        print(message)
-
         self.websocket_app.send(json.dumps(message))
         print(f"{method} message sent for pair: {pair}")
 
@@ -135,8 +133,12 @@ class StreamListener:
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)
-            queue.put_queue_message(stream_listener_id=self.id, message=message,
-                                    timestamp_of_receive=timestamp_of_receive)
+
+            if 'stream' in message:
+                queue.put_queue_message(
+                    stream_listener_id=self.id,
+                    message=message,
+                    timestamp_of_receive=timestamp_of_receive)
             self._blackout_supervisor.notify()
 
         def _on_trade_message(ws, message):
@@ -144,7 +146,8 @@ class StreamListener:
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)
-            queue.put_trade_message(message=message, timestamp_of_receive=timestamp_of_receive)
+            if 'stream' in message:
+                queue.put_trade_message(message=message, timestamp_of_receive=timestamp_of_receive)
             self._blackout_supervisor.notify()
 
         def _on_error(ws, error):

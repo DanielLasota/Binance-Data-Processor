@@ -31,7 +31,7 @@ if __name__ == "__main__":
             "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
         },
         "file_duration_seconds": 30,
-        "snapshot_fetcher_interval_seconds": 1000,
+        "snapshot_fetcher_interval_seconds": 30,
         "websocket_life_time_seconds": 30,
         "save_to_json": True,
         "save_to_zip": False,

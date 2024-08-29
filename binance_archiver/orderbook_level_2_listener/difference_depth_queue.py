@@ -71,8 +71,6 @@ class DifferenceDepthQueue:
             self.set_new_stream_id_as_currently_accepted()
 
     def set_new_stream_id_as_currently_accepted(self):
-        print('changing')
-
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
 
