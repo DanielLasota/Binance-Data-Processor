@@ -37,9 +37,8 @@ class ArchiverDaemon:
         self.logger = logger
         self.global_shutdown_flag: threading.Event = threading.Event()
 
-        self.flask_manager = FastAPIManager()
-        self.flask_manager.run()
-        self.flask_manager.set_callback(self.command_line_interface)
+        self.fast_api_manager = FastAPIManager()
+        self.fast_api_manager.set_callback(self.command_line_interface)
 
         if azure_blob_parameters_with_key and container_name is not None:
             self.blob_service_client = BlobServiceClient.from_connection_string(
@@ -95,7 +94,7 @@ class ArchiverDaemon:
             )
 
         else:
-            print('bad command, try again')
+            self.logger.warning('bad command, try again')
 
     def _get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
         return self.queue_lookup.get((market, stream_type))
@@ -103,7 +102,7 @@ class ArchiverDaemon:
     def shutdown(self):
         self.logger.info("Shutting down binance data sink")
         self.global_shutdown_flag.set()
-        self.flask_manager.shutdown()
+        self.fast_api_manager.shutdown()
         self.is_someone_overlapping_right_now_flag.clear()
 
         time.sleep(10)
@@ -130,6 +129,8 @@ class ArchiverDaemon:
         save_to_zip: bool = False,
         send_zip_to_blob: bool = False
     ) -> None:
+
+        self.fast_api_manager.run()
 
         for market, pairs in self.instruments.items():
             market_enum = Market[market.upper()]

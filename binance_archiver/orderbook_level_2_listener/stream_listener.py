@@ -29,7 +29,7 @@ class StreamListener:
         queue: TradeQueue | DifferenceDepthQueue,
         pairs: List[str],
         stream_type: StreamType,
-        market: Market,
+        market: Market
     ):
         if not isinstance(pairs, list):
             raise WrongListInstanceException('pairs argument is not a list')
@@ -75,7 +75,7 @@ class StreamListener:
 
     def change_subscription(self, pair, action):
         if not self.websocket_app.sock or not self.websocket_app.sock.connected:
-            print(f"Cannot {action}, WebSocket is not connected")
+            self.logger.info(f"Cannot {action}, WebSocket is not connected")
             return
 
         pair = pair.lower()
@@ -91,9 +91,6 @@ class StreamListener:
             method = "SUBSCRIBE"
         elif action.lower() == "unsubscribe":
             method = "UNSUBSCRIBE"
-        else:
-            print(f"Invalid action: {action}")
-            return
 
         message = {
             "method": method,

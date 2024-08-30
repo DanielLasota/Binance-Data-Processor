@@ -275,7 +275,7 @@ class TestArchiverDaemon:
 
     class TestArchiverDaemonShutdown:
 
-        @pytest.mark.parametrize('execution_number', range(1))
+        @pytest.mark.parametrize('execution_number', range(3))
         def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(
                 self,
                 execution_number

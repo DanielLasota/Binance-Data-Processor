@@ -41,7 +41,7 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(logger)
+        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
         spot_difference_depth_stream_listener = StreamListener(
             queue=archiver_daemon.spot_orderbook_stream_message_queue,
@@ -149,7 +149,7 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(logger)
+        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
         with pytest.raises(WrongListInstanceException) as excinfo:
             stream_listener = StreamListener(
@@ -180,7 +180,7 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(logger)
+        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
         with pytest.raises(PairsLengthException) as excinfo:
             stream_listener = StreamListener(
