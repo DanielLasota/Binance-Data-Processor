@@ -11,7 +11,7 @@ from azure.storage.blob import BlobServiceClient
 import io
 import threading
 
-from .flask_manager import FlaskManager
+from .flask_manager import FastAPIManager
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
@@ -37,7 +37,7 @@ class ArchiverDaemon:
         self.logger = logger
         self.global_shutdown_flag: threading.Event = threading.Event()
 
-        self.flask_manager = FlaskManager()
+        self.flask_manager = FastAPIManager()
         self.flask_manager.run()
         self.flask_manager.set_callback(self.command_line_interface)
 
@@ -80,7 +80,8 @@ class ArchiverDaemon:
         if type_ == 'subscribe':
             self.instruments[market.lower()].append(asset.upper())
         elif type_ == 'unsubscribe':
-            self.instruments[market.lower()].remove(asset.upper())
+            if asset.upper() in self.instruments[market.lower()]:
+                self.instruments[market.lower()].remove(asset.upper())
 
     def command_line_interface(self, message):
         command = list(message.items())[0][0]
@@ -100,29 +101,22 @@ class ArchiverDaemon:
         return self.queue_lookup.get((market, stream_type))
 
     def shutdown(self):
-        self.logger.info("Shutting down ArchiverDaemon...")
+        self.logger.info("Shutting down binance data sink")
         self.global_shutdown_flag.set()
-
-        self.logger.info('shutting down data_sink ...')
-        self.logger.info('active threads left: ')
-
-        # for thread in threading.enumerate():
-        #     if thread is not threading.current_thread():
-        #         if thread.is_alive():
-        #             thread.join()
-
+        self.flask_manager.shutdown()
         self.is_someone_overlapping_right_now_flag.clear()
-        self.flask_manager.stop()
+
+        time.sleep(10)
 
         remaining_threads = [
             thread for thread in threading.enumerate()
-            if thread is not threading.current_thread()
+            if thread is not threading.current_thread() and thread.is_alive() is True
         ]
 
         if remaining_threads:
             self.logger.warning(f"Some threads are still alive:")
             for thread in remaining_threads:
-                self.logger.warning(f"Thread {thread.name} is still alive.")
+                self.logger.warning(f"Thread {thread.name} is still alive {thread.is_alive()}")
         else:
             self.logger.info("All threads have been successfully stopped.")
 
