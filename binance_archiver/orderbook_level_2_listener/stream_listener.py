@@ -1,4 +1,5 @@
 import json
+import logging
 import threading
 import time
 from typing import List
@@ -26,6 +27,7 @@ class WrongListInstanceException(Exception):
 class StreamListener:
     def __init__(
         self,
+        logger: logging.Logger,
         queue: TradeQueue | DifferenceDepthQueue,
         pairs: List[str],
         stream_type: StreamType,
@@ -36,6 +38,7 @@ class StreamListener:
         if len(pairs) == 0:
             raise PairsLengthException('pairs len is zero')
 
+        self.logger = logger
         self.queue = queue
         self.pairs = pairs
         self.stream_type = stream_type
@@ -99,7 +102,7 @@ class StreamListener:
         }
 
         self.websocket_app.send(json.dumps(message))
-        print(f"{method} message sent for pair: {pair}")
+        self.logger.info(f"{method} message sent for pair: {pair}")
 
     def _construct_websocket_app(
         self,
@@ -114,7 +117,8 @@ class StreamListener:
             market=market,
             check_interval_in_seconds=5,
             max_interval_without_messages_in_seconds=10,
-            on_error_callback=lambda: self.restart_websocket_app()
+            on_error_callback=lambda: self.restart_websocket_app(),
+            logger=self.logger
         )
 
         stream_url_methods = {
@@ -126,7 +130,7 @@ class StreamListener:
         url = url_method(market, pairs)
 
         def _on_difference_depth_message(ws, message):
-            # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)
@@ -140,7 +144,7 @@ class StreamListener:
             self._blackout_supervisor.notify()
 
         def _on_trade_message(ws, message):
-            # print(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)
@@ -149,10 +153,10 @@ class StreamListener:
             self._blackout_supervisor.notify()
 
         def _on_error(ws, error):
-            print(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
+            self.logger.error(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
 
         def _on_close(ws, close_status_code, close_msg):
-            print(
+            self.logger.info(
                 f"_on_close: {market} {stream_type} {self.id.start_timestamp}: WebSocket connection closed, "
                 f"{close_msg} (code: {close_status_code})"
             )
@@ -162,10 +166,10 @@ class StreamListener:
             ws.send("", ABNF.OPCODE_PONG)
 
         def _on_open(ws):
-            print(f"_on_open : {market} {stream_type} {self.id.start_timestamp}: WebSocket connection opened")
+            self.logger.info(f"_on_open : {market} {stream_type} {self.id.start_timestamp}: WebSocket connection opened")
 
         def _on_reconnect(ws):
-            print(f'_on_reconnect: {market} {stream_type} {self.id.start_timestamp}')
+            self.logger.info(f'_on_reconnect: {market} {stream_type} {self.id.start_timestamp}')
 
         websocket_app = WebSocketApp(
             url=url,

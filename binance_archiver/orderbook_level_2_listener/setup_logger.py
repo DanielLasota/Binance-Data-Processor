@@ -28,7 +28,9 @@ def setup_logger(log_file_path: str | None = None) -> logging.Logger:
         logger.addHandler(file_handler)
 
     console_handler = logging.StreamHandler()
-    console_formatter = logging.Formatter('%(asctime)sZ - %(levelname)s - %(message)s')
+    console_formatter = logging.Formatter(
+        fmt="%(asctime)s.%(msecs)03dZ %(levelname)s %(filename)s %(threadName)s -- %(message)s",
+        datefmt='%Y-%m-%d %H:%M:%S')
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 

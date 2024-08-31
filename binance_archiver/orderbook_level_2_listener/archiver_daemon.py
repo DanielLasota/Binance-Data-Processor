@@ -216,6 +216,7 @@ class ArchiverDaemon:
         thread = threading.Thread(
             target=self._stream_service,
             args=(
+                self.logger,
                 queue,
                 pairs,
                 stream_type,
@@ -231,6 +232,7 @@ class ArchiverDaemon:
 
     @staticmethod
     def _stream_service(
+        logger: logging.Logger,
         queue: DifferenceDepthQueue | TradeQueue,
         pairs: List[str],
         stream_type: StreamType,
@@ -254,7 +256,8 @@ class ArchiverDaemon:
             old_stream_listener = None
 
             try:
-                old_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
+                old_stream_listener = StreamListener(logger=logger, queue=queue, pairs=pairs, stream_type=stream_type,
+                                                     market=market)
                 stream_listeners[(market, stream_type, 'old')] = old_stream_listener
 
                 if stream_type is StreamType.DIFFERENCE_DEPTH:
@@ -268,12 +271,13 @@ class ArchiverDaemon:
                     __sleep_with_flag_check(global_shutdown_flag, websockets_lifetime_seconds)
 
                     while is_someone_overlapping_right_now_flag.is_set():
-                        # print('waitin coz someone is overlapping right now')
+                        # logger.info('waitin coz someone is overlapping right now')
                         time.sleep(1)
 
                     is_someone_overlapping_right_now_flag.set()
 
-                    new_stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=stream_type, market=market)
+                    new_stream_listener = StreamListener(logger=logger, queue=queue, pairs=pairs,
+                                                         stream_type=stream_type, market=market)
                     new_stream_listener.start_websocket_app()
                     stream_listeners[(market, stream_type, 'new')] = new_stream_listener
 
@@ -281,7 +285,7 @@ class ArchiverDaemon:
                         time.sleep(1)
 
                     is_someone_overlapping_right_now_flag.clear()
-                    print("switched successfully")
+                    logger.info("switched successfully")
 
                     if not global_shutdown_flag.is_set():
                         queue.did_websockets_switch_successfully = False
@@ -299,7 +303,7 @@ class ArchiverDaemon:
                         stream_listeners[(market, stream_type, 'old')] = new_stream_listener
 
             except Exception as e:
-                print(f'{e}, sth bad happenedd')
+                logger.error(f'{e}, sth bad happenedd')
 
             finally:
                 if new_stream_listener is not None:
@@ -505,7 +509,6 @@ class ArchiverDaemon:
 
                     if send_zip_to_blob is True:
                         self._send_zipped_json_to_blob(snapshot, file_name)
-
                 except Exception as e:
                     self.logger.info(
                         f"error whilst fetching snapshot: {market} {StreamType.DEPTH_SNAPSHOT}: {e}"

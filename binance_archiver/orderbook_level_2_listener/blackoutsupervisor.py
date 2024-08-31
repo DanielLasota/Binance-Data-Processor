@@ -1,3 +1,4 @@
+import logging
 import time
 import threading
 from datetime import datetime, timezone
@@ -14,7 +15,8 @@ class BlackoutSupervisor:
             market: Market,
             check_interval_in_seconds,
             max_interval_without_messages_in_seconds,
-            on_error_callback=None
+            on_error_callback=None,
+            logger: logging.Logger | None = None,
     ) -> None:
         self.stream_type = stream_type
         self.market = market
@@ -25,6 +27,7 @@ class BlackoutSupervisor:
         self.running = False
         self.lock = threading.Lock()
         self.thread = None
+        self.logger = logger
 
     def run(self):
         self.thread = threading.Thread(
@@ -45,7 +48,7 @@ class BlackoutSupervisor:
                 time_since_last_message = (int(datetime.now(timezone.utc).timestamp())
                                            - self.last_message_time_epoch_seconds_utc)
             if time_since_last_message > self.max_interval_without_messages_in_seconds:
-                print(
+                self.logger.warning(
                     f'{self.market} {self.stream_type}: '
                     f'Supervisor: No entry for {self.max_interval_without_messages_in_seconds} seconds, '
                     f'sending restart signal.'
