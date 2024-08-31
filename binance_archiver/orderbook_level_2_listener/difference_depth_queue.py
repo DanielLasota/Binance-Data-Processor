@@ -49,12 +49,12 @@ class DifferenceDepthQueue:
     def market(self):
         return self._market
 
-    def _add_to_compare(self, stream_listener_id, message):
+    def _do_they_match(self, stream_listener_id: StreamId, message: str) -> bool:
         message_dict = json.loads(message)
         id_index = stream_listener_id.id
 
         if stream_listener_id.id == self.no_longer_accepted_stream_id:
-            return
+            return False
 
         if id_index not in self._two_last_throws:
             self._two_last_throws[id_index] = []
@@ -67,8 +67,8 @@ class DifferenceDepthQueue:
         amount_of_listened_pairs = stream_listener_id.pairs_amount
         do_they_match = self._compare_two_last_throws(amount_of_listened_pairs, self._two_last_throws)
 
-        if do_they_match is True:
-            self.set_new_stream_id_as_currently_accepted()
+        return do_they_match
+
 
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
@@ -105,9 +105,12 @@ class DifferenceDepthQueue:
             two_last_throws[stream_id].sort(key=lambda entry: entry['data']['s'])
         return two_last_throws
 
-    def put_queue_message(self, message, stream_listener_id: StreamId, timestamp_of_receive: int):
+    def put_queue_message(self, message: str, stream_listener_id: StreamId, timestamp_of_receive: int):
         with self.lock:
-            self._add_to_compare(stream_listener_id, message)
+            do_they_match = self._do_they_match(stream_listener_id, message)
+
+            if do_they_match is True:
+                self.set_new_stream_id_as_currently_accepted()
 
             if stream_listener_id.id == self.currently_accepted_stream_id:
                 self.queue.put((message, timestamp_of_receive))
