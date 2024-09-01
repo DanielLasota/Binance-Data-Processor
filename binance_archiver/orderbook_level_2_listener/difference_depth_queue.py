@@ -77,7 +77,7 @@ class DifferenceDepthQueue:
 
         if len(self._two_last_throws[id_index]) > 0:
             if message_dict['data']['E'] > self._two_last_throws[id_index][-1]['data']['E'] + 10:
-                self._two_last_throws[id_index].clear()
+                self._two_last_throws = {id_index: []}
         self._two_last_throws[id_index].append(message_dict)
 
 
@@ -118,8 +118,6 @@ class DifferenceDepthQueue:
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True
-
-        print('depth queue: changed scssfly')
 
     def get(self) -> Any:
         entry = self.queue.get()
