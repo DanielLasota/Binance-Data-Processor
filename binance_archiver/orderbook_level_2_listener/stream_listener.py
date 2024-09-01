@@ -136,7 +136,6 @@ class StreamListener:
             self.id.pairs_amount = len(pairs)
 
             if 'stream' in message:
-                print(type(message))
                 queue.put_queue_message(
                     stream_listener_id=self.id,
                     message=message,
