@@ -47,6 +47,7 @@ class DifferenceDepthQueue:
         self.no_longer_accepted_stream_id = None
         self.did_websockets_switch_successfully = False
         self._two_last_throws = {}
+        # self.are_we_currently_changing: bool = False
 
     @property
     @final
@@ -57,10 +58,11 @@ class DifferenceDepthQueue:
         with self.lock:
             if stream_listener_id.id == self.no_longer_accepted_stream_id:
                 return
-            self._append_message_to_compare_structure(stream_listener_id, message)
 
             if stream_listener_id.id == self.currently_accepted_stream_id:
                 self.queue.put((message, timestamp_of_receive))
+
+            self._append_message_to_compare_structure(stream_listener_id, message)
 
             do_throws_match = self._do_last_two_throws_match(stream_listener_id.pairs_amount, self._two_last_throws)
 
@@ -68,17 +70,17 @@ class DifferenceDepthQueue:
                 self.set_new_stream_id_as_currently_accepted()
 
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:
-
         message_dict = json.loads(message)
         id_index = stream_listener_id.id
 
-        if id_index not in self._two_last_throws:
-            self._two_last_throws[id_index] = []
+        message_list = self._two_last_throws.setdefault(id_index, [])
 
-        if len(self._two_last_throws[id_index]) > 0:
-            if message_dict['data']['E'] > self._two_last_throws[id_index][-1]['data']['E'] + 10:
-                self._two_last_throws = {id_index: []}
-        self._two_last_throws[id_index].append(message_dict)
+        if message_list and message_dict['data']['E'] > message_list[-1]['data']['E'] + 10:
+            self._two_last_throws = {id_index: []}
+            message_list = []
+            self._two_last_throws[id_index] = message_list
+
+        message_list.append(message_dict)
 
 
     @staticmethod

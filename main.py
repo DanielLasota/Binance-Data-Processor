@@ -26,8 +26,8 @@ if __name__ == "__main__":
     config = {
         "instruments": {
             "spot": ["BTCUSDT", "ETHUSDT"],
-            # "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
-            # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+            "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
         },
         "file_duration_seconds": 30,
         "snapshot_fetcher_interval_seconds": 30,
@@ -56,6 +56,26 @@ if __name__ == "__main__":
     #     "save_to_zip": false,
     #     "send_zip_to_blob": true
     # }
+
+    config = {
+        "instruments": {
+            "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+            "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                "DOTUSD_PERP"]
+        },
+        "file_duration_seconds": 30,
+        "snapshot_fetcher_interval_seconds": 30,
+        "websocket_life_time_seconds": 30,
+        "save_to_json": True,
+        "save_to_zip": False,
+        "send_zip_to_blob": False
+    }
 
     data_sink = launch_data_sink(
         config,

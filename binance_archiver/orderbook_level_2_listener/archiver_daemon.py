@@ -4,6 +4,7 @@ import os
 import pprint
 import time
 import zipfile
+from calendar import different_locale
 from datetime import datetime, timezone
 from typing import List, Any, Dict, Tuple
 from collections import defaultdict
@@ -275,9 +276,11 @@ class ArchiverDaemon:
                         time.sleep(1)
 
                     is_someone_overlapping_right_now_flag.set()
+                    # queue.are_we_currently_changing = True
 
                     new_stream_listener = StreamListener(logger=logger, queue=queue, pairs=pairs,
                                                          stream_type=stream_type, market=market)
+
                     new_stream_listener.start_websocket_app()
                     stream_listeners[(market, stream_type, 'new')] = new_stream_listener
 
@@ -286,6 +289,7 @@ class ArchiverDaemon:
 
                     is_someone_overlapping_right_now_flag.clear()
                     logger.info("switched successfully")
+                    # queue.are_we_currently_changing = False
 
                     if not global_shutdown_flag.is_set():
                         queue.did_websockets_switch_successfully = False

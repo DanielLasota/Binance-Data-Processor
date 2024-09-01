@@ -43,7 +43,6 @@ class TestDifferenceDepthQueue:
     #
 
     def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_queue(self):
-        import json
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 

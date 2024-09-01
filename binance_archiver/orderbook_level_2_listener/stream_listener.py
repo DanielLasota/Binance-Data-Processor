@@ -130,7 +130,7 @@ class StreamListener:
         url = url_method(market, pairs)
 
         def _on_difference_depth_message(ws, message):
-            # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
             self.id.pairs_amount = len(pairs)

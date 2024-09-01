@@ -42,7 +42,6 @@ class BlackoutSupervisor:
             self.last_message_time_epoch_seconds_utc = int(datetime.now(timezone.utc).timestamp())
 
     def _monitor_last_message_time(self):
-
         while self.running:
             with self.lock:
                 time_since_last_message = (int(datetime.now(timezone.utc).timestamp())
