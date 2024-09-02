@@ -19,7 +19,7 @@ class BadStreamIdParameter(Exception):
 class DifferenceDepthQueue:
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 6
+    _instances_amount_limit = 4
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:
@@ -67,6 +67,7 @@ class DifferenceDepthQueue:
             do_throws_match = self._do_last_two_throws_match(stream_listener_id.pairs_amount, self._two_last_throws)
 
             if do_throws_match is True:
+                print('changin')
                 self.set_new_stream_id_as_currently_accepted()
 
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:

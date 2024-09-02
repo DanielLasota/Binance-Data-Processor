@@ -12,7 +12,7 @@ from azure.storage.blob import BlobServiceClient
 import io
 import threading
 
-from .flask_manager import FastAPIManager
+from .fastapi_manager import FastAPIManager
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
