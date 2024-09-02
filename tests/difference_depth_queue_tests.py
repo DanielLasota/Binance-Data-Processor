@@ -10,7 +10,7 @@ from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 class TestDifferenceDepthQueue:
 
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
-        for _ in range(6):
+        for _ in range(4):
             DifferenceDepthQueue(Market.SPOT)
 
         with pytest.raises(ClassInstancesAmountLimitException):
@@ -24,15 +24,15 @@ class TestDifferenceDepthQueue:
         instance_count = DifferenceDepthQueue.get_instance_count()
         assert instance_count == 0
 
-        for _ in range(6):
+        for _ in range(4):
             DifferenceDepthQueue(Market.SPOT)
 
-        assert DifferenceDepthQueue.get_instance_count() == 6
+        assert DifferenceDepthQueue.get_instance_count() == 4
 
         DifferenceDepthQueue.clear_instances()
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
-        for _ in range(6):
+        for _ in range(4):
             DifferenceDepthQueue(Market.SPOT)
 
         DifferenceDepthQueue.clear_instances()

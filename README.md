@@ -4,7 +4,7 @@ Saves raw binance data in zipped jsons on azure blob
 Handles: 
 spot, futures usd-m, futures coin-m
 Level 2 orderbook deltas stream
-transaction stream
+trade stream
 orderbook snapshots with configured trigger interval 
 24-hour WebSocket lifecycle. At the end of the WebSocket's lifespan, it initiates a new WebSocket to ensure the continuity of data flow is maintained seamlessly.
 

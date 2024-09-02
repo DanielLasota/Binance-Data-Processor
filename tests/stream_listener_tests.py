@@ -2,7 +2,6 @@ import json
 import logging
 import time
 import threading
-from distutils.core import setup
 
 import pytest
 import websocket
@@ -55,7 +54,7 @@ class TestStreamListener:
 
         spot_trade_stream_listener = StreamListener(
             logger=logger,
-            queue=archiver_daemon.spot_transaction_stream_message_queue,
+            queue=archiver_daemon.spot_trade_stream_message_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.TRADE,
             market=Market.SPOT
@@ -86,7 +85,7 @@ class TestStreamListener:
 
         usd_m_futures_trade_stream_listener = StreamListener(
             logger=logger,
-            queue=archiver_daemon.usd_m_futures_transaction_stream_message_queue,
+            queue=archiver_daemon.usd_m_futures_trade_stream_message_queue,
             pairs=config['instruments']['usd_m_futures'],
             stream_type=StreamType.TRADE,
             market=Market.USD_M_FUTURES
@@ -117,7 +116,7 @@ class TestStreamListener:
 
         coin_m_futures_trade_stream_listener = StreamListener(
             logger=logger,
-            queue=archiver_daemon.coin_m_transaction_stream_message_queue,
+            queue=archiver_daemon.coin_m_trade_stream_message_queue,
             pairs=config['instruments']['coin_m_futures'],
             stream_type=StreamType.TRADE,
             market=Market.COIN_M_FUTURES

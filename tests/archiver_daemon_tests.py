@@ -127,9 +127,9 @@ class TestArchiverDaemon:
             assert isinstance(archiver_daemon.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(archiver_daemon.coin_m_orderbook_stream_message_queue, DifferenceDepthQueue)
 
-            assert isinstance(archiver_daemon.spot_transaction_stream_message_queue, TradeQueue)
-            assert isinstance(archiver_daemon.usd_m_futures_transaction_stream_message_queue, TradeQueue)
-            assert isinstance(archiver_daemon.coin_m_transaction_stream_message_queue, TradeQueue)
+            assert isinstance(archiver_daemon.spot_trade_stream_message_queue, TradeQueue)
+            assert isinstance(archiver_daemon.usd_m_futures_trade_stream_message_queue, TradeQueue)
+            assert isinstance(archiver_daemon.coin_m_trade_stream_message_queue, TradeQueue)
 
             assert len(TradeQueue._instances) == 3
             assert len(DifferenceDepthQueue._instances) == 3
@@ -192,15 +192,13 @@ class TestArchiverDaemon:
             archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
             archiver_daemon.fourth = TradeQueue(market=Market.SPOT)
-            archiver_daemon.fifth = TradeQueue(market=Market.SPOT)
-            archiver_daemon.sixth = TradeQueue(market=Market.SPOT)
 
             with pytest.raises(
                     binance_archiver.orderbook_level_2_listener.trade_queue.ClassInstancesAmountLimitException
             ) as excinfo:
                 archiver_daemon.seventh = TradeQueue(market=Market.SPOT)
 
-            assert str(excinfo.value) == "Cannot create more than 6 instances of TradeQueue"
+            assert str(excinfo.value) == "Cannot create more than 4 instances of TradeQueue"
 
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
@@ -233,15 +231,13 @@ class TestArchiverDaemon:
                 logger=logger)
 
             archiver_daemon.fourth = DifferenceDepthQueue(market=Market.SPOT)
-            archiver_daemon.fifth = DifferenceDepthQueue(market=Market.SPOT)
-            archiver_daemon.sixth = DifferenceDepthQueue(market=Market.SPOT)
 
             with pytest.raises(
                     binance_archiver.orderbook_level_2_listener.difference_depth_queue.ClassInstancesAmountLimitException
             ) as excinfo:
                 archiver_daemon.seventh = DifferenceDepthQueue(market=Market.SPOT)
 
-            assert str(excinfo.value) == f"Cannot create more than 6 instances of DifferenceDepthQueue"
+            assert str(excinfo.value) == f"Cannot create more than 4 instances of DifferenceDepthQueue"
 
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()

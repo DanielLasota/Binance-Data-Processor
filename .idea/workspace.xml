@@ -4,14 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="difference_depth_queue.py&#10;performance update">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="stream_listener.py&#10;stream_listener_tests.py &#10;pairs amount as property update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/flask_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/fastapi_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_id.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_id.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/trade_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/trade_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/url_factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/url_factory.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/archiver_daemon_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/difference_depth_queue_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/stream_listener_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/stream_listener_tests.py" afterDir="false" />
     </list>
@@ -267,6 +269,40 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -281,23 +317,6 @@
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
       <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_checking_size_when_method_invocation_then_result_is_ok" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_checking_size_when_method_invocation_then_result_is_ok&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
@@ -318,30 +337,13 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener.test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
         <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_checking_size_when_method_invocation_then_result_is_ok" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestLaunchDataSink" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonTimeUtils" />
       </list>
     </recent_temporary>
   </component>
@@ -379,14 +381,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00013" summary="makedirs fix">
-      <option name="closed" value="true" />
-      <created>1713656185680</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1713656185680</updated>
     </task>
     <task id="LOCAL-00014" summary="os path create fix">
       <option name="closed" value="true" />
@@ -772,7 +766,15 @@
       <option name="project" value="LOCAL" />
       <updated>1725224650599</updated>
     </task>
-    <option name="localTasksCounter" value="62" />
+    <task id="LOCAL-00062" summary="stream_listener.py&#10;stream_listener_tests.py &#10;pairs amount as property update">
+      <option name="closed" value="true" />
+      <created>1725306841168</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1725306841168</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -812,7 +814,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="pre daemon manager update" />
     <MESSAGE value="daemon_manager.py delete&#10;concurrent.futures delete&#10;threading add&#10;tests add&#10;queue.lookup add&#10;received_timestamps add&#10;trade_queue.py add" />
     <MESSAGE value="queues singleton with limit of 6 add&#10;&#10;tests add" />
     <MESSAGE value="arhciver_daemon __init__ tests add" />
@@ -837,7 +838,8 @@
     <MESSAGE value="difference_depth_queue.py refactor&#10;&#10;difference_depth_queue_tests.py tests refactor" />
     <MESSAGE value="difference_depth_queue_tests.py tests add&#10;&#10;stream_listener_tests.py&#10;tests add" />
     <MESSAGE value="difference_depth_queue.py&#10;performance update" />
-    <option name="LAST_COMMIT_MESSAGE" value="difference_depth_queue.py&#10;performance update" />
+    <MESSAGE value="stream_listener.py&#10;stream_listener_tests.py &#10;pairs amount as property update" />
+    <option name="LAST_COMMIT_MESSAGE" value="stream_listener.py&#10;stream_listener_tests.py &#10;pairs amount as property update" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Binance_Archiver$main.coverage" NAME="main Coverage Results" MODIFIED="1713655006874" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

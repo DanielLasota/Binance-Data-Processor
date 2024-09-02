@@ -12,7 +12,7 @@ class ClassInstancesAmountLimitException(Exception):
 class TradeQueue:
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 6
+    _instances_amount_limit = 4
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:

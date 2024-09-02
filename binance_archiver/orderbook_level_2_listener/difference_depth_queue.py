@@ -67,7 +67,6 @@ class DifferenceDepthQueue:
             do_throws_match = self._do_last_two_throws_match(stream_listener_id.pairs_amount, self._two_last_throws)
 
             if do_throws_match is True:
-                print('changin')
                 self.set_new_stream_id_as_currently_accepted()
 
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:
@@ -76,7 +75,7 @@ class DifferenceDepthQueue:
 
         message_list = self._two_last_throws.setdefault(id_index, [])
 
-        if message_list and message_dict['data']['E'] > message_list[-1]['data']['E'] + 10:
+        if message_list and message_dict['data']['E'] > message_list[-1]['data']['E'] + 5:
             self._two_last_throws = {id_index: []}
             message_list = []
             self._two_last_throws[id_index] = message_list
@@ -118,6 +117,10 @@ class DifferenceDepthQueue:
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
+
+        print('>>>>>>>>>>>>>>>>>>>>>>changin')
+        import pprint
+        pprint.pprint(self._two_last_throws)
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True

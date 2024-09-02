@@ -5,9 +5,7 @@ import time
 from typing import List
 from websocket import WebSocketApp, ABNF
 
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import (
-    DifferenceDepthQueue,
-)
+from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
@@ -122,7 +120,7 @@ class StreamListener:
 
         stream_url_methods = {
             StreamType.DIFFERENCE_DEPTH: URLFactory.get_orderbook_stream_url,
-            StreamType.TRADE: URLFactory.get_transaction_stream_url
+            StreamType.TRADE: URLFactory.get_trade_stream_url
         }
 
         url_method = stream_url_methods.get(stream_type, None)
@@ -142,7 +140,7 @@ class StreamListener:
             self._blackout_supervisor.notify()
 
         def _on_trade_message(ws, message):
-            self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
 
