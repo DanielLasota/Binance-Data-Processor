@@ -73,16 +73,55 @@ class TestArchiverDaemon:
             assert str(excinfo.value) == "Azure blob parameters with key or container name is missing or empty"
 
         def test_given_archiver_daemon_when_init_then_global_shutdown_flag_is_false(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
             logger = setup_logger()
-            archiver_daemon = ArchiverDaemon(logger=logger)
+            archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
             assert not archiver_daemon.global_shutdown_flag.is_set()
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_archiver_daemon_when_init_then_queues_are_set_properly(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
             logger = setup_logger()
-            archiver_daemon = ArchiverDaemon(logger=logger)
+            archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
             assert isinstance(archiver_daemon.spot_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(archiver_daemon.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
@@ -99,8 +138,28 @@ class TestArchiverDaemon:
             TradeQueue.clear_instances()
 
         def test_given_archiver_daemon_when_init_then_queues_amount_is_accurate(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
             logger = setup_logger()
-            archiver_daemon = ArchiverDaemon(logger=logger)
+            archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
             assert len(TradeQueue._instances) == 3
             assert len(DifferenceDepthQueue._instances) == 3
@@ -109,9 +168,28 @@ class TestArchiverDaemon:
             TradeQueue.clear_instances()
 
         def test_given_archiver_daemon_when_init_then_7_trade_queue_instances_exception_is_thrown(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
 
             logger = setup_logger()
-            archiver_daemon = ArchiverDaemon(logger=logger)
+            archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
             archiver_daemon.fourth = TradeQueue(market=Market.SPOT)
             archiver_daemon.fifth = TradeQueue(market=Market.SPOT)
@@ -129,8 +207,30 @@ class TestArchiverDaemon:
 
         def test_given_archiver_daemon_when_init_then_7_difference_depth_queue_instances_is_exception_is_thrown(self):
 
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
             logger = setup_logger()
-            archiver_daemon = ArchiverDaemon(logger=logger)
+            archiver_daemon = ArchiverDaemon(
+                instruments=config['instruments'],
+                logger=logger)
 
             archiver_daemon.fourth = DifferenceDepthQueue(market=Market.SPOT)
             archiver_daemon.fifth = DifferenceDepthQueue(market=Market.SPOT)
@@ -150,7 +250,9 @@ class TestArchiverDaemon:
 
         def test_given_archiver_daemon_when__get_queue_is_called_then_accurate_queue_hook_returned(self):
             logger = setup_logger()
-            archiver_daemon = ArchiverDaemon(logger=logger)
+            archiver_daemon = ArchiverDaemon(
+                instruments={},
+                logger=logger)
 
             expected_queues = {
                 (Market.SPOT, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
@@ -200,7 +302,7 @@ class TestArchiverDaemon:
 
             archiver_daemon = launch_data_sink(config)
 
-            time.sleep(5)
+            time.sleep(15)
 
             archiver_daemon.shutdown()
 

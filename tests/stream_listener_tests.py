@@ -1,6 +1,8 @@
 import json
+import logging
 import time
 import threading
+from distutils.core import setup
 
 import pytest
 import websocket
@@ -41,9 +43,10 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(logger)
+        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
         spot_difference_depth_stream_listener = StreamListener(
+            logger=logger,
             queue=archiver_daemon.spot_orderbook_stream_message_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.DIFFERENCE_DEPTH,
@@ -51,6 +54,7 @@ class TestStreamListener:
         )
 
         spot_trade_stream_listener = StreamListener(
+            logger=logger,
             queue=archiver_daemon.spot_transaction_stream_message_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.TRADE,
@@ -73,6 +77,7 @@ class TestStreamListener:
         spot_difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
 
         usd_m_futures_difference_depth_stream_listener = StreamListener(
+            logger=logger,
             queue=archiver_daemon.usd_m_futures_orderbook_stream_message_queue,
             pairs=config['instruments']['usd_m_futures'],
             stream_type=StreamType.DIFFERENCE_DEPTH,
@@ -80,6 +85,7 @@ class TestStreamListener:
         )
 
         usd_m_futures_trade_stream_listener = StreamListener(
+            logger=logger,
             queue=archiver_daemon.usd_m_futures_transaction_stream_message_queue,
             pairs=config['instruments']['usd_m_futures'],
             stream_type=StreamType.TRADE,
@@ -102,6 +108,7 @@ class TestStreamListener:
         usd_m_futures_trade_stream_listener._blackout_supervisor.shutdown_supervisor()
 
         coin_m_futures_difference_depth_stream_listener = StreamListener(
+            logger=logger,
             queue=archiver_daemon.coin_m_orderbook_stream_message_queue,
             pairs=config['instruments']['coin_m_futures'],
             stream_type=StreamType.DIFFERENCE_DEPTH,
@@ -109,6 +116,7 @@ class TestStreamListener:
         )
 
         coin_m_futures_trade_stream_listener = StreamListener(
+            logger=logger,
             queue=archiver_daemon.coin_m_transaction_stream_message_queue,
             pairs=config['instruments']['coin_m_futures'],
             stream_type=StreamType.TRADE,
@@ -149,10 +157,11 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(logger)
+        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
         with pytest.raises(WrongListInstanceException) as excinfo:
             stream_listener = StreamListener(
+                logger=logger,
                 queue=archiver_daemon.spot_orderbook_stream_message_queue,
                 pairs=config['instruments']['spot'][0],
                 stream_type=StreamType.DIFFERENCE_DEPTH,
@@ -180,10 +189,11 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(logger)
+        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
 
         with pytest.raises(PairsLengthException) as excinfo:
             stream_listener = StreamListener(
+                logger=logger,
                 queue=archiver_daemon.spot_orderbook_stream_message_queue,
                 pairs=config['instruments']['spot'],
                 stream_type=StreamType.DIFFERENCE_DEPTH,
@@ -195,52 +205,78 @@ class TestStreamListener:
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
 
-    def test_given_trade_stream_listener_when_on_open_then_message_is_being_logged(self, capsys):
+    def test_given_trade_stream_listener_when_on_open_then_message_is_being_logged(self, caplog):
         pairs = ['BTCUSDT']
         queue = TradeQueue(market=Market.SPOT)
-        stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=StreamType.TRADE, market=Market.SPOT)
-        stream_listener.websocket_app.on_open(stream_listener.websocket_app)
+        stream_listener = StreamListener(
+            logger=setup_logger(),
+            queue=queue,
+            pairs=pairs,
+            stream_type=StreamType.TRADE,
+            market=Market.SPOT
+        )
+
+        with caplog.at_level(logging.INFO):
+            stream_listener.websocket_app.on_open(stream_listener.websocket_app)
+
+        assert "WebSocket connection opened" in caplog.text
+
         stream_listener.websocket_app.close()
         stream_listener._blackout_supervisor.shutdown_supervisor()
 
-        captured = capsys.readouterr()
-        assert "WebSocket connection opened" in captured.out
-
         TradeQueue.clear_instances()
 
-    def test_given_trade_stream_listener_when_on_close_then_close_message_is_being_logged(self, capsys):
+    def test_given_trade_stream_listener_when_on_close_then_close_message_is_being_logged(self, caplog):
         pairs = ['BTCUSDT']
         queue = TradeQueue(market=Market.SPOT)
-        stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=StreamType.TRADE, market=Market.SPOT)
+        stream_listener = StreamListener(
+            logger=setup_logger(),
+            queue=queue,
+            pairs=pairs,
+            stream_type=StreamType.TRADE,
+            market=Market.SPOT
+        )
 
         close_status_code = 1000
         close_msg = "Normal closure"
-        stream_listener.websocket_app.on_close(stream_listener.websocket_app, close_status_code, close_msg)
+
+        with caplog.at_level(logging.INFO):
+            stream_listener.websocket_app.on_close(stream_listener.websocket_app, close_status_code, close_msg)
+
+        assert "WebSocket connection closed" in caplog.text
+        assert close_msg in caplog.text
+        assert str(close_status_code) in caplog.text
+
         stream_listener.websocket_app.close()
         stream_listener._blackout_supervisor.shutdown_supervisor()
 
-        captured = capsys.readouterr()
-        assert "WebSocket connection closed" in captured.out
-        assert close_msg in captured.out
-        assert str(close_status_code) in captured.out
-
         TradeQueue.clear_instances()
 
-    def test_given_trade_stream_listener_when_connected_then_error_is_being_logged(self, capsys):
+    def test_given_trade_stream_listener_when_connected_then_error_is_being_logged(self, caplog):
+        logger=setup_logger()
         pairs = ['BTCUSDT']
         queue = TradeQueue(market=Market.SPOT)
-        stream_listener = StreamListener(queue=queue, pairs=pairs, stream_type=StreamType.TRADE, market=Market.SPOT)
+        stream_listener = StreamListener(
+            logger=logger,
+            queue=queue,
+            pairs=pairs,
+            stream_type=StreamType.TRADE,
+            market=Market.SPOT)
 
         error_message = "Test error"
-        stream_listener.websocket_app.on_error(stream_listener.websocket_app, error_message)
+
+        with caplog.at_level(logging.ERROR):
+            stream_listener.websocket_app.on_error(stream_listener.websocket_app, error_message)
+
+        assert error_message in caplog.text
+
         stream_listener.websocket_app.close()
         stream_listener._blackout_supervisor.shutdown_supervisor()
         TradeQueue.clear_instances()
 
-        captured = capsys.readouterr()
-        assert error_message in captured.out
-
     def test_given_trade_stream_listener_when_connected_then_message_is_correctly_passed_to_trade_queue(self):
+        logger = setup_logger()
+
         config = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
@@ -258,6 +294,7 @@ class TestStreamListener:
         trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
+            logger=logger,
             queue=trade_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.TRADE,
@@ -291,6 +328,8 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_difference_depth_stream_listener_when_connected_then_message_is_correctly_passed_to_diff_queue(self):
+        logger = setup_logger()
+
         config = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
@@ -308,6 +347,7 @@ class TestStreamListener:
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
         difference_depth_stream_listener = StreamListener(
+            logger=logger,
             queue=difference_depth_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.DIFFERENCE_DEPTH,
@@ -340,6 +380,8 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified(self):
+        logger = setup_logger()
+
         from unittest.mock import patch
 
         config = {
@@ -359,6 +401,7 @@ class TestStreamListener:
         trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
+            logger=logger,
             queue=trade_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.TRADE,
@@ -395,6 +438,8 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified(self):
+        logger = setup_logger()
+
         from unittest.mock import patch
 
         config = {
@@ -414,6 +459,7 @@ class TestStreamListener:
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
         difference_depth_queue_listener = StreamListener(
+            logger=setup_logger(),
             queue=difference_depth_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.DIFFERENCE_DEPTH,
