@@ -75,7 +75,7 @@ class DifferenceDepthQueue:
 
         message_list = self._two_last_throws.setdefault(id_index, [])
 
-        if message_list and message_dict['data']['E'] > message_list[-1]['data']['E'] + 5:
+        if message_list and message_dict['data']['E'] > message_list[0]['data']['E'] + 10:
             self._two_last_throws = {id_index: []}
             message_list = []
             self._two_last_throws[id_index] = message_list

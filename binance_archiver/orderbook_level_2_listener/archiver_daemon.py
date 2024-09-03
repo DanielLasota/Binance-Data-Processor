@@ -454,7 +454,7 @@ class ArchiverDaemon:
             )
 
             blob_client.upload_blob(zip_buffer, overwrite=True)
-            self.logger.info(f"Successfully uploaded {file_name}.zip to blob storage.")
+            # self.logger.info(f"Successfully uploaded {file_name}.zip to blob storage.")
         except Exception as e:
             self.logger.info(f"Error uploading zip to blob: {e}")
 
