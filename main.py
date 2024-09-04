@@ -61,16 +61,16 @@ if __name__ == "__main__":
         "instruments": {
             "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOTUSDT"],
 
-            "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOTUSDT"],
+            # "usd_mfutures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOTUSDT"],
 
-            "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP", "DOTUSD_PERP"]
+            # "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP", "DOTUSD_PERP"]
         },
         "file_duration_seconds": 300,
-        "snapshot_fetcher_interval_seconds": 30,
-        "websocket_life_time_seconds": 300,
+        "snapshot_fetcher_interval_seconds": 300,
+        "websocket_life_time_seconds": 600,
         "save_to_json": False,
         "save_to_zip": False,
-        "send_zip_to_blob": True
+        "send_zip_to_blob": False
     }
 
     data_sink = launch_data_sink(

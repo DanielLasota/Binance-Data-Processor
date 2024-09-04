@@ -280,7 +280,7 @@ class ArchiverDaemon:
                     with overlap_lock:
                         is_someone_overlapping_right_now_flag.set()
                         # queue.are_we_currently_changing = True
-                        print(f'started changing procedure {market} {stream_type}')
+                        logger.info(f'started changing procedure {market} {stream_type}')
 
                         new_stream_listener = StreamListener(logger=logger, queue=queue, pairs=pairs,
                                                              stream_type=stream_type, market=market)
