@@ -10,7 +10,13 @@ orderbook snapshots with configured trigger interval
 
 Configured to use contenerised on Azure with Azure blob and keyvault
 
+![image](https://github.com/user-attachments/assets/a9461c8d-b5a7-43de-b1cc-96ef5df72f40)
+
+![image](https://github.com/user-attachments/assets/93a9cece-21fd-406c-8555-fbb774188265)
+
 ![Zrzut ekranu 2024-06-02 230137](https://github.com/DanielLasota/Binance-Archiver/assets/127039319/b400f859-60ef-4995-936d-d68ecab82ddf)
+
+
 
 ## Installation
 
