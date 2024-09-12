@@ -42,7 +42,7 @@ if __name__ == '__main__':
     }
 
     azure_blob_parameters_with_key = 'some azure blob parameters with key'
-    container_name = 'some-azure-container-name
+    container_name = 'some-azure-container-name'
 
     data_sink = launch_data_sink(
         config,
