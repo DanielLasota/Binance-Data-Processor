@@ -50,7 +50,7 @@ if __name__ == '__main__':
         container_name=container_name
     )
 
-    # time.sleep(2115)
-    # data_sink.shutdown()
+    time.sleep(2115)
+    data_sink.shutdown()
 
 ```
