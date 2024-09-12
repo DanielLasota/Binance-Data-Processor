@@ -3,6 +3,10 @@ import time
 from typing import Tuple
 
 
+class BadStreamIdParameter(Exception):
+    ...
+
+
 class StreamId:
     def __init__(self, pairs):
         self.start_timestamp = time.time_ns()
@@ -11,7 +15,10 @@ class StreamId:
 
     @property
     def pairs_amount(self) -> int:
-        return len(self._pairs)
+        amount_of_listened_pairs = len(self._pairs)
+        if amount_of_listened_pairs is None or amount_of_listened_pairs == 0:
+            raise BadStreamIdParameter('stream listener id amount_of_listened_pairs is None or 0')
+        return amount_of_listened_pairs
 
     @property
     def id(self) -> Tuple[int, uuid.UUID]:

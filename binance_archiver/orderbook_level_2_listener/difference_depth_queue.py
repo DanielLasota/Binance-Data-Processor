@@ -12,10 +12,6 @@ class ClassInstancesAmountLimitException(Exception):
     ...
 
 
-class BadStreamIdParameter(Exception):
-    ...
-
-
 class DifferenceDepthQueue:
     _instances = []
     _lock = threading.Lock()
@@ -90,9 +86,6 @@ class DifferenceDepthQueue:
 
         if len(keys) < 2:
             return False
-
-        if amount_of_listened_pairs is None or amount_of_listened_pairs == 0:
-            raise BadStreamIdParameter('stream listener id amount_of_listened_pairs is None or 0')
 
         if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
             copied_two_last_throws = copy.deepcopy(two_last_throws)
