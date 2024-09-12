@@ -4,7 +4,6 @@ import os
 import pprint
 import time
 import zipfile
-from calendar import different_locale
 from datetime import datetime, timezone
 from typing import List, Any, Dict, Tuple
 from collections import defaultdict
@@ -12,7 +11,7 @@ from azure.storage.blob import BlobServiceClient
 import io
 import threading
 
-from .flask_manager import FastAPIManager
+from .fastapi_manager import FastAPIManager
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
@@ -50,24 +49,25 @@ class ArchiverDaemon:
         self.is_someone_overlapping_right_now_flag = threading.Event()
 
         self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT)
-        self.spot_transaction_stream_message_queue = TradeQueue(market=Market.SPOT)
+        self.spot_trade_stream_message_queue = TradeQueue(market=Market.SPOT)
 
         self.usd_m_futures_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.USD_M_FUTURES)
-        self.usd_m_futures_transaction_stream_message_queue = TradeQueue(market=Market.USD_M_FUTURES)
+        self.usd_m_futures_trade_stream_message_queue = TradeQueue(market=Market.USD_M_FUTURES)
 
         self.coin_m_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.COIN_M_FUTURES)
-        self.coin_m_transaction_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES)
+        self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES)
 
         self.queue_lookup = {
             (Market.SPOT, StreamType.DIFFERENCE_DEPTH): self.spot_orderbook_stream_message_queue,
-            (Market.SPOT, StreamType.TRADE): self.spot_transaction_stream_message_queue,
+            (Market.SPOT, StreamType.TRADE): self.spot_trade_stream_message_queue,
             (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.usd_m_futures_orderbook_stream_message_queue,
-            (Market.USD_M_FUTURES, StreamType.TRADE): self.usd_m_futures_transaction_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.TRADE): self.usd_m_futures_trade_stream_message_queue,
             (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.coin_m_orderbook_stream_message_queue,
-            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_transaction_stream_message_queue
+            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_trade_stream_message_queue
         }
 
         self.stream_listeners = {}
+        self.overlap_lock: threading.Lock = threading.Lock()
 
     def modify_subscription(self, type_: str, market: str, asset: str):
 
@@ -225,7 +225,8 @@ class ArchiverDaemon:
                 websockets_lifetime_seconds,
                 self.global_shutdown_flag,
                 self.is_someone_overlapping_right_now_flag,
-                self.stream_listeners
+                self.stream_listeners,
+                self.overlap_lock
             ),
             name=f'stream_service: market: {market}, stream_type: {stream_type}'
         )
@@ -241,7 +242,8 @@ class ArchiverDaemon:
         websockets_lifetime_seconds: int,
         global_shutdown_flag: threading.Event(),
         is_someone_overlapping_right_now_flag: threading.Event,
-        stream_listeners: dict
+        stream_listeners: dict,
+        overlap_lock: threading.Lock
     ) -> None:
 
         def __sleep_with_flag_check(_global_shutdown_flag: threading.Event, duration: int) -> None:
@@ -275,19 +277,22 @@ class ArchiverDaemon:
                         # logger.info('waitin coz someone is overlapping right now')
                         time.sleep(1)
 
-                    is_someone_overlapping_right_now_flag.set()
-                    # queue.are_we_currently_changing = True
+                    with overlap_lock:
+                        is_someone_overlapping_right_now_flag.set()
+                        # queue.are_we_currently_changing = True
+                        logger.info(f'started changing procedure {market} {stream_type}')
 
-                    new_stream_listener = StreamListener(logger=logger, queue=queue, pairs=pairs,
-                                                         stream_type=stream_type, market=market)
+                        new_stream_listener = StreamListener(logger=logger, queue=queue, pairs=pairs,
+                                                             stream_type=stream_type, market=market)
 
-                    new_stream_listener.start_websocket_app()
-                    stream_listeners[(market, stream_type, 'new')] = new_stream_listener
+                        new_stream_listener.start_websocket_app()
+                        stream_listeners[(market, stream_type, 'new')] = new_stream_listener
 
                     while queue.did_websockets_switch_successfully is False and not global_shutdown_flag.is_set():
                         time.sleep(1)
 
-                    is_someone_overlapping_right_now_flag.clear()
+                    with overlap_lock:
+                        is_someone_overlapping_right_now_flag.clear()
                     logger.info("switched successfully")
                     # queue.are_we_currently_changing = False
 
@@ -449,7 +454,7 @@ class ArchiverDaemon:
             )
 
             blob_client.upload_blob(zip_buffer, overwrite=True)
-            self.logger.info(f"Successfully uploaded {file_name}.zip to blob storage.")
+            # self.logger.info(f"Successfully uploaded {file_name}.zip to blob storage.")
         except Exception as e:
             self.logger.info(f"Error uploading zip to blob: {e}")
 
@@ -559,7 +564,7 @@ class ArchiverDaemon:
         data_type_mapping = {
             StreamType.DIFFERENCE_DEPTH: "binance_difference_depth",
             StreamType.DEPTH_SNAPSHOT: "binance_snapshot",
-            StreamType.TRADE: "binance_transaction_broadcast",
+            StreamType.TRADE: "binance_trade",
         }
 
         market_short_name = market_mapping.get(market, "unknown_market")

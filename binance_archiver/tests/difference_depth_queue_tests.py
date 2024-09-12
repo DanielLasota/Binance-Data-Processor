@@ -10,7 +10,7 @@ from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 class TestDifferenceDepthQueue:
 
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
-        for _ in range(6):
+        for _ in range(4):
             DifferenceDepthQueue(Market.SPOT)
 
         with pytest.raises(ClassInstancesAmountLimitException):
@@ -24,15 +24,15 @@ class TestDifferenceDepthQueue:
         instance_count = DifferenceDepthQueue.get_instance_count()
         assert instance_count == 0
 
-        for _ in range(6):
+        for _ in range(4):
             DifferenceDepthQueue(Market.SPOT)
 
-        assert DifferenceDepthQueue.get_instance_count() == 6
+        assert DifferenceDepthQueue.get_instance_count() == 4
 
         DifferenceDepthQueue.clear_instances()
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
-        for _ in range(6):
+        for _ in range(4):
             DifferenceDepthQueue(Market.SPOT)
 
         DifferenceDepthQueue.clear_instances()
@@ -44,13 +44,28 @@ class TestDifferenceDepthQueue:
 
     def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_queue(self):
 
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId()
-        old_stream_listener_id.pairs_amount = 3
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
-        new_stream_listener_id.pairs_amount = 3
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        assert old_stream_listener_id.pairs_amount == 3
+        assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
@@ -410,14 +425,26 @@ class TestDifferenceDepthQueue:
 
     def test_given_putting_message_when_adding_two_different_stream_listeners_message_throws_to_compare_structure_then_structure_is_ok(self):
         """throws are different and the difference lays in adausdt _new_listener_message_1"""
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
         import json
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId()
-        old_stream_listener_id.pairs_amount = 3
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
-        new_stream_listener_id.pairs_amount = 3
+        new_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -675,13 +702,26 @@ class TestDifferenceDepthQueue:
     def test_given_putting_message_when_next_100_ms_throws_is_being_compared_then_structure_is_properly_cleared_with_only_new_message_in_dict(self):
         """throws are different and the difference lays in adausdt _new_listener_message_1"""
         import json
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId()
-        old_stream_listener_id.pairs_amount = 3
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
-        new_stream_listener_id.pairs_amount = 3
+        new_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -1025,14 +1065,25 @@ class TestDifferenceDepthQueue:
         """throws are set to be equal each after other"""
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId()
-        third_stream_listener_id.pairs_amount = 3
+        third_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -1571,11 +1622,23 @@ class TestDifferenceDepthQueue:
     def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(self):
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
 
         difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
         mocked_timestamp_of_receive = 2115
@@ -1633,15 +1696,25 @@ class TestDifferenceDepthQueue:
         difference lays in a message 1 dotusdt bid entry, new stream listener is +1 ms
         '''
 
-        import json
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId()
-        old_stream_listener_id.pairs_amount = 3
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
-        new_stream_listener_id.pairs_amount = 3
+        new_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -1925,11 +1998,23 @@ class TestDifferenceDepthQueue:
     def test_given_putting_stream_message_and_two_last_throws_are_equal_when_two_listeners_messages_are_being_compared_then_currently_accepted_stream_id_is_changed_and_only_old_stream_listener_messages_are_put_in(self):
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId()
-        old_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
-        new_stream_listener_id.pairs_amount = 3
+        new_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -2213,14 +2298,25 @@ class TestDifferenceDepthQueue:
         """throws are set to be equal each after other"""
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId()
-        third_stream_listener_id.pairs_amount = 3
+        third_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -2767,13 +2863,26 @@ class TestDifferenceDepthQueue:
     #
 
     def test_given_comparing_two_throws_when_throws_are_equal_then_method_returns_true(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
         _two_last_throws = {}
 
-        old_stream_listener_id = StreamId()
-        old_stream_listener_id.pairs_amount = 3
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
-        new_stream_listener_id.pairs_amount = 3
+        new_stream_listener_id = StreamId(pairs=pairs)
 
         _two_last_throws[old_stream_listener_id.id] = []
         _two_last_throws[new_stream_listener_id.id] = []
@@ -3010,11 +3119,26 @@ class TestDifferenceDepthQueue:
 
     def test_given_comparing_two_throws_when_throws_are_not_equal_then_method_returns_false(self):
         """the throws are not equal and the difference lays in trxusdt"""
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
         _two_last_throws = {}
 
-        old_stream_listener_id = StreamId()
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
+        new_stream_listener_id = StreamId(pairs=pairs)
 
         _two_last_throws[old_stream_listener_id.id] = []
         _two_last_throws[new_stream_listener_id.id] = []
@@ -3253,11 +3377,26 @@ class TestDifferenceDepthQueue:
         DifferenceDepthQueue.clear_instances()
 
     def test_given_comparing_two_throws_when_sorting_messages_then_dict_is_sorted(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
         _two_last_throws = {}
 
-        old_stream_listener_id = StreamId()
+        old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId()
+        new_stream_listener_id = StreamId(pairs=pairs)
 
         _two_last_throws[old_stream_listener_id.id] = []
         _two_last_throws[new_stream_listener_id.id] = []
@@ -3501,16 +3640,28 @@ class TestDifferenceDepthQueue:
 
     def test_getting_from_queue_when_method_invocation_then_last_element_is_returned(self):
         """throws are set to be equal to cause change each after other"""
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId()
-        third_stream_listener_id.pairs_amount = 3
+        third_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -4053,14 +4204,25 @@ class TestDifferenceDepthQueue:
     def test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned(self):
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId()
-        third_stream_listener_id.pairs_amount = 3
+        third_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -4605,14 +4767,25 @@ class TestDifferenceDepthQueue:
     def test_given_clearing_difference_depth_queue_when_invocation_then_qsize_equals_zero(self):
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId()
-        third_stream_listener_id.pairs_amount = 3
+        third_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -5149,14 +5322,25 @@ class TestDifferenceDepthQueue:
     def test_given_checking_empty_when_method_invocation_then_result_is_ok(self):
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId()
-        third_stream_listener_id.pairs_amount = 3
+        third_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
@@ -5702,14 +5886,25 @@ class TestDifferenceDepthQueue:
     def test_checking_size_when_method_invocation_then_result_is_ok(self):
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId()
-        first_stream_listener_id.pairs_amount = 3
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId()
-        second_stream_listener_id.pairs_amount = 3
+        second_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId()
-        third_stream_listener_id.pairs_amount = 3
+        third_stream_listener_id = StreamId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 

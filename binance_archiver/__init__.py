@@ -20,7 +20,7 @@ manager.run()
 __all__ = ['ArchiverDaemon']
 
 __author__ = "Daniel Lasota <grossmann.root@gmail.com>"
-__status__ = "production"
-__version__ = "2.1.3.7"
-__date__ = "05 may 2024"
+__status__ = "development"
+__version__ = "0.0.1"
+__date__ = "12-09-2024"
 

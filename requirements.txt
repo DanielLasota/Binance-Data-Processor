@@ -7,3 +7,5 @@ pytest
 requests
 Flask
 Flask-CORS
+fastapi
+uvicorn

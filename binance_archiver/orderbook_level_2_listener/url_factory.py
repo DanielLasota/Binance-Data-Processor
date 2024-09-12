@@ -30,7 +30,7 @@ class URLFactory:
         return None
 
     @staticmethod
-    def get_transaction_stream_url(
+    def get_trade_stream_url(
             market: Market,
             pairs: List[str]
     ) -> str | None:

@@ -12,14 +12,10 @@ class ClassInstancesAmountLimitException(Exception):
     ...
 
 
-class BadStreamIdParameter(Exception):
-    ...
-
-
 class DifferenceDepthQueue:
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 6
+    _instances_amount_limit = 4
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:
@@ -75,7 +71,7 @@ class DifferenceDepthQueue:
 
         message_list = self._two_last_throws.setdefault(id_index, [])
 
-        if message_list and message_dict['data']['E'] > message_list[-1]['data']['E'] + 10:
+        if message_list and message_dict['data']['E'] > message_list[0]['data']['E'] + 20:
             self._two_last_throws = {id_index: []}
             message_list = []
             self._two_last_throws[id_index] = message_list
@@ -90,9 +86,6 @@ class DifferenceDepthQueue:
 
         if len(keys) < 2:
             return False
-
-        if amount_of_listened_pairs is None or amount_of_listened_pairs == 0:
-            raise BadStreamIdParameter('stream listener id amount_of_listened_pairs is None or 0')
 
         if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
             copied_two_last_throws = copy.deepcopy(two_last_throws)
@@ -117,6 +110,10 @@ class DifferenceDepthQueue:
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
+
+        print('>>>>>>>>>>>>>>>>>>>>>>changin')
+        import pprint
+        pprint.pprint(self._two_last_throws)
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True

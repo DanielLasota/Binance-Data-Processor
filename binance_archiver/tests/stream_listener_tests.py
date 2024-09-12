@@ -2,7 +2,6 @@ import json
 import logging
 import time
 import threading
-from distutils.core import setup
 
 import pytest
 import websocket
@@ -55,7 +54,7 @@ class TestStreamListener:
 
         spot_trade_stream_listener = StreamListener(
             logger=logger,
-            queue=archiver_daemon.spot_transaction_stream_message_queue,
+            queue=archiver_daemon.spot_trade_stream_message_queue,
             pairs=config['instruments']['spot'],
             stream_type=StreamType.TRADE,
             market=Market.SPOT
@@ -63,12 +62,12 @@ class TestStreamListener:
 
         assert isinstance(spot_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
         assert isinstance(spot_difference_depth_stream_listener.id, StreamId)
-        assert spot_difference_depth_stream_listener.pairs_amount == 12
+        assert spot_difference_depth_stream_listener.id.pairs_amount == 12
         assert spot_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
 
         assert isinstance(spot_trade_stream_listener.websocket_app, websocket.WebSocketApp)
         assert isinstance(spot_trade_stream_listener.id, StreamId)
-        assert spot_trade_stream_listener.pairs_amount == 12
+        assert spot_trade_stream_listener.id.pairs_amount == 12
         assert spot_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
 
         spot_trade_stream_listener.websocket_app.close()
@@ -86,7 +85,7 @@ class TestStreamListener:
 
         usd_m_futures_trade_stream_listener = StreamListener(
             logger=logger,
-            queue=archiver_daemon.usd_m_futures_transaction_stream_message_queue,
+            queue=archiver_daemon.usd_m_futures_trade_stream_message_queue,
             pairs=config['instruments']['usd_m_futures'],
             stream_type=StreamType.TRADE,
             market=Market.USD_M_FUTURES
@@ -94,12 +93,12 @@ class TestStreamListener:
 
         assert isinstance(usd_m_futures_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
         assert isinstance(usd_m_futures_difference_depth_stream_listener.id, StreamId)
-        assert usd_m_futures_difference_depth_stream_listener.pairs_amount == 11
+        assert usd_m_futures_difference_depth_stream_listener.id.pairs_amount == 11
         assert usd_m_futures_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
 
         assert isinstance(usd_m_futures_trade_stream_listener.websocket_app, websocket.WebSocketApp)
         assert isinstance(usd_m_futures_trade_stream_listener.id, StreamId)
-        assert usd_m_futures_trade_stream_listener.pairs_amount == 11
+        assert usd_m_futures_trade_stream_listener.id.pairs_amount == 11
         assert usd_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
 
         usd_m_futures_difference_depth_stream_listener.websocket_app.close()
@@ -117,7 +116,7 @@ class TestStreamListener:
 
         coin_m_futures_trade_stream_listener = StreamListener(
             logger=logger,
-            queue=archiver_daemon.coin_m_transaction_stream_message_queue,
+            queue=archiver_daemon.coin_m_trade_stream_message_queue,
             pairs=config['instruments']['coin_m_futures'],
             stream_type=StreamType.TRADE,
             market=Market.COIN_M_FUTURES
@@ -125,12 +124,12 @@ class TestStreamListener:
 
         assert isinstance(coin_m_futures_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
         assert isinstance(coin_m_futures_difference_depth_stream_listener.id, StreamId)
-        assert coin_m_futures_difference_depth_stream_listener.pairs_amount == 11
+        assert coin_m_futures_difference_depth_stream_listener.id.pairs_amount == 11
         assert coin_m_futures_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
 
         assert isinstance(coin_m_futures_trade_stream_listener.websocket_app, websocket.WebSocketApp)
         assert isinstance(coin_m_futures_trade_stream_listener.id, StreamId)
-        assert coin_m_futures_trade_stream_listener.pairs_amount == 11
+        assert coin_m_futures_trade_stream_listener.id.pairs_amount == 11
         assert coin_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
 
         coin_m_futures_difference_depth_stream_listener.websocket_app.close()

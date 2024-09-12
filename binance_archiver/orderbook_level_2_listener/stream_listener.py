@@ -5,9 +5,7 @@ import time
 from typing import List
 from websocket import WebSocketApp, ABNF
 
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import (
-    DifferenceDepthQueue,
-)
+from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
 from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
@@ -44,8 +42,7 @@ class StreamListener:
         self.stream_type = stream_type
         self.market = market
 
-        self.id: StreamId = StreamId()
-        self.pairs_amount: int = len(pairs)
+        self.id: StreamId = StreamId(pairs=pairs)
         self.websocket_app: WebSocketApp = self._construct_websocket_app(self.queue, self.pairs, self.stream_type, self.market)
         self.thread: threading.Thread | None = None
         self._blackout_supervisor: BlackoutSupervisor
@@ -123,17 +120,16 @@ class StreamListener:
 
         stream_url_methods = {
             StreamType.DIFFERENCE_DEPTH: URLFactory.get_orderbook_stream_url,
-            StreamType.TRADE: URLFactory.get_transaction_stream_url
+            StreamType.TRADE: URLFactory.get_trade_stream_url
         }
 
         url_method = stream_url_methods.get(stream_type, None)
         url = url_method(market, pairs)
 
         def _on_difference_depth_message(ws, message):
-            self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
-            self.id.pairs_amount = len(pairs)
 
             if 'stream' in message:
                 queue.put_queue_message(
@@ -147,7 +143,7 @@ class StreamListener:
             # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
-            self.id.pairs_amount = len(pairs)
+
             if 'stream' in message:
                 queue.put_trade_message(message=message, timestamp_of_receive=timestamp_of_receive)
             self._blackout_supervisor.notify()
