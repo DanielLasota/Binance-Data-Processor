@@ -1,12 +1,11 @@
-import copy
 import json
 import threading
 from queue import Queue
 from typing import Any, Dict, final
-
+from collections import deque
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
-
+import pprint
 
 class ClassInstancesAmountLimitException(Exception):
     ...
@@ -66,37 +65,34 @@ class DifferenceDepthQueue:
                 self.set_new_stream_id_as_currently_accepted()
 
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:
-        message_dict = json.loads(message)
         id_index = stream_listener_id.id
 
-        message_list = self._two_last_throws.setdefault(id_index, [])
+        message_dict = json.loads(message)
+        message_dict['data'].pop('E', None)
+        message_str: str = json.dumps(message_dict, sort_keys=True)
 
-        if message_list and message_dict['data']['E'] > message_list[0]['data']['E'] + 20:
-            self._two_last_throws = {id_index: []}
-            message_list = []
-            self._two_last_throws[id_index] = message_list
-
-        message_list.append(message_dict)
-
+        message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
+        message_list.append(message_str)
 
     @staticmethod
     def _do_last_two_throws_match(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool:
-
         keys = list(two_last_throws.keys())
 
         if len(keys) < 2:
             return False
 
         if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
-            copied_two_last_throws = copy.deepcopy(two_last_throws)
 
-            sorted_and_copied_two_last_throws = DifferenceDepthQueue._sort_entries_by_symbol(copied_two_last_throws)
+            last_throw_streams = {json.loads(entry)['stream'] for entry in two_last_throws[keys[0]]}
+            second_last_throw_streams = {json.loads(entry)['stream'] for entry in two_last_throws[keys[1]]}
 
-            for stream_age in sorted_and_copied_two_last_throws:
-                for entry in sorted_and_copied_two_last_throws[stream_age]:
-                    entry['data'].pop('E', None)
+            if len(last_throw_streams) != amount_of_listened_pairs or len(second_last_throw_streams) != amount_of_listened_pairs:
+                return False
 
-            if sorted_and_copied_two_last_throws[keys[0]] == sorted_and_copied_two_last_throws[keys[1]]:
+            match = two_last_throws[keys[0]] == two_last_throws[keys[1]]
+
+            if match is True:
+                pprint.pprint(two_last_throws)
                 return True
 
         return False
@@ -112,8 +108,6 @@ class DifferenceDepthQueue:
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
 
         print('>>>>>>>>>>>>>>>>>>>>>>changin')
-        import pprint
-        pprint.pprint(self._two_last_throws)
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True
