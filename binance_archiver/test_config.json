@@ -1,0 +1,22 @@
+{
+  "instruments": {
+    "spot": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "usd_m_futures": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "coin_m_futures": [
+      "BTCUSD_PERP",
+      "ETHUSD_PERP"
+    ]
+  },
+  "file_duration_seconds": 60,
+  "snapshot_fetcher_interval_seconds": 60,
+  "websocket_life_time_seconds": 30,
+  "save_to_json": true,
+  "save_to_zip": false,
+  "send_zip_to_blob": false
+}

@@ -5,6 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: New queue dynamic change algorithm&#10;test: Adjust tests to new queue dynamic change algorithm">
+      <change afterPath="$PROJECT_DIR$/binance_archiver/production_config.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/binance_archiver/test_config.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main.py" afterDir="false" />
     </list>
@@ -217,7 +219,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -230,7 +232,7 @@
       </deployment>
       <method v="2" />
     </configuration>
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -239,12 +241,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="false" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="C:\Users\defrg\PycharmProjects\Binance-Archiver\binance_archiver\main.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -253,98 +254,9 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_from_queue_when_method_invocation_then_last_element_is_returned" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_from_queue_when_method_invocation_then_last_element_is_returned&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_comparing_two_throws_when_throws_are_equal_then_method_returns_true" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_comparing_two_throws_when_throws_are_equal_then_method_returns_true&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_comparing_two_throws_when_throws_are_not_equal_then_method_returns_false" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_comparing_two_throws_when_throws_are_not_equal_then_method_returns_false&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_message_when_adding_messages_to_the_full_queues_then_is_last_message_being_removed" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_message_when_adding_messages_to_the_full_queues_then_is_last_message_being_removed&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_from_queue_when_method_invocation_then_last_element_is_returned" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_comparing_two_throws_when_throws_are_not_equal_then_method_returns_false" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_comparing_two_throws_when_throws_are_equal_then_method_returns_true" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_message_when_adding_messages_to_the_full_queues_then_is_last_message_being_removed" />
+        <item itemvalue="Python.main" />
       </list>
     </recent_temporary>
   </component>
@@ -382,14 +294,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00023" summary="change all to json">
-      <option name="closed" value="true" />
-      <created>1714916122679</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1714916122679</updated>
     </task>
     <task id="LOCAL-00024" summary="json update, coin m fix etc">
       <option name="closed" value="true" />
@@ -775,7 +679,15 @@
       <option name="project" value="LOCAL" />
       <updated>1726270262946</updated>
     </task>
-    <option name="localTasksCounter" value="72" />
+    <task id="LOCAL-00072" summary="feat: New queue dynamic change algorithm&#10;test: Adjust tests to new queue dynamic change algorithm">
+      <option name="closed" value="true" />
+      <created>1726270281723</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1726270281723</updated>
+    </task>
+    <option name="localTasksCounter" value="73" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
