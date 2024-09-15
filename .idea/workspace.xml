@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: New queue dynamic change algorithm&#10;test: Adjust tests to new queue dynamic change algorithm">
-      <change afterPath="$PROJECT_DIR$/binance_archiver/production_config.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/binance_archiver/test_config.json" afterDir="false" />
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: Remove configs from main.py">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/difference_depth_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/tests/difference_depth_queue_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -129,7 +129,9 @@
     "Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.test_timestamps_are_in_utc.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_are_messages_being_added_to_queue.executor": "Run",
+    "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_benchmark.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_checking_size_when_method_invocation_then_result_is_ok.executor": "Run",
+    "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_comparison_algorithm_benchmark.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_from_queue_when_method_invocation_then_last_element_is_returned.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given__do_they_match_when_comparing_two_different_stream_listeners_throws_then_currently_accepted_stream_id_is_not_changed.executor": "Run",
@@ -146,6 +148,7 @@
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_more_than_max_len_is_oldest_element_removed.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_more_than_maxlen_is_oldest_element_removed.executor": "Run",
+    "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_processing_message_to_compare_structure_when_removing_event_timestamp_then_output_is_ok.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_queue.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_message_when_adding_messages_to_the_full_queues_then_is_last_message_being_removed.executor": "Run",
@@ -163,6 +166,7 @@
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_two_equal_throws_when_compare_two_last_throws_then_method_returns_true.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_two_throws_does__sort_entries_by_symbol_sort_entries_by_symbol.executor": "Run",
     "Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_roboczy_test.executor": "Run",
+    "Python tests.pytest for difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_mesage_is_in_binance_format.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_get_utc_formatted_timestamp.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_new_websocket_app_is_connection_established.executor": "Run",
     "Python tests.pytest for stream_listener_tests.TestArchiverDaemon.test_given_pairs_is_url_correct.executor": "Run",
@@ -219,7 +223,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\core" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python tests.pytest for difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_mesage_is_in_binance_format">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -232,31 +236,98 @@
       </deployment>
       <method v="2" />
     </configuration>
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_comparison_algorithm_benchmark" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_comparison_algorithm_benchmark&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_messages_whilst_changing_and_whilst_usual_working_mode_when_get_nowait_from_queue_then_order_and_amount_of_queue_elements_is_ok" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_messages_whilst_changing_and_whilst_usual_working_mode_when_get_nowait_from_queue_then_order_and_amount_of_queue_elements_is_ok&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_mesage_is_in_binance_format" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_mesage_is_in_binance_format&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_mesage_is_in_binance_format" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_comparison_algorithm_benchmark" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_putting_messages_whilst_changing_and_whilst_usual_working_mode_when_get_nowait_from_queue_then_order_and_amount_of_queue_elements_is_ok" />
       </list>
     </recent_temporary>
   </component>
@@ -294,14 +365,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00024" summary="json update, coin m fix etc">
-      <option name="closed" value="true" />
-      <created>1714920352549</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1714920352549</updated>
     </task>
     <task id="LOCAL-00025" summary="instrument name fix, &#10;minor small fixes">
       <option name="closed" value="true" />
@@ -687,7 +750,15 @@
       <option name="project" value="LOCAL" />
       <updated>1726270281723</updated>
     </task>
-    <option name="localTasksCounter" value="73" />
+    <task id="LOCAL-00073" summary="refactor: Remove configs from main.py">
+      <option name="closed" value="true" />
+      <created>1726272679361</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1726272679361</updated>
+    </task>
+    <option name="localTasksCounter" value="74" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -727,7 +798,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="supervisor update&#10;tests update" />
     <MESSAGE value="stream_service_supervisor error handle fix" />
     <MESSAGE value="stream_service_supervisor rename to stream_service" />
     <MESSAGE value="is_someone_overlapping_right_now_flag clutch add" />
@@ -752,7 +822,8 @@
     <MESSAGE value="chore: Change setup.py" />
     <MESSAGE value="docs: Update of readme.md" />
     <MESSAGE value="feat: New queue dynamic change algorithm&#10;test: Adjust tests to new queue dynamic change algorithm" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: New queue dynamic change algorithm&#10;test: Adjust tests to new queue dynamic change algorithm" />
+    <MESSAGE value="refactor: Remove configs from main.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: Remove configs from main.py" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

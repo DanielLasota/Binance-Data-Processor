@@ -1,4 +1,5 @@
 import json
+import re
 import threading
 from queue import Queue
 from typing import Any, Dict, final
@@ -15,6 +16,7 @@ class DifferenceDepthQueue:
     _instances = []
     _lock = threading.Lock()
     _instances_amount_limit = 4
+    _event_timestamp_pattern = re.compile(r'"E":\d+,')
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:
@@ -42,7 +44,6 @@ class DifferenceDepthQueue:
         self.no_longer_accepted_stream_id = None
         self.did_websockets_switch_successfully = False
         self._two_last_throws = {}
-        # self.are_we_currently_changing: bool = False
 
     @property
     @final
@@ -67,12 +68,14 @@ class DifferenceDepthQueue:
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:
         id_index = stream_listener_id.id
 
-        message_dict = json.loads(message)
-        message_dict['data'].pop('E', None)
-        message_str: str = json.dumps(message_dict, sort_keys=True)
+        message_str = self._remove_event_timestamp(message)
 
         message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
         message_list.append(message_str)
+
+    @staticmethod
+    def _remove_event_timestamp(message: str) -> str:
+        return DifferenceDepthQueue._event_timestamp_pattern.sub('', message)
 
     @staticmethod
     def _do_last_two_throws_match(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool:
@@ -92,7 +95,6 @@ class DifferenceDepthQueue:
             match = two_last_throws[keys[0]] == two_last_throws[keys[1]]
 
             if match is True:
-                pprint.pprint(two_last_throws)
                 return True
 
         return False
@@ -106,8 +108,6 @@ class DifferenceDepthQueue:
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
-
-        print('>>>>>>>>>>>>>>>>>>>>>>changin')
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True
