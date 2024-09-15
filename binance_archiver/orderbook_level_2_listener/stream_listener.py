@@ -3,6 +3,7 @@ import logging
 import threading
 import time
 from typing import List
+
 from websocket import WebSocketApp, ABNF
 
 from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
@@ -100,6 +101,8 @@ class StreamListener:
 
         self.websocket_app.send(json.dumps(message))
         self.logger.info(f"{method} message sent for pair: {pair}")
+        if isinstance(self.queue, DifferenceDepthQueue):
+            self.queue.update_deque_max_len(self.id.pairs_amount)
 
     def _construct_websocket_app(
         self,

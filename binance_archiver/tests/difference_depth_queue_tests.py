@@ -2,7 +2,6 @@ import time
 from collections import deque
 import json
 import pytest
-import re
 
 from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue, \
     ClassInstancesAmountLimitException
@@ -18,7 +17,7 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
     return compact_message
 
 
-def test_given_pretty_printed_message_from_test_when_reformatting_then_mesage_is_in_binance_format():
+def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
 
     pretty_message_from_sample_test = '''            
         {

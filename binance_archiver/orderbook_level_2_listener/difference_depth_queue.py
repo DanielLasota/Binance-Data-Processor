@@ -1,7 +1,7 @@
 import json
-import pprint
 import re
 import threading
+import uuid
 from queue import Queue
 from typing import Any, Dict, final
 from collections import deque
@@ -73,8 +73,20 @@ class DifferenceDepthQueue:
         message_str = self._remove_event_timestamp(message)
 
         message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
-
         message_list.append(message_str)
+
+    def _update_deque_max_len_if_needed(self, id_index: tuple[int, uuid.UUID], new_max_len: int) -> None:
+        if id_index in self._two_last_throws:
+            existing_deque = self._two_last_throws[id_index]
+            if existing_deque.maxlen != new_max_len:
+                updated_deque = deque(existing_deque, maxlen=new_max_len)
+                self._two_last_throws[id_index] = updated_deque
+
+    def update_deque_max_len(self, new_max_len: int) -> None:
+        for id_index in self._two_last_throws:
+            existing_deque = self._two_last_throws[id_index]
+            updated_deque = deque(existing_deque, maxlen=new_max_len)
+            self._two_last_throws[id_index] = updated_deque
 
     @staticmethod
     def _remove_event_timestamp(message: str) -> str:
@@ -92,7 +104,8 @@ class DifferenceDepthQueue:
             last_throw_streams = {json.loads(entry)['stream'] for entry in two_last_throws[keys[0]]}
             second_last_throw_streams = {json.loads(entry)['stream'] for entry in two_last_throws[keys[1]]}
 
-            if len(last_throw_streams) != amount_of_listened_pairs or len(second_last_throw_streams) != amount_of_listened_pairs:
+            if (len(last_throw_streams) != amount_of_listened_pairs
+                    or len(second_last_throw_streams) != amount_of_listened_pairs):
                 return False
 
             match = two_last_throws[keys[0]] == two_last_throws[keys[1]]
@@ -105,8 +118,6 @@ class DifferenceDepthQueue:
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
-
-        # pprint.pprint(self._two_last_throws)
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True

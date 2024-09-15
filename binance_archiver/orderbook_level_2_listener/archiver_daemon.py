@@ -81,20 +81,6 @@ class ArchiverDaemon:
         self.stream_listeners = {}
         self.overlap_lock: threading.Lock = threading.Lock()
 
-    def modify_subscription(self, type_: str, market: str, asset: str):
-
-        for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
-            for status in ['old', 'new']:
-                stream_listener = self.stream_listeners.get((Market[market], stream_type, status))
-                if stream_listener:
-                    stream_listener.change_subscription(action=type_, pair=asset.upper())
-
-        if type_ == 'subscribe':
-            self.instruments[market.lower()].append(asset.upper())
-        elif type_ == 'unsubscribe':
-            if asset.upper() in self.instruments[market.lower()]:
-                self.instruments[market.lower()].remove(asset.upper())
-
     def command_line_interface(self, message):
         command = list(message.items())[0][0]
         arguments = list(message.items())[0][1]
@@ -108,6 +94,21 @@ class ArchiverDaemon:
 
         else:
             self.logger.warning('bad command, try again')
+
+    def modify_subscription(self, type_: str, market: str, asset: str):
+
+        if type_ == 'subscribe':
+            if not asset.upper() in self.instruments[market.lower()]:
+                self.instruments[market.lower()].append(asset.upper())
+        elif type_ == 'unsubscribe':
+            if asset.upper() in self.instruments[market.lower()]:
+                self.instruments[market.lower()].remove(asset.upper())
+
+        for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
+            for status in ['old', 'new']:
+                stream_listener: StreamListener = self.stream_listeners.get((Market[market], stream_type, status))
+                if stream_listener:
+                    stream_listener.change_subscription(action=type_, pair=asset.upper())
 
     def _get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
         return self.queue_lookup.get((market, stream_type))
