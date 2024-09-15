@@ -3,6 +3,7 @@ import logging
 import threading
 import time
 from typing import List
+
 from websocket import WebSocketApp, ABNF
 
 from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
@@ -74,32 +75,48 @@ class StreamListener:
         self.start_websocket_app()
 
     def change_subscription(self, pair, action):
-        if not self.websocket_app.sock or not self.websocket_app.sock.connected:
-            self.logger.info(f"Cannot {action}, WebSocket is not connected")
+        max_retries = 5
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            if self.websocket_app.sock and self.websocket_app.sock.connected:
+                break
+            else:
+                self.logger.error(
+                    f"Cannot {action}, WebSocket is not connected. Attempt {attempt + 1} of {max_retries}")
+                time.sleep(retry_delay)
+        else:
+            self.logger.error(f"Failed to {action}, WebSocket did not connect after {max_retries} attempts.")
             return
 
         pair = pair.lower()
 
-        _internal_dict = {
-            StreamType.DIFFERENCE_DEPTH: 'depth',
-            StreamType.TRADE: 'trade'
-        }
-
-        _stream_type = _internal_dict.get(self.stream_type)
-
+        method = None
         if action.lower() == "subscribe":
             method = "SUBSCRIBE"
         elif action.lower() == "unsubscribe":
             method = "UNSUBSCRIBE"
 
-        message = {
-            "method": method,
-            "params": [f"{pair}@{_stream_type}"],
-            "id": 1
-        }
+        message = None
+
+        if self.stream_type == StreamType.TRADE:
+            message = {
+                "method": method,
+                "params": [f"{pair}@trade"],
+                "id": 1
+            }
+
+        elif self.stream_type == StreamType.DIFFERENCE_DEPTH:
+            message = {
+                "method": method,
+                "params": [f"{pair}@depth@100ms"],
+                "id": 1
+            }
 
         self.websocket_app.send(json.dumps(message))
         self.logger.info(f"{method} message sent for pair: {pair}")
+        if isinstance(self.queue, DifferenceDepthQueue):
+            self.queue.update_deque_max_len(self.id.pairs_amount)
 
     def _construct_websocket_app(
         self,

@@ -1,8 +1,10 @@
-import copy
 import json
+import re
 import threading
+import uuid
 from queue import Queue
 from typing import Any, Dict, final
+from collections import deque
 
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
@@ -16,6 +18,7 @@ class DifferenceDepthQueue:
     _instances = []
     _lock = threading.Lock()
     _instances_amount_limit = 4
+    _event_timestamp_pattern = re.compile(r'"E":\d+,')
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:
@@ -43,7 +46,6 @@ class DifferenceDepthQueue:
         self.no_longer_accepted_stream_id = None
         self.did_websockets_switch_successfully = False
         self._two_last_throws = {}
-        # self.are_we_currently_changing: bool = False
 
     @property
     @final
@@ -66,54 +68,55 @@ class DifferenceDepthQueue:
                 self.set_new_stream_id_as_currently_accepted()
 
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:
-        message_dict = json.loads(message)
         id_index = stream_listener_id.id
 
-        message_list = self._two_last_throws.setdefault(id_index, [])
+        message_str = self._remove_event_timestamp(message)
 
-        if message_list and message_dict['data']['E'] > message_list[0]['data']['E'] + 20:
-            self._two_last_throws = {id_index: []}
-            message_list = []
-            self._two_last_throws[id_index] = message_list
+        message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
+        message_list.append(message_str)
 
-        message_list.append(message_dict)
+    def _update_deque_max_len_if_needed(self, id_index: tuple[int, uuid.UUID], new_max_len: int) -> None:
+        if id_index in self._two_last_throws:
+            existing_deque = self._two_last_throws[id_index]
+            if existing_deque.maxlen != new_max_len:
+                updated_deque = deque(existing_deque, maxlen=new_max_len)
+                self._two_last_throws[id_index] = updated_deque
 
+    def update_deque_max_len(self, new_max_len: int) -> None:
+        for id_index in self._two_last_throws:
+            existing_deque = self._two_last_throws[id_index]
+            updated_deque = deque(existing_deque, maxlen=new_max_len)
+            self._two_last_throws[id_index] = updated_deque
+
+    @staticmethod
+    def _remove_event_timestamp(message: str) -> str:
+        return DifferenceDepthQueue._event_timestamp_pattern.sub('', message)
 
     @staticmethod
     def _do_last_two_throws_match(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool:
-
         keys = list(two_last_throws.keys())
 
         if len(keys) < 2:
             return False
 
         if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
-            copied_two_last_throws = copy.deepcopy(two_last_throws)
 
-            sorted_and_copied_two_last_throws = DifferenceDepthQueue._sort_entries_by_symbol(copied_two_last_throws)
+            last_throw_streams_set: set[str] = {json.loads(entry)['stream'] for entry in two_last_throws[keys[0]]}
+            second_last_throw_streams_set: set[str] = {json.loads(entry)['stream'] for entry in two_last_throws[keys[1]]}
 
-            for stream_age in sorted_and_copied_two_last_throws:
-                for entry in sorted_and_copied_two_last_throws[stream_age]:
-                    entry['data'].pop('E', None)
+            if len(last_throw_streams_set) != amount_of_listened_pairs:
+                return False
+            if len(second_last_throw_streams_set) != amount_of_listened_pairs:
+                return False
 
-            if sorted_and_copied_two_last_throws[keys[0]] == sorted_and_copied_two_last_throws[keys[1]]:
+            if two_last_throws[keys[0]] == two_last_throws[keys[1]]:
                 return True
 
         return False
 
-    @staticmethod
-    def _sort_entries_by_symbol(two_last_throws: Dict) -> Dict:
-        for stream_id in two_last_throws:
-            two_last_throws[stream_id].sort(key=lambda entry: entry['data']['s'])
-        return two_last_throws
-
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
-
-        print('>>>>>>>>>>>>>>>>>>>>>>changin')
-        import pprint
-        pprint.pprint(self._two_last_throws)
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True
