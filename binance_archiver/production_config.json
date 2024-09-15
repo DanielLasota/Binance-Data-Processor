@@ -43,7 +43,7 @@
   },
   "file_duration_seconds": 300,
   "snapshot_fetcher_interval_seconds": 60,
-  "websocket_life_time_seconds": 320,
+  "websocket_life_time_seconds": 30,
   "save_to_json": false,
   "save_to_zip": false,
   "send_zip_to_blob": true

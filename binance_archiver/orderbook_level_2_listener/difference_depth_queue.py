@@ -101,16 +101,15 @@ class DifferenceDepthQueue:
 
         if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
 
-            last_throw_streams = {json.loads(entry)['stream'] for entry in two_last_throws[keys[0]]}
-            second_last_throw_streams = {json.loads(entry)['stream'] for entry in two_last_throws[keys[1]]}
+            last_throw_streams_set: set[str] = {json.loads(entry)['stream'] for entry in two_last_throws[keys[0]]}
+            second_last_throw_streams_set: set[str] = {json.loads(entry)['stream'] for entry in two_last_throws[keys[1]]}
 
-            if (len(last_throw_streams) != amount_of_listened_pairs
-                    or len(second_last_throw_streams) != amount_of_listened_pairs):
+            if len(last_throw_streams_set) != amount_of_listened_pairs:
+                return False
+            if len(second_last_throw_streams_set) != amount_of_listened_pairs:
                 return False
 
-            match = two_last_throws[keys[0]] == two_last_throws[keys[1]]
-
-            if match is True:
+            if two_last_throws[keys[0]] == two_last_throws[keys[1]]:
                 return True
 
         return False

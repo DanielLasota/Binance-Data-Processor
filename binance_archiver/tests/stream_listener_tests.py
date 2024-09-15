@@ -312,10 +312,7 @@ class TestStreamListener:
         trade_stream_listener.websocket_app.close()
 
         sample_message = trade_queue.get_nowait()
-        print(f'sample_message {sample_message[0]} {type(sample_message[0])}')
         sample_message_dict = json.loads(sample_message[0])
-
-        print(trade_queue.qsize())
 
         assert trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", \
             "on_message should be assigned to _on_trade_message when stream_type is TRADE"
@@ -425,7 +422,6 @@ class TestStreamListener:
         assert trade_stream_listener._blackout_supervisor is not None, "Supervisor should be instantiated within StreamListener"
         assert isinstance(trade_stream_listener._blackout_supervisor, BlackoutSupervisor)
 
-        print('hujiksde')
         for name_ in active_threads:
             print(name_)
 
@@ -682,7 +678,6 @@ class TestOther:
             market=Market.SPOT
         )
 
-        # Ręczne mockowanie metod
         original_restart_websocket_app = trade_stream_listener.restart_websocket_app
         trade_stream_listener.restart_websocket_app = lambda: print("Mocked restart_websocket_app called")
 
@@ -692,7 +687,6 @@ class TestOther:
         def mock_notify():
             nonlocal notify_called
             notify_called = True
-            print("Mocked notify called")
 
         trade_stream_listener._blackout_supervisor.notify = mock_notify
 
@@ -722,9 +716,6 @@ class TestOther:
 
         trade_stream_listener.websocket_app.close()
         TradeQueue.clear_instances()
-
-
-
 
 
 '''

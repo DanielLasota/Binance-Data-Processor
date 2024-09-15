@@ -306,7 +306,7 @@ class ArchiverDaemon:
 
                     with overlap_lock:
                         is_someone_overlapping_right_now_flag.clear()
-                    logger.info("switched successfully")
+                    logger.info(f"{market} {stream_type} switched successfully")
                     # queue.are_we_currently_changing = False
 
                     if not global_shutdown_flag.is_set():
@@ -440,7 +440,7 @@ class ArchiverDaemon:
             with open(file_path, "w") as f:
                 json.dump(data, f)
         except IOError as e:
-            self.logger.info(f"IO error when writing to file {file_path}: {e}")
+            self.logger.error(f"IO error when writing to file {file_path}: {e}")
 
     def _save_to_zip(self, data, file_name, file_path):
         zip_file_path = f"{file_path}.zip"
@@ -450,7 +450,7 @@ class ArchiverDaemon:
                 json_filename = f"{file_name}.json"
                 zipf.writestr(json_filename, json_data)
         except IOError as e:
-            self.logger.info(f"IO error when writing to zip file {zip_file_path}: {e}")
+            self.logger.error(f"IO error when writing to zip file {zip_file_path}: {e}")
 
     def _send_zipped_json_to_blob(self, data, file_name):
         try:
@@ -469,7 +469,7 @@ class ArchiverDaemon:
             blob_client.upload_blob(zip_buffer, overwrite=True)
             # self.logger.info(f"Successfully uploaded {file_name}.zip to blob storage.")
         except Exception as e:
-            self.logger.info(f"Error uploading zip to blob: {e}")
+            self.logger.error(f"Error uploading zip to blob: {e}")
 
     def start_snapshot_daemon(
         self,
@@ -532,7 +532,7 @@ class ArchiverDaemon:
                     if send_zip_to_blob is True:
                         self._send_zipped_json_to_blob(snapshot, file_name)
                 except Exception as e:
-                    self.logger.info(
+                    self.logger.error(
                         f"error whilst fetching snapshot: {market} {StreamType.DEPTH_SNAPSHOT}: {e}"
                     )
 
@@ -556,7 +556,7 @@ class ArchiverDaemon:
             return data, request_timestamp, receive_timestamp
 
         except Exception as e:
-            self.logger.info(f"error whilst fetching snapshot: {e}")
+            self.logger.error(f"error whilst fetching snapshot: {e}")
 
     def get_file_name(
         self,
