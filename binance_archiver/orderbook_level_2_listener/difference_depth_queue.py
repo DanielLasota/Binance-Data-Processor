@@ -1,12 +1,14 @@
 import json
+import pprint
 import re
 import threading
 from queue import Queue
 from typing import Any, Dict, final
 from collections import deque
+
 from binance_archiver.orderbook_level_2_listener.market_enum import Market
 from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
-import pprint
+
 
 class ClassInstancesAmountLimitException(Exception):
     ...
@@ -71,7 +73,7 @@ class DifferenceDepthQueue:
         message_str = self._remove_event_timestamp(message)
 
         message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
-        
+
         message_list.append(message_str)
 
     @staticmethod
@@ -103,6 +105,8 @@ class DifferenceDepthQueue:
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
         self.no_longer_accepted_stream_id = min(self._two_last_throws.keys(), key=lambda x: x[0])
+
+        # pprint.pprint(self._two_last_throws)
 
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True

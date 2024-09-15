@@ -24,6 +24,18 @@ from .trade_queue import TradeQueue
 from .url_factory import URLFactory
 
 
+class BadConfigException(Exception):
+    ...
+
+
+class BadAzureParameters(Exception):
+    ...
+
+
+class WebSocketLifeTimeException(Exception):
+    ...
+
+
 class ArchiverDaemon:
     def __init__(
         self,
@@ -583,18 +595,6 @@ class ArchiverDaemon:
     @staticmethod
     def _get_utc_timestamp_epoch_seconds() -> int:
         return round(datetime.now(timezone.utc).timestamp())
-
-
-class BadConfigException(Exception):
-    ...
-
-
-class BadAzureParameters(Exception):
-    ...
-
-
-class WebSocketLifeTimeException(Exception):
-    ...
 
 
 def launch_data_sink(
