@@ -71,6 +71,7 @@ class DifferenceDepthQueue:
         message_str = self._remove_event_timestamp(message)
 
         message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
+        
         message_list.append(message_str)
 
     @staticmethod
@@ -98,12 +99,6 @@ class DifferenceDepthQueue:
                 return True
 
         return False
-
-    @staticmethod
-    def _sort_entries_by_symbol(two_last_throws: Dict) -> Dict:
-        for stream_id in two_last_throws:
-            two_last_throws[stream_id].sort(key=lambda entry: entry['data']['s'])
-        return two_last_throws
 
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
