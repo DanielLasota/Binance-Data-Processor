@@ -16,7 +16,6 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
-
 def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
 
     pretty_message_from_sample_test = '''            

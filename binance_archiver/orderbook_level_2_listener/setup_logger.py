@@ -5,7 +5,8 @@ from datetime import datetime
 import os
 
 
-def setup_logger(should_dump_logs: bool, log_file_path: str = 'logs/') -> logging.Logger:
+def setup_logger(should_dump_logs: bool | None = False) -> logging.Logger:
+    log_file_path = 'logs/'
 
     logger = logging.getLogger('DaemonManager')
     logger.setLevel(logging.DEBUG)
