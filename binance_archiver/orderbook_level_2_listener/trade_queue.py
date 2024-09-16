@@ -43,7 +43,7 @@ class TradeQueue:
     def market(self):
         return self._market
 
-    def put_trade_message(self, message: str, timestamp_of_receive) -> None:
+    def put_trade_message(self, message: str, timestamp_of_receive: int) -> None:
         self._put_with_no_repetitions(message, timestamp_of_receive)
 
     def _put_with_no_repetitions(self, message: str, received_timestamp: int) -> None:

@@ -701,7 +701,6 @@ class TestOther:
         assert trade_stream_listener.restart_websocket_app != "Mocked restart_websocket_app called", \
             "restart_websocket_app should not have been called."
 
-        # Sprawdzenie wątków
         active_threads = [
             thread.name for thread in threading.enumerate()
             if thread is not threading.current_thread()
@@ -716,34 +715,3 @@ class TestOther:
 
         trade_stream_listener.websocket_app.close()
         TradeQueue.clear_instances()
-
-
-'''
-class TestStreamListener:
-
-    def test_given_new_websocket_app_is_connection_established(self):
-
-        _queue = DifferenceDepthQueue()
-
-        stream_listener = StreamListener(queue=_queue,
-                                         pairs=['BTCUSDT', 'ETHUSDT'],
-                                         stream_type=StreamType.DIFFERENCE_DEPTH,
-                                         market=Market.SPOT
-                                         )
-
-        _queue.currently_accepted_stream_id = stream_listener.id.id
-        thread = threading.Thread(target=stream_listener.websocket_app.run_forever)
-        thread.daemon = True
-        thread.start()
-
-        time.sleep(5)
-
-        stream_listener.websocket_app.close()
-
-        time.sleep(2)
-
-        assert thread.is_alive() is False
-        assert _queue.qsize() > 0
-        assert not stream_listener.websocket_app.keep_running
-        assert stream_listener.websocket_app.sock is None
-'''
