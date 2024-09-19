@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="fix: Fixed subscription feature - added @100 postfix">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/archiver_daemon.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/setup_logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/orderbook_level_2_listener/stream_listener.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/production_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/production_config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/blackoutsupervisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver/blackout_supervisor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver/stream_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/tests/difference_depth_queue_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/tests/stream_listener_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/tests/stream_listener_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/trade_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/tests/trade_queue_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,7 +40,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="feature/trade-stream-listener-overlap-mechanism" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -72,7 +72,9 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;Docker.Dockerfile.executor&quot;: &quot;Run&quot;,
+    &quot;Docker.binance_archiver/Dockerfile.executor&quot;: &quot;Run&quot;,
     &quot;Docker.docker-compose.yml.algo: Compose Deployment.executor&quot;: &quot;Run&quot;,
+    &quot;Docker.docker-compose.yml: Compose Deployment.executor&quot;: &quot;Run&quot;,
     &quot;Docker.dockerfile.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.pytest for ArchiverDaemonTests.TestArchiverDaemon.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonGetQueue.executor&quot;: &quot;Run&quot;,
@@ -216,17 +218,28 @@
     &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_trade_stream_listener_when_on_close_then_close_message_is_being_logged.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.pytest for stream_listener_tests.TestStreamListenerNew.test_given_trade_stream_listener_when_on_open_then_message_is_being_logged.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.pytest for supervised_queue_tests.TestSupervisedQueue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_checking_size_when_method_invocation_then_result_is_ok.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_given_checking_empty_when_method_invocation_then_result_is_ok.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_given_clearing_difference_depth_queue_when_invocation_then_qsize_equals_zero.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_given_getting_from_queue_when_get_nowait_then_last_element_is_returned.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_given_getting_message_signs_whilst_putting_message_when_get_message_signs_then_signs_are_returned_correctly.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_given_getting_messages_when_get_nowait_then_qsize_is_zero_and_got_list_is_ok.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.TestTradeQueue.test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest for trade_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format.executor&quot;: &quot;Run&quot;,
     &quot;Python.main (1).executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/new-queue-comparison-mechanism&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/trade-stream-listener-overlap-mechanism&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
@@ -239,7 +252,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python tests.pytest for trade_queue_tests.TestTradeQueue">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -252,26 +265,38 @@
       </deployment>
       <method v="2" />
     </configuration>
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
@@ -288,40 +313,6 @@
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
       <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_comparison_algorithm_benchmark" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_comparison_algorithm_benchmark&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
@@ -342,13 +333,30 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
+    <configuration name="pytest for trade_queue_tests.TestTradeQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;trade_queue_tests.TestTradeQueue&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_comparison_algorithm_benchmark" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format" />
+        <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
         <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" />
+        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
       </list>
     </recent_temporary>
   </component>
@@ -386,54 +394,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00031" summary="change print to logger with .log override">
-      <option name="closed" value="true" />
-      <created>1714946597271</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1714946597271</updated>
-    </task>
-    <task id="LOCAL-00032" summary="logger optimisation">
-      <option name="closed" value="true" />
-      <created>1714946861964</created>
-      <option name="number" value="00032" />
-      <option name="presentableId" value="LOCAL-00032" />
-      <option name="project" value="LOCAL" />
-      <updated>1714946861964</updated>
-    </task>
-    <task id="LOCAL-00033" summary="stop daemons add">
-      <option name="closed" value="true" />
-      <created>1715022838959</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1715022838959</updated>
-    </task>
-    <task id="LOCAL-00034" summary="refactor ThreadPoolExecutor into threading">
-      <option name="closed" value="true" />
-      <created>1722768820530</created>
-      <option name="number" value="00034" />
-      <option name="presentableId" value="LOCAL-00034" />
-      <option name="project" value="LOCAL" />
-      <updated>1722768820530</updated>
-    </task>
-    <task id="LOCAL-00035" summary="pre daemon manager update">
-      <option name="closed" value="true" />
-      <created>1722805550326</created>
-      <option name="number" value="00035" />
-      <option name="presentableId" value="LOCAL-00035" />
-      <option name="project" value="LOCAL" />
-      <updated>1722805550326</updated>
-    </task>
-    <task id="LOCAL-00036" summary="daemon_manager.py delete&#10;concurrent.futures delete&#10;threading add&#10;tests add&#10;queue.lookup add&#10;received_timestamps add&#10;trade_queue.py add">
-      <option name="closed" value="true" />
-      <created>1723375971689</created>
-      <option name="number" value="00036" />
-      <option name="presentableId" value="LOCAL-00036" />
-      <option name="project" value="LOCAL" />
-      <updated>1723375971689</updated>
     </task>
     <task id="LOCAL-00037" summary="queues singleton with limit of 6 add&#10;&#10;tests add">
       <option name="closed" value="true" />
@@ -779,7 +739,55 @@
       <option name="project" value="LOCAL" />
       <updated>1726415234446</updated>
     </task>
-    <option name="localTasksCounter" value="80" />
+    <task id="LOCAL-00080" summary="refactor: setup_logger.py simplify">
+      <option name="closed" value="true" />
+      <created>1726526552533</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1726526552533</updated>
+    </task>
+    <task id="LOCAL-00081" summary="fix: setup_logger.py arguments fixes">
+      <option name="closed" value="true" />
+      <created>1726527269297</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1726527269297</updated>
+    </task>
+    <task id="LOCAL-00082" summary="feat: New trade queue switch mechanism &#10;test: added tests into trade_queue_tests.py">
+      <option name="closed" value="true" />
+      <created>1726706082356</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1726706082357</updated>
+    </task>
+    <task id="LOCAL-00083" summary="build: Dockerfile pythonpath">
+      <option name="closed" value="true" />
+      <created>1726709332559</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1726709332560</updated>
+    </task>
+    <task id="LOCAL-00084" summary="build: rename binance_archiver subfolder">
+      <option name="closed" value="true" />
+      <created>1726733071896</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1726733071897</updated>
+    </task>
+    <task id="LOCAL-00085" summary="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update">
+      <option name="closed" value="true" />
+      <created>1726734259775</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1726734259775</updated>
+    </task>
+    <option name="localTasksCounter" value="86" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -793,6 +801,26 @@
         <option value="Default.Date" />
         <option value="Default.Subject" />
       </list>
+    </option>
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="feature/trade-stream-listener-overlap-mechanism" />
+                </option>
+              </RecentGroup>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="origin/feature/trade-stream-listener-overlap-mechanism" />
+                </option>
+              </RecentGroup>
+            </list>
+          </value>
+        </entry>
+      </map>
     </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -819,12 +847,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="commandline interface function add&#10;change_subscription_add&#10;flask reformat&#10;flask callback add&#10;stream_listener.py change_subscription method add" />
-    <MESSAGE value="alpha iteration of subscription workz" />
-    <MESSAGE value="subsciption modify improvement" />
-    <MESSAGE value="flask to fastapi refactor" />
-    <MESSAGE value="fast_api_manager.run relocate to .run&#10;tests fix" />
-    <MESSAGE value="logger update" />
     <MESSAGE value="difference_depth_queue_tests.py add tests" />
     <MESSAGE value="difference_depth_queue.py refactor&#10;&#10;difference_depth_queue_tests.py tests refactor" />
     <MESSAGE value="difference_depth_queue_tests.py tests add&#10;&#10;stream_listener_tests.py&#10;tests add" />
@@ -844,7 +866,13 @@
     <MESSAGE value="chore: Minor things refactored" />
     <MESSAGE value="fix: Subscription feature fix" />
     <MESSAGE value="fix: Fixed subscription feature - added @100 postfix" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix: Fixed subscription feature - added @100 postfix" />
+    <MESSAGE value="refactor: setup_logger.py simplify" />
+    <MESSAGE value="fix: setup_logger.py arguments fixes" />
+    <MESSAGE value="feat: New trade queue switch mechanism &#10;test: added tests into trade_queue_tests.py" />
+    <MESSAGE value="build: Dockerfile pythonpath" />
+    <MESSAGE value="build: rename binance_archiver subfolder" />
+    <MESSAGE value="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update" />
+    <option name="LAST_COMMIT_MESSAGE" value="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

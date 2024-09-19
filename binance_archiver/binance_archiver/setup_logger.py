@@ -5,20 +5,26 @@ from datetime import datetime
 import os
 
 
-def setup_logger(log_file_path: str | None = None) -> logging.Logger:
+def setup_logger(should_dump_logs: bool | None = False) -> logging.Logger:
+    log_file_path = 'logs/'
+
     logger = logging.getLogger('DaemonManager')
     logger.setLevel(logging.DEBUG)
 
     now_utc = datetime.utcnow().strftime('%d-%m-%YT%H-%M-%SZ')
 
-    if log_file_path:
+    if should_dump_logs:
         if not os.path.exists(log_file_path):
             os.makedirs(log_file_path)
 
+        # file_handler = RotatingFileHandler(
+        #     f"{log_file_path}/archiver_{now_utc}.log",
+        #     maxBytes=5 * 1024 * 1024,
+        #     backupCount=3
+        # )
+
         file_handler = RotatingFileHandler(
-            f"{log_file_path}/archiver_{now_utc}.log",
-            maxBytes=5 * 1024 * 1024,
-            backupCount=3
+            f"{log_file_path}/archiver_{now_utc}.log"
         )
 
         logging.Formatter.converter = time.gmtime

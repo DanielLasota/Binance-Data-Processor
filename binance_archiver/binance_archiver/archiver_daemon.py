@@ -2,7 +2,9 @@ import json
 import logging
 import os
 import pprint
+import sys
 import time
+import traceback
 import zipfile
 from datetime import datetime, timezone
 from typing import List, Any, Dict, Tuple
@@ -279,6 +281,9 @@ class ArchiverDaemon:
                 if stream_type is StreamType.DIFFERENCE_DEPTH:
                     queue.currently_accepted_stream_id = old_stream_listener.id.id
 
+                elif stream_type is StreamType.TRADE:
+                    queue.currently_accepted_stream_id = old_stream_listener.id
+
                 old_stream_listener.start_websocket_app()
 
                 new_stream_listener = None
@@ -326,6 +331,8 @@ class ArchiverDaemon:
 
             except Exception as e:
                 logger.error(f'{e}, sth bad happenedd')
+                logger.error("Traceback (most recent call last):")
+                logger.error(traceback.format_exc())
 
             finally:
                 if new_stream_listener is not None:
@@ -603,7 +610,7 @@ def launch_data_sink(
     dump_path: str = "dump/",
     azure_blob_parameters_with_key: str | None = None,
     container_name: str | None = None,
-    dump_path_to_log_file: str | None = None
+    should_dump_logs: bool | None = False
 ):
 
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
@@ -628,7 +635,7 @@ def launch_data_sink(
     if 60 > config["websocket_life_time_seconds"] > 60*60*23:
         raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
 
-    logger = setup_logger(dump_path_to_log_file)
+    logger = setup_logger(should_dump_logs=should_dump_logs)
 
     logger.info("\n%s", logo)
     logger.info("Starting Binance Archiver...")

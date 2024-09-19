@@ -2,17 +2,18 @@ import json
 import logging
 import threading
 import time
+import traceback
 from typing import List
 
 from websocket import WebSocketApp, ABNF
 
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
-from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
-from binance_archiver.orderbook_level_2_listener.blackoutsupervisor import BlackoutSupervisor
-from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
-from binance_archiver.orderbook_level_2_listener.url_factory import URLFactory
+from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.stream_id import StreamId
+from binance_archiver.binance_archiver.stream_type_enum import StreamType
+from binance_archiver.binance_archiver.blackout_supervisor import BlackoutSupervisor
+from binance_archiver.binance_archiver.trade_queue import TradeQueue
+from binance_archiver.binance_archiver.url_factory import URLFactory
 
 
 class PairsLengthException(Exception):
@@ -144,7 +145,7 @@ class StreamListener:
         url = url_method(market, pairs)
 
         def _on_difference_depth_message(ws, message):
-            # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
 
@@ -157,16 +158,23 @@ class StreamListener:
             self._blackout_supervisor.notify()
 
         def _on_trade_message(ws, message):
-            # self.logger.info(f"{self.id.start_timestamp} {market} {stream_type}: {message}")
+            # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {market} {stream_type}: {message}")
 
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
 
             if 'stream' in message:
-                queue.put_trade_message(message=message, timestamp_of_receive=timestamp_of_receive)
+                queue.put_trade_message(
+                    stream_listener_id=self.id,
+                    message=message,
+                    timestamp_of_receive=timestamp_of_receive
+                )
             self._blackout_supervisor.notify()
 
         def _on_error(ws, error):
             self.logger.error(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
+
+            self.logger.error("Traceback (most recent call last):")
+            self.logger.error(traceback.format_exc())
 
         def _on_close(ws, close_status_code, close_msg):
             self.logger.info(

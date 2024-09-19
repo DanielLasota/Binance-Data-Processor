@@ -1,6 +1,6 @@
 import uuid
 import time
-from typing import Tuple
+from typing import Tuple, List
 
 
 class BadStreamIdParameter(Exception):
@@ -8,7 +8,7 @@ class BadStreamIdParameter(Exception):
 
 
 class StreamId:
-    def __init__(self, pairs):
+    def __init__(self, pairs: List[str]):
         self.start_timestamp = time.time_ns()
         self.uuid = uuid.uuid4()
         self._pairs = pairs

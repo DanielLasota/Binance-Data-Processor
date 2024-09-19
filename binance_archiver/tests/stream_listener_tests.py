@@ -6,16 +6,16 @@ import threading
 import pytest
 import websocket
 
-from binance_archiver import ArchiverDaemon
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
-from binance_archiver.orderbook_level_2_listener.stream_listener import StreamListener, WrongListInstanceException, \
+from binance_archiver.binance_archiver.archiver_daemon import ArchiverDaemon
+from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.setup_logger import setup_logger
+from binance_archiver.binance_archiver.stream_id import StreamId
+from binance_archiver.binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
     PairsLengthException
-from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
-from binance_archiver.orderbook_level_2_listener.blackoutsupervisor import BlackoutSupervisor
-from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
+from binance_archiver.binance_archiver.stream_type_enum import StreamType
+from binance_archiver.binance_archiver.blackout_supervisor import BlackoutSupervisor
+from binance_archiver.binance_archiver.trade_queue import TradeQueue
 
 
 class TestStreamListener:
@@ -274,8 +274,8 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_trade_stream_listener_when_connected_then_message_is_correctly_passed_to_trade_queue(self):
-        logger = setup_logger()
 
+        logger = setup_logger()
         config = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
@@ -299,6 +299,8 @@ class TestStreamListener:
             stream_type=StreamType.TRADE,
             market=Market.SPOT
         )
+
+        trade_queue.currently_accepted_stream_id = trade_stream_listener.id
 
         trade_stream_listener_thread = threading.Thread(
             target=trade_stream_listener.websocket_app.run_forever,
@@ -404,6 +406,8 @@ class TestStreamListener:
             market=Market.SPOT
         )
 
+        trade_queue.currently_accepted_stream_id = trade_stream_listener.id
+
         with patch.object(trade_stream_listener, 'restart_websocket_app') as mock_restart, \
                 patch.object(trade_stream_listener._blackout_supervisor, 'notify') as mock_notify:
             trade_stream_listener.start_websocket_app()
@@ -419,7 +423,8 @@ class TestStreamListener:
 
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE} {Market.SPOT}'
 
-        assert trade_stream_listener._blackout_supervisor is not None, "Supervisor should be instantiated within StreamListener"
+        assert trade_stream_listener._blackout_supervisor is not None, ("Supervisor should be instantiated within "
+                                                                        "StreamListener")
         assert isinstance(trade_stream_listener._blackout_supervisor, BlackoutSupervisor)
 
         for name_ in active_threads:
@@ -701,7 +706,6 @@ class TestOther:
         assert trade_stream_listener.restart_websocket_app != "Mocked restart_websocket_app called", \
             "restart_websocket_app should not have been called."
 
-        # Sprawdzenie wątków
         active_threads = [
             thread.name for thread in threading.enumerate()
             if thread is not threading.current_thread()
@@ -716,34 +720,3 @@ class TestOther:
 
         trade_stream_listener.websocket_app.close()
         TradeQueue.clear_instances()
-
-
-'''
-class TestStreamListener:
-
-    def test_given_new_websocket_app_is_connection_established(self):
-
-        _queue = DifferenceDepthQueue()
-
-        stream_listener = StreamListener(queue=_queue,
-                                         pairs=['BTCUSDT', 'ETHUSDT'],
-                                         stream_type=StreamType.DIFFERENCE_DEPTH,
-                                         market=Market.SPOT
-                                         )
-
-        _queue.currently_accepted_stream_id = stream_listener.id.id
-        thread = threading.Thread(target=stream_listener.websocket_app.run_forever)
-        thread.daemon = True
-        thread.start()
-
-        time.sleep(5)
-
-        stream_listener.websocket_app.close()
-
-        time.sleep(2)
-
-        assert thread.is_alive() is False
-        assert _queue.qsize() > 0
-        assert not stream_listener.websocket_app.keep_running
-        assert stream_listener.websocket_app.sock is None
-'''

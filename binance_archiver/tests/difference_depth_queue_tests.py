@@ -3,10 +3,10 @@ from collections import deque
 import json
 import pytest
 
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue, \
+from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue, \
     ClassInstancesAmountLimitException
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.stream_id import StreamId
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
@@ -15,7 +15,6 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
     compact_message = json.dumps(data, separators=(',', ':'))
 
     return compact_message
-
 
 def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
 
@@ -5982,6 +5981,7 @@ class TestDifferenceDepthQueue:
 
     # benchmark
     #
+    # @pytest.mark.skip
     def test_comparison_algorithm_benchmark(self):
         total_execution_time = 0
         number_of_runs = 1000
