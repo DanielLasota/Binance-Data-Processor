@@ -2,7 +2,9 @@ import json
 import logging
 import os
 import pprint
+import sys
 import time
+import traceback
 import zipfile
 from datetime import datetime, timezone
 from typing import List, Any, Dict, Tuple
@@ -22,6 +24,18 @@ from binance_archiver.logo import logo
 from .stream_type_enum import StreamType
 from .trade_queue import TradeQueue
 from .url_factory import URLFactory
+
+
+class BadConfigException(Exception):
+    ...
+
+
+class BadAzureParameters(Exception):
+    ...
+
+
+class WebSocketLifeTimeException(Exception):
+    ...
 
 
 class ArchiverDaemon:
@@ -69,20 +83,6 @@ class ArchiverDaemon:
         self.stream_listeners = {}
         self.overlap_lock: threading.Lock = threading.Lock()
 
-    def modify_subscription(self, type_: str, market: str, asset: str):
-
-        for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
-            for status in ['old', 'new']:
-                stream_listener = self.stream_listeners.get((Market[market], stream_type, status))
-                if stream_listener:
-                    stream_listener.change_subscription(action=type_, pair=asset.upper())
-
-        if type_ == 'subscribe':
-            self.instruments[market.lower()].append(asset.upper())
-        elif type_ == 'unsubscribe':
-            if asset.upper() in self.instruments[market.lower()]:
-                self.instruments[market.lower()].remove(asset.upper())
-
     def command_line_interface(self, message):
         command = list(message.items())[0][0]
         arguments = list(message.items())[0][1]
@@ -96,6 +96,21 @@ class ArchiverDaemon:
 
         else:
             self.logger.warning('bad command, try again')
+
+    def modify_subscription(self, type_: str, market: str, asset: str):
+
+        if type_ == 'subscribe':
+            if not asset.upper() in self.instruments[market.lower()]:
+                self.instruments[market.lower()].append(asset.upper())
+        elif type_ == 'unsubscribe':
+            if asset.upper() in self.instruments[market.lower()]:
+                self.instruments[market.lower()].remove(asset.upper())
+
+        for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
+            for status in ['old', 'new']:
+                stream_listener: StreamListener = self.stream_listeners.get((Market[market], stream_type, status))
+                if stream_listener:
+                    stream_listener.change_subscription(action=type_, pair=asset.upper())
 
     def _get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
         return self.queue_lookup.get((market, stream_type))
@@ -266,6 +281,9 @@ class ArchiverDaemon:
                 if stream_type is StreamType.DIFFERENCE_DEPTH:
                     queue.currently_accepted_stream_id = old_stream_listener.id.id
 
+                elif stream_type is StreamType.TRADE:
+                    queue.currently_accepted_stream_id = old_stream_listener.id
+
                 old_stream_listener.start_websocket_app()
 
                 new_stream_listener = None
@@ -293,7 +311,7 @@ class ArchiverDaemon:
 
                     with overlap_lock:
                         is_someone_overlapping_right_now_flag.clear()
-                    logger.info("switched successfully")
+                    logger.info(f"{market} {stream_type} switched successfully")
                     # queue.are_we_currently_changing = False
 
                     if not global_shutdown_flag.is_set():
@@ -313,6 +331,8 @@ class ArchiverDaemon:
 
             except Exception as e:
                 logger.error(f'{e}, sth bad happenedd')
+                logger.error("Traceback (most recent call last):")
+                logger.error(traceback.format_exc())
 
             finally:
                 if new_stream_listener is not None:
@@ -427,7 +447,7 @@ class ArchiverDaemon:
             with open(file_path, "w") as f:
                 json.dump(data, f)
         except IOError as e:
-            self.logger.info(f"IO error when writing to file {file_path}: {e}")
+            self.logger.error(f"IO error when writing to file {file_path}: {e}")
 
     def _save_to_zip(self, data, file_name, file_path):
         zip_file_path = f"{file_path}.zip"
@@ -437,7 +457,7 @@ class ArchiverDaemon:
                 json_filename = f"{file_name}.json"
                 zipf.writestr(json_filename, json_data)
         except IOError as e:
-            self.logger.info(f"IO error when writing to zip file {zip_file_path}: {e}")
+            self.logger.error(f"IO error when writing to zip file {zip_file_path}: {e}")
 
     def _send_zipped_json_to_blob(self, data, file_name):
         try:
@@ -456,7 +476,7 @@ class ArchiverDaemon:
             blob_client.upload_blob(zip_buffer, overwrite=True)
             # self.logger.info(f"Successfully uploaded {file_name}.zip to blob storage.")
         except Exception as e:
-            self.logger.info(f"Error uploading zip to blob: {e}")
+            self.logger.error(f"Error uploading zip to blob: {e}")
 
     def start_snapshot_daemon(
         self,
@@ -519,7 +539,7 @@ class ArchiverDaemon:
                     if send_zip_to_blob is True:
                         self._send_zipped_json_to_blob(snapshot, file_name)
                 except Exception as e:
-                    self.logger.info(
+                    self.logger.error(
                         f"error whilst fetching snapshot: {market} {StreamType.DEPTH_SNAPSHOT}: {e}"
                     )
 
@@ -543,7 +563,7 @@ class ArchiverDaemon:
             return data, request_timestamp, receive_timestamp
 
         except Exception as e:
-            self.logger.info(f"error whilst fetching snapshot: {e}")
+            self.logger.error(f"error whilst fetching snapshot: {e}")
 
     def get_file_name(
         self,
@@ -585,24 +605,12 @@ class ArchiverDaemon:
         return round(datetime.now(timezone.utc).timestamp())
 
 
-class BadConfigException(Exception):
-    ...
-
-
-class BadAzureParameters(Exception):
-    ...
-
-
-class WebSocketLifeTimeException(Exception):
-    ...
-
-
 def launch_data_sink(
     config,
     dump_path: str = "dump/",
     azure_blob_parameters_with_key: str | None = None,
     container_name: str | None = None,
-    dump_path_to_log_file: str | None = None
+    should_dump_logs: bool | None = False
 ):
 
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
@@ -627,7 +635,7 @@ def launch_data_sink(
     if 60 > config["websocket_life_time_seconds"] > 60*60*23:
         raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
 
-    logger = setup_logger(dump_path_to_log_file)
+    logger = setup_logger(should_dump_logs=should_dump_logs)
 
     logger.info("\n%s", logo)
     logger.info("Starting Binance Archiver...")

@@ -5,14 +5,14 @@ from datetime import datetime, timezone
 
 import pytest
 
-import binance_archiver.orderbook_level_2_listener.difference_depth_queue
-from binance_archiver.orderbook_level_2_listener.archiver_daemon import ArchiverDaemon, BadConfigException, \
+import binance_archiver.binance_archiver.difference_depth_queue
+from binance_archiver.binance_archiver.archiver_daemon import ArchiverDaemon, BadConfigException, \
     launch_data_sink, BadAzureParameters
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
-from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
-from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
+from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.setup_logger import setup_logger
+from binance_archiver.binance_archiver.stream_type_enum import StreamType
+from binance_archiver.binance_archiver.trade_queue import TradeQueue
 
 
 class TestArchiverDaemon:
@@ -194,7 +194,7 @@ class TestArchiverDaemon:
             archiver_daemon.fourth = TradeQueue(market=Market.SPOT)
 
             with pytest.raises(
-                    binance_archiver.orderbook_level_2_listener.trade_queue.ClassInstancesAmountLimitException
+                    binance_archiver.binance_archiver.trade_queue.ClassInstancesAmountLimitException
             ) as excinfo:
                 archiver_daemon.seventh = TradeQueue(market=Market.SPOT)
 
@@ -233,7 +233,7 @@ class TestArchiverDaemon:
             archiver_daemon.fourth = DifferenceDepthQueue(market=Market.SPOT)
 
             with pytest.raises(
-                    binance_archiver.orderbook_level_2_listener.difference_depth_queue.ClassInstancesAmountLimitException
+                    binance_archiver.binance_archiver.difference_depth_queue.ClassInstancesAmountLimitException
             ) as excinfo:
                 archiver_daemon.seventh = DifferenceDepthQueue(market=Market.SPOT)
 
