@@ -4,13 +4,13 @@ from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import json
 
+from binance_archiver import launch_data_sink
 from config import load_config
-from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
 
 
 if __name__ == "__main__":
 
-    load_dotenv('C:/Users/defrg/archer.env')
+    # load_dotenv('C:/Users/defrg/archer.env')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     azure_blob_parameters_with_key = client.get_secret(blob_parameters_secret_name).value
     container_name = client.get_secret(container_name_secret_name).value
 
-    config = load_config('production_config.json')
+    # config = load_config('production_config.json')
 
     data_sink = launch_data_sink(
         config,

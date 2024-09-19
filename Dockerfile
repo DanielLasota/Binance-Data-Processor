@@ -12,8 +12,9 @@ VOLUME [ "/app/data", "/app/logs" ]
 
 # EXPOSE 80
 
+ENV PYTHONPATH=/app
 ENV FLASK_APP=main.py
 # ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_HOST=127.0.0.1
 
-CMD ["python", "main.py"]
+CMD ["python", "binance_archiver/main.py"]
