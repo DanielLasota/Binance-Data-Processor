@@ -3,10 +3,10 @@ from collections import deque
 import json
 import pytest
 
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue, \
+from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue, \
     ClassInstancesAmountLimitException
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.stream_id import StreamId
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:

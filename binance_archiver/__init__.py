@@ -1,4 +1,4 @@
-from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
+from binance_archiver.binance_archiver.archiver_daemon import launch_data_sink
 
 __author__ = "Daniel Lasota <grossmann.root@gmail.com>"
 __status__ = "development"

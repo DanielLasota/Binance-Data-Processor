@@ -3,8 +3,8 @@ from typing import Any, final
 import threading
 import re
 
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.stream_id import StreamId
 
 
 class ClassInstancesAmountLimitException(Exception):

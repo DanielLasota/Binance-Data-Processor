@@ -6,16 +6,16 @@ import threading
 import pytest
 import websocket
 
-from binance_archiver import ArchiverDaemon
-from binance_archiver.orderbook_level_2_listener.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.setup_logger import setup_logger
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
-from binance_archiver.orderbook_level_2_listener.stream_listener import StreamListener, WrongListInstanceException, \
+from binance_archiver.binance_archiver.archiver_daemon import ArchiverDaemon
+from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.setup_logger import setup_logger
+from binance_archiver.binance_archiver.stream_id import StreamId
+from binance_archiver.binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
     PairsLengthException
-from binance_archiver.orderbook_level_2_listener.stream_type_enum import StreamType
-from binance_archiver.orderbook_level_2_listener.blackoutsupervisor import BlackoutSupervisor
-from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue
+from binance_archiver.binance_archiver.stream_type_enum import StreamType
+from binance_archiver.binance_archiver.blackoutsupervisor import BlackoutSupervisor
+from binance_archiver.binance_archiver.trade_queue import TradeQueue
 
 
 class TestStreamListener:
@@ -274,8 +274,8 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_trade_stream_listener_when_connected_then_message_is_correctly_passed_to_trade_queue(self):
-        logger = setup_logger()
 
+        logger = setup_logger()
         config = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
@@ -299,6 +299,8 @@ class TestStreamListener:
             stream_type=StreamType.TRADE,
             market=Market.SPOT
         )
+
+        trade_queue.currently_accepted_stream_id = trade_stream_listener.id
 
         trade_stream_listener_thread = threading.Thread(
             target=trade_stream_listener.websocket_app.run_forever,
@@ -404,6 +406,8 @@ class TestStreamListener:
             market=Market.SPOT
         )
 
+        trade_queue.currently_accepted_stream_id = trade_stream_listener.id
+
         with patch.object(trade_stream_listener, 'restart_websocket_app') as mock_restart, \
                 patch.object(trade_stream_listener._blackout_supervisor, 'notify') as mock_notify:
             trade_stream_listener.start_websocket_app()
@@ -419,7 +423,8 @@ class TestStreamListener:
 
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE} {Market.SPOT}'
 
-        assert trade_stream_listener._blackout_supervisor is not None, "Supervisor should be instantiated within StreamListener"
+        assert trade_stream_listener._blackout_supervisor is not None, ("Supervisor should be instantiated within "
+                                                                        "StreamListener")
         assert isinstance(trade_stream_listener._blackout_supervisor, BlackoutSupervisor)
 
         for name_ in active_threads:

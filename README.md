@@ -29,10 +29,9 @@ Configured to use contenerised on Azure with Azure blob and keyvault
 import the `run_stonks_analysis` function from the `stonks` module and run the script:
 
 ```python
-from binance_archiver.orderbook_level_2_listener.archiver_daemon import launch_data_sink
+from binance_archiver import launch_data_sink
 
 if __name__ == '__main__':
-
     config = {
         "instruments": {
             "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOTUSDT"],

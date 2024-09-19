@@ -2,9 +2,9 @@ import time
 import json
 import pytest
 
-from binance_archiver.orderbook_level_2_listener.market_enum import Market
-from binance_archiver.orderbook_level_2_listener.stream_id import StreamId
-from binance_archiver.orderbook_level_2_listener.trade_queue import TradeQueue, ClassInstancesAmountLimitException
+from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.binance_archiver.stream_id import StreamId
+from binance_archiver.binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
