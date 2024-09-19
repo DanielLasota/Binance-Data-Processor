@@ -14,7 +14,7 @@ from binance_archiver.binance_archiver.stream_id import StreamId
 from binance_archiver.binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
     PairsLengthException
 from binance_archiver.binance_archiver.stream_type_enum import StreamType
-from binance_archiver.binance_archiver.blackoutsupervisor import BlackoutSupervisor
+from binance_archiver.binance_archiver.blackout_supervisor import BlackoutSupervisor
 from binance_archiver.binance_archiver.trade_queue import TradeQueue
 
 

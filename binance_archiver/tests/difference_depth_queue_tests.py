@@ -5981,7 +5981,7 @@ class TestDifferenceDepthQueue:
 
     # benchmark
     #
-    @pytest.mark.skip
+    # @pytest.mark.skip
     def test_comparison_algorithm_benchmark(self):
         total_execution_time = 0
         number_of_runs = 1000
