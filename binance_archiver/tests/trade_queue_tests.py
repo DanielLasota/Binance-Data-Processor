@@ -14,6 +14,34 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
+def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
+
+    pretty_message_from_sample_test = '''            
+        {
+            "stream": "trxusdt@depth@100ms",
+            "data": {
+                "e": "depthUpdate",
+                "E": 1720337869317,
+                "s": "TRXUSDT",
+                "U": 4609985365,
+                "u": 4609985365,
+                "b": [
+                    [
+                        "0.12984000",
+                        "123840.00000000"
+                    ]
+                ],
+                "a": [
+                ]
+            }
+        }
+    '''
+
+    binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
+    assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
+                                      '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
+                                      '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
+
 
 class TestTradeQueue:
 
@@ -51,8 +79,8 @@ class TestTradeQueue:
     # _put_with_no_repetitions tests
     #
 
-    def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(self):
-
+    def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(
+            self):
         config = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
@@ -65,62 +93,52 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = TradeQueue(market=Market.SPOT)
-
         pairs = config['instruments']['spot']
+
+        trade_queue: TradeQueue = TradeQueue(market=Market.SPOT)
 
         first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        trade_queue.currently_accepted_stream_id = first_stream_listener_id
         mocked_timestamp_of_receive = 2115
 
-        _first_listener_message_1 = '''            
+        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(
+            '''
             {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "DOTUSDT",
-                    "U": 7871863945,
-                    "u": 7871863947,
-                    "b": [
-                        [
-                            "6.19800000",
-                            "1816.61000000"
-                        ],
-                        [
-                            "6.19300000",
-                            "1592.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "6.20800000",
-                            "1910.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
+              "stream": "adausdt@trade",
+              "data": {
+                "e": "trade",
+                "E": 1726688099009,
+                "s": "ADAUSDT",
+                "t": 506142454,
+                "p": "0.33570000",
+                "q": "15.70000000",
+                "T": 1726688099008,
+                "m": false,
+                "M": true
+              }
+            }            
+            '''
+        )
 
-        difference_depth_queue.put_trade_message(
+        trade_queue.put_trade_message(
+            stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue_content_list = []
+        trade_queue_content_list = []
 
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
-        assert (_first_listener_message_1, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert len(difference_depth_queue_content_list) == 1
+        while trade_queue.qsize() > 0:
+            trade_queue_content_list.append(trade_queue.get_nowait())
+        assert (_first_listener_message_1, mocked_timestamp_of_receive) in trade_queue_content_list
+        assert len(trade_queue_content_list) == 1
 
         TradeQueue.clear_instances()
 
-    @pytest.mark.skip
-    def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue(self):
+    def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue(
+            self):
 
         config = {
             "instruments": {
@@ -134,7 +152,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT)
 
         pairs = config['instruments']['spot']
 
@@ -147,981 +165,1616 @@ class TestTradeQueue:
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
+        trade_queue.currently_accepted_stream_id = old_stream_listener_id
 
-        _old_listener_message_1 = '''            
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "DOTUSDT",
-                    "U": 7871863945,
-                    "u": 7871863947,
-                    "b": [
-                        [
-                            "6.19800000",
-                            "1816.61000000"
-                        ],
-                        [
-                            "6.19300000",
-                            "1592.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "6.20800000",
-                            "1910.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-        _old_listener_message_2 = '''            
-            {
-                "stream": "adausdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "ADAUSDT",
-                    "U": 8823504433,
-                    "u": 8823504452,
-                    "b": [
-                        [
-                            "0.36440000",
-                            "46561.40000000"
-                        ],
-                        [
-                            "0.36430000",
-                            "76839.90000000"
-                        ],
-                        [
-                            "0.36400000",
-                            "76688.60000000"
-                        ],
-                        [
-                            "0.36390000",
-                            "106235.50000000"
-                        ],
-                        [
-                            "0.36370000",
-                            "35413.10000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "0.36450000",
-                            "16441.60000000"
-                        ],
-                        [
-                            "0.36460000",
-                            "20497.10000000"
-                        ],
-                        [
-                            "0.36470000",
-                            "39808.80000000"
-                        ],
-                        [
-                            "0.36480000",
-                            "75106.10000000"
-                        ],
-                        [
-                            "0.36900000",
-                            "32.90000000"
-                        ],
-                        [
-                            "0.37120000",
-                            "361.70000000"
-                        ]
-                    ]
-                }
-            }
-        '''
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-        _old_listener_message_3 = '''            
-            {
-                "stream": "trxusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "TRXUSDT",
-                    "U": 4609985365,
-                    "u": 4609985365,
-                    "b": [
-                        [
-                            "0.12984000",
-                            "123840.00000000"
-                        ]
-                    ],
-                    "a": [
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-                    ]
-                }
-            }
-        '''
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-        _new_listener_message_1 = '''            
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "DOTUSDT",
-                    "U": 7871863945,
-                    "u": 7871863947,
-                    "b": [
-                        [
-                            "6.19800000",
-                            "1816.61000000"
-                        ],
-                        [
-                            "6.19300000",
-                            "1592.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "6.20800000",
-                            "1910.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-        _new_listener_message_2 = '''            
-            {
-                "stream": "adausdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "ADAUSDT",
-                    "U": 8823504433,
-                    "u": 8823504452,
-                    "b": [
-                        [
-                            "0.36440000",
-                            "46561.40000000"
-                        ],
-                        [
-                            "0.36430000",
-                            "76839.90000000"
-                        ],
-                        [
-                            "0.36400000",
-                            "76688.60000000"
-                        ],
-                        [
-                            "0.36390000",
-                            "106235.50000000"
-                        ],
-                        [
-                            "0.36370000",
-                            "35413.10000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "0.36450000",
-                            "16441.60000000"
-                        ],
-                        [
-                            "0.36460000",
-                            "20497.10000000"
-                        ],
-                        [
-                            "0.36470000",
-                            "39808.80000000"
-                        ],
-                        [
-                            "0.36480000",
-                            "75106.10000000"
-                        ],
-                        [
-                            "0.36900000",
-                            "32.90000000"
-                        ],
-                        [
-                            "0.37120000",
-                            "361.70000000"
-                        ]
-                    ]
-                }
-            }
-        '''
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-        _new_listener_message_3 = '''            
-            {
-                "stream": "trxusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "TRXUSDT",
-                    "U": 4609985365,
-                    "u": 4609985365,
-                    "b": [
-                        [
-                            "0.12984000",
-                            "123840.00000000"
-                        ]
-                    ],
-                    "a": [
+        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100727,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-                    ]
-                }
-            }
-        '''
+        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100728,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
 
-        _new_listener_message_4 = '''            
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869318,
-                    "s": "DOTUSDT",
-                    "U": 7871863948,
-                    "u": 7871863950,
-                    "b": [
-                        [
-                            "7.19800000",
-                            "1817.61000000"
-                        ],
-                        [
-                            "7.19300000",
-                            "1593.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "7.20800000",
-                            "1911.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_4 = '''
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869319,
-                    "s": "DOTUSDT",
-                    "U": 7871863948,
-                    "u": 7871863950,
-                    "b": [
-                        [
-                            "7.19800000",
-                            "1817.61000000"
-                        ],
-                        [
-                            "7.19300000",
-                            "1593.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "7.20800000",
-                            "1911.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_4)
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_4)
-
-        difference_depth_queue.put_queue_message(
+        trade_queue.put_trade_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=2115
         )
 
-        difference_depth_queue.put_queue_message(
+        trade_queue.put_trade_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=2115
         )
 
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=2115
-        )
-
-        difference_depth_queue.put_queue_message(
+        trade_queue.put_trade_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=2115
         )
 
-        difference_depth_queue.put_queue_message(
+        trade_queue.put_trade_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=2115
         )
 
-        difference_depth_queue.put_queue_message(
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_3,
+            timestamp_of_receive=2115
+        )
+
+        trade_queue.put_trade_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=2115
         )
 
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=2115
-        )
-
-        difference_depth_queue.put_queue_message(
+        trade_queue.put_trade_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_4,
             timestamp_of_receive=2115
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == new_stream_listener_id.id
-        assert difference_depth_queue.qsize() == 4
-
-        difference_depth_queue_content_list = []
-
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
-
-        assert (_old_listener_message_1, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_2, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_3, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_new_listener_message_4, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-
-        assert (_new_listener_message_1, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_2, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_3, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_old_listener_message_4, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        TradeQueue.clear_instances()
-
-    @pytest.mark.skip
-    def test_given_putting_stream_message_and_two_last_throws_are_not_equal_when_two_listeners_messages_are_being_compared_then_currently_accepted_stream_id_is_not_changed_and_only_old_stream_listener_messages_are_put_in(self):
-        """
-        difference lays in a _old_listener_message_1 / _new_listener_message_1, new stream listener is + 1 ms
-        """
-
-        config = {
-            "instruments": {
-                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
-            },
-            "file_duration_seconds": 30,
-            "snapshot_fetcher_interval_seconds": 30,
-            "websocket_life_time_seconds": 30,
-            "save_to_json": True,
-            "save_to_zip": False,
-            "send_zip_to_blob": False
-        }
-
-        pairs = config['instruments']['spot']
-
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-
-        old_stream_listener_id = StreamId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
-
-        mocked_timestamp_of_receive = 2115
-
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
-
-        _old_listener_message_1 = '''            
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "DOTUSDT",
-                    "U": 7871863945,
-                    "u": 7871863947,
-                    "b": [
-                        [
-                            "6.19800000",
-                            "1816.61000000"
-                        ],
-                        [
-                            "6.19300000",
-                            "1592.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "6.20800000",
-                            "1910.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_2 = '''            
-            {
-                "stream": "adausdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "ADAUSDT",
-                    "U": 8823504433,
-                    "u": 8823504452,
-                    "b": [
-                        [
-                            "0.36440000",
-                            "46561.40000000"
-                        ],
-                        [
-                            "0.36430000",
-                            "76839.90000000"
-                        ],
-                        [
-                            "0.36400000",
-                            "76688.60000000"
-                        ],
-                        [
-                            "0.36390000",
-                            "106235.50000000"
-                        ],
-                        [
-                            "0.36370000",
-                            "35413.10000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "0.36450000",
-                            "16441.60000000"
-                        ],
-                        [
-                            "0.36460000",
-                            "20497.10000000"
-                        ],
-                        [
-                            "0.36470000",
-                            "39808.80000000"
-                        ],
-                        [
-                            "0.36480000",
-                            "75106.10000000"
-                        ],
-                        [
-                            "0.36900000",
-                            "32.90000000"
-                        ],
-                        [
-                            "0.37120000",
-                            "361.70000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_3 = '''            
-            {
-                "stream": "trxusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "TRXUSDT",
-                    "U": 4609985365,
-                    "u": 4609985365,
-                    "b": [
-                        [
-                            "0.12984000",
-                            "123840.00000000"
-                        ]
-                    ],
-                    "a": [
-
-                    ]
-                }
-            }
-        '''
-
-        _new_listener_message_1 = '''            
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "DOTUSDT",
-                    "U": 7871863945,
-                    "u": 7871863947,
-                    "b": [
-                        [
-                            "6.19300000",
-                            "1592.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "6.20800000",
-                            "1910.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _new_listener_message_2 = '''            
-            {
-                "stream": "adausdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "ADAUSDT",
-                    "U": 8823504433,
-                    "u": 8823504452,
-                    "b": [
-                        [
-                            "0.36440000",
-                            "46561.40000000"
-                        ],
-                        [
-                            "0.36430000",
-                            "76839.90000000"
-                        ],
-                        [
-                            "0.36400000",
-                            "76688.60000000"
-                        ],
-                        [
-                            "0.36390000",
-                            "106235.50000000"
-                        ],
-                        [
-                            "0.36370000",
-                            "35413.10000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "0.36450000",
-                            "16441.60000000"
-                        ],
-                        [
-                            "0.36460000",
-                            "20497.10000000"
-                        ],
-                        [
-                            "0.36470000",
-                            "39808.80000000"
-                        ],
-                        [
-                            "0.36480000",
-                            "75106.10000000"
-                        ],
-                        [
-                            "0.36900000",
-                            "32.90000000"
-                        ],
-                        [
-                            "0.37120000",
-                            "361.70000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _new_listener_message_3 = '''            
-            {
-                "stream": "trxusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "TRXUSDT",
-                    "U": 4609985365,
-                    "u": 4609985365,
-                    "b": [
-                        [
-                            "0.12984000",
-                            "123840.00000000"
-                        ]
-                    ],
-                    "a": [
-
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
-
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_4,
             timestamp_of_receive=2115
         )
 
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=2115
-        )
+        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.qsize() == 4
 
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=2115
-        )
+        trade_queue_content_list = []
 
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=2115
-        )
+        while trade_queue.qsize() > 0:
+            trade_queue_content_list.append(trade_queue.get_nowait())
 
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=2115
-        )
-
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=2115
-        )
-
-        assert difference_depth_queue.currently_accepted_stream_id == old_stream_listener_id.id
-        assert difference_depth_queue.qsize() == 3
-
-        difference_depth_queue_content_list = [difference_depth_queue.get_nowait() for _ in
-                                               range(difference_depth_queue.qsize())]
-
-        assert (_old_listener_message_1, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_2, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_3, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-
-        assert (_new_listener_message_1, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_2, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_3, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-
-        DifferenceDepthQueue.clear_instances()
-
-    @pytest.mark.skip
-    def test_given_putting_stream_message_and_two_last_throws_are_equal_when_two_listeners_messages_are_being_compared_then_currently_accepted_stream_id_is_changed_and_only_old_stream_listener_messages_are_put_in(self):
-
-        config = {
-            "instruments": {
-                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
-            },
-            "file_duration_seconds": 30,
-            "snapshot_fetcher_interval_seconds": 30,
-            "websocket_life_time_seconds": 30,
-            "save_to_json": True,
-            "save_to_zip": False,
-            "send_zip_to_blob": False
-        }
-
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-
-        pairs = config['instruments']['spot']
-
-        old_stream_listener_id = StreamId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
-
-        mocked_timestamp_of_receive = 2115
-
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
-
-        _old_listener_message_1 = '''            
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "DOTUSDT",
-                    "U": 7871863945,
-                    "u": 7871863947,
-                    "b": [
-                        [
-                            "6.19800000",
-                            "1816.61000000"
-                        ],
-                        [
-                            "6.19300000",
-                            "1592.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "6.20800000",
-                            "1910.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_2 = '''            
-            {
-                "stream": "adausdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "ADAUSDT",
-                    "U": 8823504433,
-                    "u": 8823504452,
-                    "b": [
-                        [
-                            "0.36440000",
-                            "46561.40000000"
-                        ],
-                        [
-                            "0.36430000",
-                            "76839.90000000"
-                        ],
-                        [
-                            "0.36400000",
-                            "76688.60000000"
-                        ],
-                        [
-                            "0.36390000",
-                            "106235.50000000"
-                        ],
-                        [
-                            "0.36370000",
-                            "35413.10000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "0.36450000",
-                            "16441.60000000"
-                        ],
-                        [
-                            "0.36460000",
-                            "20497.10000000"
-                        ],
-                        [
-                            "0.36470000",
-                            "39808.80000000"
-                        ],
-                        [
-                            "0.36480000",
-                            "75106.10000000"
-                        ],
-                        [
-                            "0.36900000",
-                            "32.90000000"
-                        ],
-                        [
-                            "0.37120000",
-                            "361.70000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_3 = '''            
-            {
-                "stream": "trxusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869216,
-                    "s": "TRXUSDT",
-                    "U": 4609985365,
-                    "u": 4609985365,
-                    "b": [
-                        [
-                            "0.12984000",
-                            "123840.00000000"
-                        ]
-                    ],
-                    "a": [
-
-                    ]
-                }
-            }
-        '''
-
-        _new_listener_message_1 = '''            
-            {
-                "stream": "dotusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "DOTUSDT",
-                    "U": 7871863945,
-                    "u": 7871863947,
-                    "b": [
-                        [
-                            "6.19800000",
-                            "1816.61000000"
-                        ],
-                        [
-                            "6.19300000",
-                            "1592.79000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "6.20800000",
-                            "1910.71000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _new_listener_message_2 = '''            
-            {
-                "stream": "adausdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "ADAUSDT",
-                    "U": 8823504433,
-                    "u": 8823504452,
-                    "b": [
-                        [
-                            "0.36440000",
-                            "46561.40000000"
-                        ],
-                        [
-                            "0.36430000",
-                            "76839.90000000"
-                        ],
-                        [
-                            "0.36400000",
-                            "76688.60000000"
-                        ],
-                        [
-                            "0.36390000",
-                            "106235.50000000"
-                        ],
-                        [
-                            "0.36370000",
-                            "35413.10000000"
-                        ]
-                    ],
-                    "a": [
-                        [
-                            "0.36450000",
-                            "16441.60000000"
-                        ],
-                        [
-                            "0.36460000",
-                            "20497.10000000"
-                        ],
-                        [
-                            "0.36470000",
-                            "39808.80000000"
-                        ],
-                        [
-                            "0.36480000",
-                            "75106.10000000"
-                        ],
-                        [
-                            "0.36900000",
-                            "32.90000000"
-                        ],
-                        [
-                            "0.37120000",
-                            "361.70000000"
-                        ]
-                    ]
-                }
-            }
-        '''
-
-        _new_listener_message_3 = '''            
-            {
-                "stream": "trxusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869217,
-                    "s": "TRXUSDT",
-                    "U": 4609985365,
-                    "u": 4609985365,
-                    "b": [
-                        [
-                            "0.12984000",
-                            "123840.00000000"
-                        ]
-                    ],
-                    "a": [
-
-                    ]
-                }
-            }
-        '''
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
-
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-        difference_depth_queue.put_queue_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue_content_list = [difference_depth_queue.get_nowait() for _ in
-                                               range(difference_depth_queue.qsize())]
-
-        assert difference_depth_queue.currently_accepted_stream_id == new_stream_listener_id.id
-
-        expected_list = [
+        expected_trade_queue_content_list = [
             (_old_listener_message_1, mocked_timestamp_of_receive),
             (_old_listener_message_2, mocked_timestamp_of_receive),
-            (_old_listener_message_3, mocked_timestamp_of_receive)
+            (_old_listener_message_3, mocked_timestamp_of_receive),
+            (_new_listener_message_4, mocked_timestamp_of_receive)
         ]
 
-        assert difference_depth_queue_content_list == expected_list
+        assert trade_queue_content_list == expected_trade_queue_content_list
 
-        DifferenceDepthQueue.clear_instances()
+        TradeQueue.clear_instances()
 
+    #get_message_signs
+    #
+    def test_given_getting_message_signs_whilst_putting_message_when_get_message_signs_then_signs_are_returned_correctly(self):
+        message = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        assert TradeQueue.get_message_signs(message) == '"s":"ADAUSDT","t":506142454'
+        TradeQueue.clear_instances()
+
+    # get, get_nowait, clear, empty, qsize
+    #
+    def test_given_getting_messages_when_get_nowait_then_qsize_is_zero_and_got_list_is_ok(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        trade_queue = TradeQueue(market=Market.SPOT)
+
+        pairs = config['instruments']['spot']
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        assert old_stream_listener_id.pairs_amount == 3
+        assert new_stream_listener_id.pairs_amount == 3
+
+        mocked_timestamp_of_receive = 2115
+
+        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100727,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100728,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_1,
+            timestamp_of_receive=2115
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_2,
+            timestamp_of_receive=2115
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_1,
+            timestamp_of_receive=2115
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_2,
+            timestamp_of_receive=2115
+        )
+
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_3,
+            timestamp_of_receive=2115
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_3,
+            timestamp_of_receive=2115
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_4,
+            timestamp_of_receive=2115
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_4,
+            timestamp_of_receive=2115
+        )
+
+        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.qsize() == 4
+
+        trade_queue_content_list = []
+
+        while trade_queue.qsize() > 0:
+            trade_queue_content_list.append(trade_queue.get_nowait())
+
+        assert trade_queue.qsize() == 0
+
+        expected_trade_queue_content_list = [
+            (_old_listener_message_1, mocked_timestamp_of_receive),
+            (_old_listener_message_2, mocked_timestamp_of_receive),
+            (_old_listener_message_3, mocked_timestamp_of_receive),
+            (_new_listener_message_4, mocked_timestamp_of_receive)
+        ]
+
+        assert trade_queue_content_list == expected_trade_queue_content_list
+
+        TradeQueue.clear_instances()
+
+    def test_given_getting_from_queue_when_get_nowait_then_last_element_is_returned(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        trade_queue = TradeQueue(market=Market.SPOT)
+
+        pairs = config['instruments']['spot']
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        assert old_stream_listener_id.pairs_amount == 3
+        assert new_stream_listener_id.pairs_amount == 3
+
+        mocked_timestamp_of_receive = 2115
+
+        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100727,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100728,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.qsize() == 4
+
+        presumed_first_transaction = trade_queue.get_nowait()
+
+        assert presumed_first_transaction == (_old_listener_message_1, 2115)
+
+        TradeQueue.clear_instances()
+
+    def test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        trade_queue = TradeQueue(market=Market.SPOT)
+
+        pairs = config['instruments']['spot']
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        assert old_stream_listener_id.pairs_amount == 3
+        assert new_stream_listener_id.pairs_amount == 3
+
+        mocked_timestamp_of_receive = 2115
+
+        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100727,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100728,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.qsize() == 4
+
+        presumed_first_transaction = trade_queue.get()
+
+        assert presumed_first_transaction == (_old_listener_message_1, 2115)
+
+        TradeQueue.clear_instances()
+
+    def test_given_clearing_difference_depth_queue_when_invocation_then_qsize_equals_zero(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        trade_queue = TradeQueue(market=Market.SPOT)
+
+        pairs = config['instruments']['spot']
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        assert old_stream_listener_id.pairs_amount == 3
+        assert new_stream_listener_id.pairs_amount == 3
+
+        mocked_timestamp_of_receive = 2115
+
+        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100727,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100728,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.qsize() == 4
+
+        trade_queue.clear()
+
+        assert trade_queue.qsize() == 0
+
+        TradeQueue.clear_instances()
+
+    def test_given_checking_empty_when_method_invocation_then_result_is_ok(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        trade_queue = TradeQueue(market=Market.SPOT)
+
+        pairs = config['instruments']['spot']
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        assert old_stream_listener_id.pairs_amount == 3
+        assert new_stream_listener_id.pairs_amount == 3
+
+        mocked_timestamp_of_receive = 2115
+
+        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100727,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100728,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.qsize() == 4
+        assert trade_queue.empty() == False
+
+        trade_queue.clear()
+
+        assert trade_queue.qsize() == 0
+        assert trade_queue.empty() == True
+
+        TradeQueue.clear_instances()
+
+    def test_checking_size_when_method_invocation_then_result_is_ok(self):
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        trade_queue = TradeQueue(market=Market.SPOT)
+
+        pairs = config['instruments']['spot']
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        assert old_stream_listener_id.pairs_amount == 3
+        assert new_stream_listener_id.pairs_amount == 3
+
+        mocked_timestamp_of_receive = 2115
+
+        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142454,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "adausdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688099009,
+            "s": "ADAUSDT",
+            "t": 506142455,
+            "p": "0.33570000",
+            "q": "15.70000000",
+            "T": 1726688099008,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "dotusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100060,
+            "s": "DOTUSDT",
+            "t": 366582616,
+            "p": "4.06600000",
+            "q": "106.87000000",
+            "T": 1726688100060,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')  # change here
+
+        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100727,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+          "stream": "trxusdt@trade",
+          "data": {
+            "e": "trade",
+            "E": 1726688100728,
+            "s": "TRXUSDT",
+            "t": 295482474,
+            "p": "0.14920000",
+            "q": "128.00000000",
+            "T": 1726688100727,
+            "m": false,
+            "M": true
+          }
+        }
+        ''')
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_1,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_2,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_3,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=old_stream_listener_id,
+            message=_old_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        trade_queue.put_trade_message(
+            stream_listener_id=new_stream_listener_id,
+            message=_new_listener_message_4,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
+
+        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.qsize() == 4
+
+        trade_queue.clear()
+
+        assert trade_queue.qsize() == 0
+
+        TradeQueue.clear_instances()
 
 '''
-{"stream":"ethusdt@trade","data":{"e":"trade","E":1726426389417,"s":"ETHUSDT","t":1573606312,"p":"2373.76000000","q":"0.00230000","T":1726426389417,"m":false,"M":true}}
-{"stream":"btcusdt@trade","data":{"e":"trade","E":1726426389463,"s":"BTCUSDT","t":3821156500,"p":"59867.99000000","q":"0.00934000","T":1726426389462,"m":true,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688096713,"s":"ADAUSDT","t":506142452,"p":"0.33590000","q":"25.60000000","T":1726688096713,"m":false,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688096713,"s":"ADAUSDT","t":506142452,"p":"0.33590000","q":"25.60000000","T":1726688096713,"m":false,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688097032,"s":"TRXUSDT","t":295482472,"p":"0.14920000","q":"134.00000000","T":1726688097031,"m":false,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688097032,"s":"TRXUSDT","t":295482472,"p":"0.14920000","q":"134.00000000","T":1726688097031,"m":false,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097115,"s":"DOTUSDT","t":366582612,"p":"4.06700000","q":"50.00000000","T":1726688097112,"m":true,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097115,"s":"DOTUSDT","t":366582612,"p":"4.06700000","q":"50.00000000","T":1726688097112,"m":true,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097115,"s":"DOTUSDT","t":366582613,"p":"4.06700000","q":"106.82000000","T":1726688097112,"m":true,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097115,"s":"DOTUSDT","t":366582613,"p":"4.06700000","q":"106.82000000","T":1726688097112,"m":true,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097182,"s":"DOTUSDT","t":366582614,"p":"4.06600000","q":"29.50000000","T":1726688097182,"m":true,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097182,"s":"DOTUSDT","t":366582614,"p":"4.06600000","q":"29.50000000","T":1726688097182,"m":true,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097974,"s":"DOTUSDT","t":366582615,"p":"4.06500000","q":"1.30000000","T":1726688097974,"m":true,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688097974,"s":"DOTUSDT","t":366582615,"p":"4.06500000","q":"1.30000000","T":1726688097974,"m":true,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688097993,"s":"TRXUSDT","t":295482473,"p":"0.14910000","q":"66.60000000","T":1726688097993,"m":true,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688097993,"s":"TRXUSDT","t":295482473,"p":"0.14910000","q":"66.60000000","T":1726688097993,"m":true,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688098070,"s":"ADAUSDT","t":506142453,"p":"0.33560000","q":"150.90000000","T":1726688098069,"m":true,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688098070,"s":"ADAUSDT","t":506142453,"p":"0.33560000","q":"150.90000000","T":1726688098069,"m":true,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688099009,"s":"ADAUSDT","t":506142454,"p":"0.33570000","q":"15.70000000","T":1726688099008,"m":false,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688099009,"s":"ADAUSDT","t":506142455,"p":"0.33570000","q":"15.70000000","T":1726688099008,"m":false,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688099009,"s":"ADAUSDT","t":506142454,"p":"0.33570000","q":"15.70000000","T":1726688099008,"m":false,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688099009,"s":"ADAUSDT","t":506142455,"p":"0.33570000","q":"15.70000000","T":1726688099008,"m":false,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688100060,"s":"DOTUSDT","t":366582616,"p":"4.06600000","q":"106.87000000","T":1726688100060,"m":false,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688100060,"s":"DOTUSDT","t":366582616,"p":"4.06600000","q":"106.87000000","T":1726688100060,"m":false,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688100728,"s":"TRXUSDT","t":295482474,"p":"0.14920000","q":"128.00000000","T":1726688100727,"m":false,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688100728,"s":"TRXUSDT","t":295482474,"p":"0.14920000","q":"128.00000000","T":1726688100727,"m":false,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688101050,"s":"TRXUSDT","t":295482475,"p":"0.14920000","q":"299.80000000","T":1726688101049,"m":false,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688101050,"s":"TRXUSDT","t":295482475,"p":"0.14920000","q":"299.80000000","T":1726688101049,"m":false,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688101627,"s":"ADAUSDT","t":506142456,"p":"0.33580000","q":"25.60000000","T":1726688101626,"m":false,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688101627,"s":"ADAUSDT","t":506142456,"p":"0.33580000","q":"25.60000000","T":1726688101626,"m":false,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688101866,"s":"DOTUSDT","t":366582617,"p":"4.06800000","q":"2.41000000","T":1726688101866,"m":false,"M":true}}
+{"stream":"dotusdt@trade","data":{"e":"trade","E":1726688101866,"s":"DOTUSDT","t":366582617,"p":"4.06800000","q":"2.41000000","T":1726688101866,"m":false,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688101960,"s":"TRXUSDT","t":295482476,"p":"0.14910000","q":"128.00000000","T":1726688101960,"m":true,"M":true}}
+{"stream":"trxusdt@trade","data":{"e":"trade","E":1726688101960,"s":"TRXUSDT","t":295482476,"p":"0.14910000","q":"128.00000000","T":1726688101960,"m":true,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688102001,"s":"ADAUSDT","t":506142457,"p":"0.33560000","q":"20.30000000","T":1726688102000,"m":true,"M":true}}
+{"stream":"adausdt@trade","data":{"e":"trade","E":1726688102001,"s":"ADAUSDT","t":506142457,"p":"0.33560000","q":"20.30000000","T":1726688102000,"m":true,"M":true}}
 '''

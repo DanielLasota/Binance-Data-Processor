@@ -2,6 +2,7 @@ import json
 import logging
 import threading
 import time
+import traceback
 from typing import List
 
 from websocket import WebSocketApp, ABNF
@@ -162,11 +163,18 @@ class StreamListener:
             timestamp_of_receive = int(time.time() * 1000 + 0.5)
 
             if 'stream' in message:
-                queue.put_trade_message(message=message, timestamp_of_receive=timestamp_of_receive)
+                queue.put_trade_message(
+                    stream_listener_id=self.id,
+                    message=message,
+                    timestamp_of_receive=timestamp_of_receive
+                )
             self._blackout_supervisor.notify()
 
         def _on_error(ws, error):
             self.logger.error(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
+
+            self.logger.error("Traceback (most recent call last):")
+            self.logger.error(traceback.format_exc())
 
         def _on_close(ws, close_status_code, close_msg):
             self.logger.info(

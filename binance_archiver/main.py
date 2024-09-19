@@ -25,7 +25,7 @@ if __name__ == "__main__":
     azure_blob_parameters_with_key = client.get_secret(blob_parameters_secret_name).value
     container_name = client.get_secret(container_name_secret_name).value
 
-    config = load_config('test_config.json')
+    config = load_config('production_config.json')
 
     data_sink = launch_data_sink(
         config,

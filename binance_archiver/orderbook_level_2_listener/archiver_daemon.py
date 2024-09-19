@@ -2,7 +2,9 @@ import json
 import logging
 import os
 import pprint
+import sys
 import time
+import traceback
 import zipfile
 from datetime import datetime, timezone
 from typing import List, Any, Dict, Tuple
@@ -279,6 +281,9 @@ class ArchiverDaemon:
                 if stream_type is StreamType.DIFFERENCE_DEPTH:
                     queue.currently_accepted_stream_id = old_stream_listener.id.id
 
+                elif stream_type is StreamType.TRADE:
+                    queue.currently_accepted_stream_id = old_stream_listener.id
+
                 old_stream_listener.start_websocket_app()
 
                 new_stream_listener = None
@@ -326,6 +331,8 @@ class ArchiverDaemon:
 
             except Exception as e:
                 logger.error(f'{e}, sth bad happenedd')
+                logger.error("Traceback (most recent call last):")
+                logger.error(traceback.format_exc())
 
             finally:
                 if new_stream_listener is not None:
