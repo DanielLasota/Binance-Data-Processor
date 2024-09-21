@@ -6,16 +6,16 @@ import threading
 import pytest
 import websocket
 
-from binance_archiver.binance_archiver.archiver_daemon import ArchiverDaemon
-from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.setup_logger import setup_logger
-from binance_archiver.binance_archiver.stream_id import StreamId
-from binance_archiver.binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
+from binance_archiver.archiver_daemon import ArchiverDaemon
+from binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.market_enum import Market
+from binance_archiver.setup_logger import setup_logger
+from binance_archiver.stream_id import StreamId
+from binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
     PairsLengthException
-from binance_archiver.binance_archiver.stream_type_enum import StreamType
-from binance_archiver.binance_archiver.blackout_supervisor import BlackoutSupervisor
-from binance_archiver.binance_archiver.trade_queue import TradeQueue
+from binance_archiver.stream_type_enum import StreamType
+from binance_archiver.blackout_supervisor import BlackoutSupervisor
+from binance_archiver.trade_queue import TradeQueue
 
 
 class TestStreamListener:

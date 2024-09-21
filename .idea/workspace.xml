@@ -4,13 +4,29 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="build: rename blackout_supervisor.py file">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/blackoutsupervisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver/blackout_supervisor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver/stream_listener.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/tests/difference_depth_queue_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/stream_listener_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/tests/stream_listener_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/trade_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/tests/trade_queue_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/archiver_daemon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/blackout_supervisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/blackout_supervisor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/fastapi_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/fastapi_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/market_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/market_enum.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/setup_logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/stream_id.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stream_id.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stream_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/stream_type_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stream_type_enum.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/trade_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/trade_queue.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver/url_factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/url_factory.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/blackout_supervisor_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/blackout_supervisor_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/difference_depth_queue_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/flask_manager_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/flask_manager_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/stream_listener_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/stream_listener_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/tests/trade_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/trade_queue_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -233,7 +249,7 @@
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/trade-stream-listener-overlap-mechanism&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/add-listen-only-without-data-sink-feature&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -252,7 +268,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for trade_queue_tests.TestTradeQueue">
+  <component name="RunManager" selected="Python tests.pytest for trade_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -271,7 +287,7 @@
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
@@ -282,30 +298,13 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
@@ -322,7 +321,7 @@
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
@@ -339,7 +338,7 @@
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
@@ -350,12 +349,29 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
+    <configuration name="pytest for trade_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;trade_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python tests.pytest for trade_queue_tests.test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format" />
         <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
-        <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon.TestArchiverDaemonShutdown.test_given_archiver_daemon_when_shutdown_method_during_stream_switch_is_called_then_no_threads_are_left" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
         <item itemvalue="Python tests.pytest for archiver_daemon_tests.TestArchiverDaemon" />
       </list>
     </recent_temporary>
@@ -394,14 +410,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00037" summary="queues singleton with limit of 6 add&#10;&#10;tests add">
-      <option name="closed" value="true" />
-      <created>1723412334425</created>
-      <option name="number" value="00037" />
-      <option name="presentableId" value="LOCAL-00037" />
-      <option name="project" value="LOCAL" />
-      <updated>1723412334425</updated>
     </task>
     <task id="LOCAL-00038" summary="arhciver_daemon __init__ tests add">
       <option name="closed" value="true" />
@@ -787,7 +795,15 @@
       <option name="project" value="LOCAL" />
       <updated>1726734259775</updated>
     </task>
-    <option name="localTasksCounter" value="86" />
+    <task id="LOCAL-00086" summary="build: rename blackout_supervisor.py file">
+      <option name="closed" value="true" />
+      <created>1726736301998</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1726736301998</updated>
+    </task>
+    <option name="localTasksCounter" value="87" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -847,7 +863,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="difference_depth_queue_tests.py add tests" />
     <MESSAGE value="difference_depth_queue.py refactor&#10;&#10;difference_depth_queue_tests.py tests refactor" />
     <MESSAGE value="difference_depth_queue_tests.py tests add&#10;&#10;stream_listener_tests.py&#10;tests add" />
     <MESSAGE value="difference_depth_queue.py&#10;performance update" />
@@ -872,7 +887,8 @@
     <MESSAGE value="build: Dockerfile pythonpath" />
     <MESSAGE value="build: rename binance_archiver subfolder" />
     <MESSAGE value="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update" />
-    <option name="LAST_COMMIT_MESSAGE" value="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update" />
+    <MESSAGE value="build: rename blackout_supervisor.py file" />
+    <option name="LAST_COMMIT_MESSAGE" value="build: rename blackout_supervisor.py file" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

@@ -6,8 +6,8 @@ from queue import Queue
 from typing import Any, Dict, final
 from collections import deque
 
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_id import StreamId
+from binance_archiver.market_enum import Market
+from binance_archiver.stream_id import StreamId
 
 
 class ClassInstancesAmountLimitException(Exception):

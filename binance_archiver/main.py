@@ -10,7 +10,7 @@ from config import load_config
 
 if __name__ == "__main__":
 
-    # load_dotenv('C:/Users/defrg/archer.env')
+    load_dotenv('C:/Users/defrg/archer.env')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),

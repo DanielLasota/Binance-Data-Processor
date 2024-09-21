@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import pprint
-import sys
 import time
 import traceback
 import zipfile
@@ -98,7 +97,6 @@ class ArchiverDaemon:
             self.logger.warning('bad command, try again')
 
     def modify_subscription(self, type_: str, market: str, asset: str):
-
         if type_ == 'subscribe':
             if not asset.upper() in self.instruments[market.lower()]:
                 self.instruments[market.lower()].append(asset.upper())
@@ -135,7 +133,15 @@ class ArchiverDaemon:
         else:
             self.logger.info("All threads have been successfully stopped.")
 
-    def run(
+    def run_witness(
+            self,
+            file_duration_seconds: int,
+            websockets_lifetime_seconds: int,
+            snapshot_fetcher_interval_seconds: int
+    ) -> None:
+        ...
+
+    def run_data_sink(
         self,
         dump_path: str | None,
         file_duration_seconds: int,
@@ -415,7 +421,6 @@ class ArchiverDaemon:
         save_to_zip: bool,
         send_zip_to_blob: bool
     ) -> None:
-
         if not queue.empty():
 
             stream_data = defaultdict(list)
@@ -611,7 +616,7 @@ def launch_data_sink(
     azure_blob_parameters_with_key: str | None = None,
     container_name: str | None = None,
     should_dump_logs: bool | None = False
-):
+) -> ArchiverDaemon:
 
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
 
@@ -656,7 +661,7 @@ def launch_data_sink(
         container_name=container_name
     )
 
-    archiver_daemon.run(
+    archiver_daemon.run_data_sink(
         dump_path=dump_path,
         file_duration_seconds=config["file_duration_seconds"],
         websockets_lifetime_seconds=config["websocket_life_time_seconds"],
@@ -664,6 +669,49 @@ def launch_data_sink(
         save_to_json=config["save_to_json"],
         save_to_zip=config["save_to_zip"],
         send_zip_to_blob=config["send_zip_to_blob"]
+    )
+
+    return archiver_daemon
+
+def launch_data_witness(
+    config,
+    should_dump_logs: bool | None = False
+) -> ArchiverDaemon:
+
+    valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
+
+    instruments = config.get("instruments")
+
+    if not instruments or not isinstance(instruments, dict):
+        raise BadConfigException("Instruments config is missing or not a dictionary.")
+
+    if not (0 < len(instruments) <= 3):
+        raise BadConfigException("Config must contain 1 to 3 markets.")
+
+    for market, pairs in instruments.items():
+        if market not in valid_markets:
+            raise BadConfigException(f"Invalid or not handled market: {market}")
+        if not pairs or not isinstance(pairs, list):
+            raise BadConfigException(f"Pairs for market {market} are missing or invalid.")
+
+    if 60 > config["websocket_life_time_seconds"] > 60*60*23:
+        raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
+
+    logger = setup_logger(should_dump_logs=should_dump_logs)
+
+    logger.info("\n%s", logo)
+    logger.info("Starting Binance Witness...")
+    logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
+
+    archiver_daemon = ArchiverDaemon(
+        instruments=config["instruments"],
+        logger=logger
+    )
+
+    archiver_daemon.run_witness(
+        file_duration_seconds=config["file_duration_seconds"],
+        websockets_lifetime_seconds=config["websocket_life_time_seconds"],
+        snapshot_fetcher_interval_seconds=config["snapshot_fetcher_interval_seconds"],
     )
 
     return archiver_daemon

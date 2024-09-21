@@ -2,9 +2,9 @@ import time
 import json
 import pytest
 
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_id import StreamId
-from binance_archiver.binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
+from binance_archiver.market_enum import Market
+from binance_archiver.stream_id import StreamId
+from binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
@@ -45,7 +45,7 @@ def test_given_pretty_printed_message_from_test_when_reformatting_then_message_i
 
 class TestTradeQueue:
 
-    # TradeQueue singleton init tests
+    # TradeQueue singleton init test
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
         for _ in range(4):
@@ -76,7 +76,7 @@ class TestTradeQueue:
         assert TradeQueue.get_instance_count() == 0
         TradeQueue.clear_instances()
 
-    # _put_with_no_repetitions tests
+    # _put_with_no_repetitions test
     #
 
     def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(
