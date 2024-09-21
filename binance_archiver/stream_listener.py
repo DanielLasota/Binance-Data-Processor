@@ -8,20 +8,13 @@ from typing import List
 from websocket import WebSocketApp, ABNF
 
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.exceptions import WrongListInstanceException, PairsLengthException
 from binance_archiver.market_enum import Market
 from binance_archiver.stream_id import StreamId
 from binance_archiver.stream_type_enum import StreamType
 from binance_archiver.blackout_supervisor import BlackoutSupervisor
 from binance_archiver.trade_queue import TradeQueue
 from binance_archiver.url_factory import URLFactory
-
-
-class PairsLengthException(Exception):
-    ...
-
-
-class WrongListInstanceException(Exception):
-    ...
 
 
 class StreamListener:

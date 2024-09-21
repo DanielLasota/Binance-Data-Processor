@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import json
 
 from binance_archiver import launch_data_sink
-from config import load_config
+from load_config import load_config
 
 
 if __name__ == "__main__":

@@ -3,12 +3,9 @@ from typing import Any, final
 import threading
 import re
 
+from binance_archiver.exceptions import ClassInstancesAmountLimitException
 from binance_archiver.market_enum import Market
 from binance_archiver.stream_id import StreamId
-
-
-class ClassInstancesAmountLimitException(Exception):
-    ...
 
 
 class TradeQueue:

@@ -14,36 +14,37 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
-def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
-
-    pretty_message_from_sample_test = '''            
-        {
-            "stream": "trxusdt@depth@100ms",
-            "data": {
-                "e": "depthUpdate",
-                "E": 1720337869317,
-                "s": "TRXUSDT",
-                "U": 4609985365,
-                "u": 4609985365,
-                "b": [
-                    [
-                        "0.12984000",
-                        "123840.00000000"
-                    ]
-                ],
-                "a": [
-                ]
-            }
-        }
-    '''
-
-    binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
-    assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
-                                      '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
-                                      '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
-
 
 class TestTradeQueue:
+
+    def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format(self):
+
+        pretty_message_from_sample_test = '''            
+            {
+                "stream": "trxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+                    ]
+                }
+            }
+        '''
+
+        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(
+            pretty_message_from_sample_test)
+        assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
+                                          '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
+                                          '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
 
     # TradeQueue singleton init test
     #
@@ -1522,6 +1523,7 @@ class TestTradeQueue:
         TradeQueue.clear_instances()
 
     def test_checking_size_when_method_invocation_then_result_is_ok(self):
+        """change on _new_listener_message_3"""
         config = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
@@ -1649,7 +1651,7 @@ class TestTradeQueue:
             "M": true
           }
         }
-        ''')  # change here
+        ''')
 
         _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {

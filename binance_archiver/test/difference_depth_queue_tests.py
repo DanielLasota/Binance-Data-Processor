@@ -16,36 +16,39 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
-def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
-
-    pretty_message_from_sample_test = '''            
-        {
-            "stream": "trxusdt@depth@100ms",
-            "data": {
-                "e": "depthUpdate",
-                "E": 1720337869317,
-                "s": "TRXUSDT",
-                "U": 4609985365,
-                "u": 4609985365,
-                "b": [
-                    [
-                        "0.12984000",
-                        "123840.00000000"
-                    ]
-                ],
-                "a": [
-                ]
-            }
-        }
-    '''
-
-    binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
-    assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
-                                      '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
-                                      '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
-
 
 class TestDifferenceDepthQueue:
+
+    # format_message_string_that_is_pretty_to_binance_string_format method from above
+    #
+    def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format(self):
+
+        pretty_message_from_sample_test = '''            
+            {
+                "stream": "trxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+                    ]
+                }
+            }
+        '''
+
+        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(
+            pretty_message_from_sample_test)
+        assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
+                                          '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
+                                          '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
 
     # DifferenceDepthQueue singleton init test
     #

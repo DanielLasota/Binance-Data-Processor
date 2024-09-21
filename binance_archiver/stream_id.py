@@ -2,9 +2,7 @@ import uuid
 import time
 from typing import Tuple, List
 
-
-class BadStreamIdParameter(Exception):
-    ...
+from binance_archiver.exceptions import BadStreamIdParameter
 
 
 class StreamId:
