@@ -20,12 +20,12 @@ from queue import Queue
 from .abc import Subject, Observer
 from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
 from .fastapi_manager import FastAPIManager
-from .run_mode_enum import RunMode
+from binance_archiver.enum.run_mode_enum import RunMode
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
-from .market_enum import Market
-from .stream_type_enum import StreamType
+from binance_archiver.enum.market_enum import Market
+from binance_archiver.enum.stream_type_enum import StreamType
 from .trade_queue import TradeQueue
 from .url_factory import URLFactory
 from binance_archiver.logo import logo

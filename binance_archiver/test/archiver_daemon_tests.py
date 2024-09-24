@@ -3,11 +3,9 @@ import re
 import threading
 import time
 from datetime import datetime, timezone
-from multiprocessing.connection import Listener
 from queue import Queue
 from unittest.mock import patch, MagicMock
 import pytest
-from pydantic_core.core_schema import DataclassArgsSchema
 
 from ..abc import Observer
 from ..exceptions import (
@@ -29,14 +27,14 @@ from ..archiver_daemon import (
     TimeUtils, Whistleblower, SnapshotManager
 )
 from ..fastapi_manager import FastAPIManager
-from ..run_mode_enum import RunMode
+from binance_archiver.enum.run_mode_enum import RunMode
 
 from ..setup_logger import setup_logger
 from ..difference_depth_queue import DifferenceDepthQueue
 from ..stream_id import StreamId
 from ..trade_queue import TradeQueue
-from ..market_enum import Market
-from ..stream_type_enum import StreamType
+from binance_archiver.enum.market_enum import Market
+from binance_archiver.enum.stream_type_enum import StreamType
 
 
 class TestArchiverFacade:
@@ -1461,7 +1459,7 @@ class TestArchiverFacade:
 
             data_sink_facade = launch_data_listener(config=config)
 
-            assert isinstance(data_sink_facade, DataSinkFacade), "ArchiverFacade should be returned"
+            assert isinstance(data_sink_facade, ListenerFacade), "ArchiverFacade should be returned"
 
             data_sink_facade.shutdown()
             DifferenceDepthQueue.clear_instances()

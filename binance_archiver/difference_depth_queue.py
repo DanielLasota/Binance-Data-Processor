@@ -7,8 +7,8 @@ from typing import Any, Dict, final
 from collections import deque
 
 from binance_archiver.exceptions import ClassInstancesAmountLimitException
-from binance_archiver.market_enum import Market
-from binance_archiver.run_mode_enum import RunMode
+from binance_archiver.enum.market_enum import Market
+from binance_archiver.enum.run_mode_enum import RunMode
 from binance_archiver.stream_id import StreamId
 
 
