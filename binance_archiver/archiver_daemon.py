@@ -31,25 +31,19 @@ from .url_factory import URLFactory
 from binance_archiver.logo import logo
 
 
-class ArchiverFacade(Subject):
+class ListenerFacade(Subject):
     def __init__(
             self,
             config: dict,
             logger: logging.Logger,
-            run_mode: RunMode,
-            azure_blob_parameters_with_key: str | None = None,
-            container_name: str | None = None,
-            init_observers: List[Observer] | None = None
+            init_observers: list[Observer] | None = None
     ) -> None:
-        self.run_mode = run_mode
         self.config = config
         self.logger = logger
-        self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
-        self.container_name = container_name
         self.instruments = config["instruments"]
         self.global_shutdown_flag = threading.Event()
 
-        self.queue_pool = QueuePool(run_mode=run_mode)
+        self.queue_pool = QueuePool(RunMode.LISTENER)
         self.stream_service = StreamService(
             instruments=self.instruments,
             logger=self.logger,
@@ -57,34 +51,18 @@ class ArchiverFacade(Subject):
             global_shutdown_flag=self.global_shutdown_flag
         )
 
-        if run_mode is RunMode.DATA_SINK:
-            self.command_line_interface = CommandLineInterface(
-                instruments=self.instruments,
-                logger=self.logger,
-                stream_service=self.stream_service
-            )
-            self.fast_api_manager = FastAPIManager()
-            self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
+        self._observers = init_observers if init_observers is not None else []
 
-            self.data_saver = DataSaver(
-                logger=self.logger,
-                azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
-                container_name=self.container_name,
-                global_shutdown_flag=self.global_shutdown_flag
-            )
-        else:
-            self._observers = init_observers if init_observers is not None else []
-
-            self.whistleblower = Whistleblower(
-                observers=self._observers,
-                global_queue=self.queue_pool.global_queue,
-                global_shutdown_flag=self.global_shutdown_flag
-            )
+        self.whistleblower = Whistleblower(
+            observers=self._observers,
+            global_queue=self.queue_pool.global_queue,
+            global_shutdown_flag=self.global_shutdown_flag
+        )
 
         self.snapshot_manager = SnapshotManager(
             instruments=self.instruments,
             logger=self.logger,
-            data_saver=self.data_saver if run_mode is RunMode.DATA_SINK else None,
+            data_saver=None,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
@@ -100,6 +78,95 @@ class ArchiverFacade(Subject):
 
     def run(self) -> None:
         dump_path = self.config.get("dump_path", "dump/")
+
+        websockets_lifetime_seconds = self.config["websocket_life_time_seconds"]
+        snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
+
+        self.stream_service.run_streams(websockets_lifetime_seconds=websockets_lifetime_seconds)
+
+        self.whistleblower.run_whistleblower()
+
+        while not any(queue_.qsize() != 0 for queue_ in self.queue_pool.queue_lookup.values()):
+            time.sleep(0.001)
+
+        time.sleep(5)
+
+        self.snapshot_manager.run_snapshots(
+            dump_path=dump_path,
+            interval=snapshot_fetcher_interval_seconds,
+            save_to_json=False,
+            save_to_zip=False,
+            send_zip_to_blob=False,
+            run_mode=RunMode.LISTENER,
+            global_queue=self.queue_pool.global_queue
+        )
+
+    def shutdown(self):
+        self.logger.info("Shutting down archiver")
+        self.global_shutdown_flag.set()
+
+        # time.sleep(10)
+
+        remaining_threads = [
+            thread for thread in threading.enumerate()
+            if thread is not threading.current_thread() and thread.is_alive()
+        ]
+
+        if remaining_threads:
+            self.logger.warning(f"Some threads are still alive:")
+            for thread in remaining_threads:
+                self.logger.warning(f"Thread {thread.name} is still alive {thread.is_alive()}")
+        else:
+            self.logger.info("All threads have been successfully stopped.")
+
+
+class DataSinkFacade:
+    def __init__(
+            self,
+            config: dict,
+            logger: logging.Logger,
+            azure_blob_parameters_with_key: str | None = None,
+            container_name: str | None = None,
+    ) -> None:
+        self.config = config
+        self.logger = logger
+        self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
+        self.container_name = container_name
+        self.instruments = config["instruments"]
+        self.global_shutdown_flag = threading.Event()
+
+        self.queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+        self.stream_service = StreamService(
+            instruments=self.instruments,
+            logger=self.logger,
+            queue_pool=self.queue_pool,
+            global_shutdown_flag=self.global_shutdown_flag
+        )
+
+        self.command_line_interface = CommandLineInterface(
+            instruments=self.instruments,
+            logger=self.logger,
+            stream_service=self.stream_service
+        )
+        self.fast_api_manager = FastAPIManager()
+        self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
+
+        self.data_saver = DataSaver(
+            logger=self.logger,
+            azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
+            container_name=self.container_name,
+            global_shutdown_flag=self.global_shutdown_flag
+        )
+
+        self.snapshot_manager = SnapshotManager(
+            instruments=self.instruments,
+            logger=self.logger,
+            data_saver=self.data_saver,
+            global_shutdown_flag=self.global_shutdown_flag
+        )
+
+    def run(self) -> None:
+        dump_path = self.config.get("dump_path", "dump/")
         file_duration_seconds = self.config["file_duration_seconds"]
         websockets_lifetime_seconds = self.config["websocket_life_time_seconds"]
         snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
@@ -110,24 +177,16 @@ class ArchiverFacade(Subject):
         save_to_zip = self.config["save_to_zip"] if 'save_to_zip' in self.config else None
         send_zip_to_blob = self.config["send_zip_to_blob"] if 'send_zip_to_blob' in self.config else None
 
-        if self.run_mode == RunMode.DATA_SINK:
-            self.fast_api_manager.run()
+        self.fast_api_manager.run()
 
-            self.data_saver.run_data_saver(
-                queue_pool=self.queue_pool,
-                dump_path=dump_path,
-                file_duration_seconds=file_duration_seconds,
-                save_to_json=save_to_json,
-                save_to_zip=save_to_zip,
-                send_zip_to_blob=send_zip_to_blob
-            )
-        else:
-            self.whistleblower.run_whistleblower()
-
-        while not any(queue_.qsize() != 0 for queue_ in self.queue_pool.queue_lookup.values()):
-            time.sleep(0.001)
-
-        time.sleep(5)
+        self.data_saver.run_data_saver(
+            queue_pool=self.queue_pool,
+            dump_path=dump_path,
+            file_duration_seconds=file_duration_seconds,
+            save_to_json=save_to_json,
+            save_to_zip=save_to_zip,
+            send_zip_to_blob=send_zip_to_blob
+        )
 
         self.snapshot_manager.run_snapshots(
             dump_path=dump_path,
@@ -135,7 +194,7 @@ class ArchiverFacade(Subject):
             save_to_json=save_to_json,
             save_to_zip=save_to_zip,
             send_zip_to_blob=send_zip_to_blob,
-            run_mode=self.run_mode,
+            run_mode=RunMode.DATA_SINK,
             global_queue=self.queue_pool.global_queue
         )
 
@@ -143,10 +202,7 @@ class ArchiverFacade(Subject):
         self.logger.info("Shutting down archiver")
         self.global_shutdown_flag.set()
 
-        if self.run_mode == RunMode.DATA_SINK:
-            self.fast_api_manager.shutdown()
-
-        # time.sleep(10)
+        self.fast_api_manager.shutdown()
 
         remaining_threads = [
             thread for thread in threading.enumerate()
@@ -388,7 +444,7 @@ class SnapshotManager:
         self,
         instruments: dict,
         logger: logging.Logger,
-        data_saver: DataSaver,
+        data_saver: DataSaver | None,
         global_shutdown_flag: threading.Event
     ):
         self.instruments = instruments
@@ -793,7 +849,7 @@ def launch_data_sink(
         azure_blob_parameters_with_key: str | None = None,
         container_name: str | None = None,
         should_dump_logs: bool = False
-) -> ArchiverFacade:
+) -> DataSinkFacade:
 
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
 
@@ -832,10 +888,9 @@ def launch_data_sink(
     if not os.path.exists(dump_path):
         os.makedirs(dump_path)
 
-    archiver_facade = ArchiverFacade(
+    archiver_facade = DataSinkFacade(
         config=config,
         logger=logger,
-        run_mode=RunMode.DATA_SINK,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
         container_name=container_name
     )
@@ -848,7 +903,7 @@ def launch_data_listener(
         config,
         should_dump_logs: bool = False,
         init_observers: List[object] = None
-) -> ArchiverFacade:
+) -> ListenerFacade:
 
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
 
@@ -875,13 +930,12 @@ def launch_data_listener(
     logger.info("Starting Binance Listener...")
     logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
 
-    archiver_facade = ArchiverFacade(
+    listener_facade = ListenerFacade(
         config=config,
         logger=logger,
-        run_mode=RunMode.LISTENER,
         init_observers=init_observers
     )
 
-    archiver_facade.run()
+    listener_facade.run()
 
-    return archiver_facade
+    return listener_facade

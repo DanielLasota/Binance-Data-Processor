@@ -5,7 +5,7 @@ import time
 
 class ConcreteObserver(Observer):
     def update(self, message):
-        # print(f"message: {message}!")
+        print(f"message: {message}!")
         ...
 
 if __name__ == '__main__':

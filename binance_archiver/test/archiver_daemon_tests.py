@@ -3,9 +3,11 @@ import re
 import threading
 import time
 from datetime import datetime, timezone
+from multiprocessing.connection import Listener
 from queue import Queue
 from unittest.mock import patch, MagicMock
 import pytest
+from pydantic_core.core_schema import DataclassArgsSchema
 
 from ..abc import Observer
 from ..exceptions import (
@@ -18,13 +20,15 @@ from ..exceptions import (
 from ..archiver_daemon import (
     launch_data_sink,
     launch_data_listener,
-    ArchiverFacade,
+    DataSinkFacade,
+    ListenerFacade,
     StreamService,
     DataSaver,
     CommandLineInterface,
     QueuePool,
     TimeUtils, Whistleblower, SnapshotManager
 )
+from ..fastapi_manager import FastAPIManager
 from ..run_mode_enum import RunMode
 
 from ..setup_logger import setup_logger
@@ -41,7 +45,7 @@ class TestArchiverFacade:
         assert True
 
 
-    class TestArchiverFacade:
+    class TestDataSinkFacade:
 
         def test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_exception_is_thrown(self):
             config = {
@@ -60,7 +64,7 @@ class TestArchiverFacade:
             container_name = 'some_container_name'
 
             with pytest.raises(BadAzureParameters) as excinfo:
-                archiver_facade = launch_data_sink(
+                data_sink_facade = launch_data_sink(
                     config=config,
                     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
                     container_name=container_name
@@ -85,7 +89,7 @@ class TestArchiverFacade:
             container_name = ''
 
             with pytest.raises(BadAzureParameters) as excinfo:
-                archiver_facade = launch_data_sink(
+                data_sink_facade = launch_data_sink(
                     config=config,
                     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
                     container_name=container_name
@@ -107,7 +111,7 @@ class TestArchiverFacade:
             }
 
             logger = setup_logger()
-            archiver_facade = ArchiverFacade(config=config, logger=logger, run_mode=RunMode.DATA_SINK)
+            archiver_facade = DataSinkFacade(config=config, logger=logger)
 
             assert not archiver_facade.global_shutdown_flag.is_set()
 
@@ -132,7 +136,7 @@ class TestArchiverFacade:
             }
 
             logger = setup_logger()
-            archiver_facade = ArchiverFacade(config=config, logger=logger, run_mode=RunMode.DATA_SINK)
+            archiver_facade = DataSinkFacade(config=config, logger=logger)
 
             queue_pool = archiver_facade.queue_pool
 
@@ -166,7 +170,7 @@ class TestArchiverFacade:
                 "send_zip_to_blob": False
             }
 
-            archiver_facade = launch_data_sink(config)
+            data_sink_facade = launch_data_sink(config)
 
             time.sleep(3)
 
@@ -195,7 +199,7 @@ class TestArchiverFacade:
 
             assert len(daemon_threads) == total_expected_threads
 
-            archiver_facade.shutdown()
+            data_sink_facade.shutdown()
 
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
@@ -208,47 +212,20 @@ class TestArchiverFacade:
                 "websocket_life_time_seconds": 70
             }
             logger = setup_logger()
-            observers = [MagicMock(spec=Observer)]
-            archiver_facade = ArchiverFacade(
+
+            data_sink_facade = DataSinkFacade(
                 config=config,
-                logger=logger,
-                run_mode=RunMode.LISTENER,
-                init_observers=observers
+                logger=logger
             )
 
-            assert archiver_facade.run_mode == RunMode.LISTENER
-            assert archiver_facade._observers == observers
-            assert isinstance(archiver_facade.whistleblower, Whistleblower)
-            assert archiver_facade.whistleblower.observers == observers
+            assert isinstance(data_sink_facade.queue_pool, QueuePool)
+            assert isinstance(data_sink_facade.stream_service, StreamService)
+            assert isinstance(data_sink_facade.command_line_interface, CommandLineInterface)
+            assert isinstance(data_sink_facade.fast_api_manager, FastAPIManager)
+            assert isinstance(data_sink_facade.data_saver, DataSaver)
+            assert isinstance(data_sink_facade.snapshot_manager, SnapshotManager)
 
-            archiver_facade.shutdown()
-            DifferenceDepthQueue.clear_instances()
-            TradeQueue.clear_instances()
-
-        def test_attach_and_detach_observers(self):
-            config = {
-                "instruments": {
-                    "spot": ["BTCUSDT"]
-                },
-                "websocket_life_time_seconds": 70
-            }
-            logger = setup_logger()
-            observer1 = MagicMock(spec=Observer)
-            observer2 = MagicMock(spec=Observer)
-            archiver_facade = ArchiverFacade(
-                config=config,
-                logger=logger,
-                run_mode=RunMode.LISTENER,
-                init_observers=[observer1]
-            )
-
-            archiver_facade.attach(observer2)
-            assert archiver_facade._observers == [observer1, observer2], "Observer2 should be attached"
-
-            archiver_facade.detach(observer1)
-            assert archiver_facade._observers == [observer2], "Observer1 should be detached"
-
-            archiver_facade.shutdown()
+            data_sink_facade.shutdown()
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
@@ -390,6 +367,298 @@ class TestArchiverFacade:
             del archiver_daemon
 
 
+    class TestListenerFacade:
+
+        def test_given_archiver_facade_when_init_then_global_shutdown_flag_is_false(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
+            logger = setup_logger()
+            listener_facade = ListenerFacade(config=config, logger=logger)
+
+            assert not listener_facade.global_shutdown_flag.is_set()
+
+            del listener_facade
+
+            TradeQueue.clear_instances()
+            DifferenceDepthQueue.clear_instances()
+
+        def test_given_archiver_facade_when_init_then_queues_are_set_properly(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT"],
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
+            logger = setup_logger()
+            listener_facade = ListenerFacade(config=config, logger=logger)
+
+            queue_pool = listener_facade.queue_pool
+
+            assert isinstance(queue_pool.spot_orderbook_stream_message_queue, DifferenceDepthQueue)
+            assert isinstance(queue_pool.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
+            assert isinstance(queue_pool.coin_m_orderbook_stream_message_queue, DifferenceDepthQueue)
+
+            assert isinstance(queue_pool.spot_trade_stream_message_queue, TradeQueue)
+            assert isinstance(queue_pool.usd_m_futures_trade_stream_message_queue, TradeQueue)
+            assert isinstance(queue_pool.coin_m_trade_stream_message_queue, TradeQueue)
+
+            assert len(TradeQueue._instances) == 3
+            assert len(DifferenceDepthQueue._instances) == 3
+
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_given_archiver_facade_run_call_when_threads_invoked_then_correct_threads_are_started(self):
+
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT"],
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 70,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
+            data_listener_facade = launch_data_listener(config)
+
+            time.sleep(5)
+
+            num_markets = len(config["instruments"])
+
+            expected_stream_service_threads = num_markets * 2
+            expected_snapshot_daemon_threads = num_markets
+
+            total_expected_threads = (expected_stream_service_threads + expected_snapshot_daemon_threads)
+
+            active_threads = threading.enumerate()
+            daemon_threads = [thread for thread in active_threads if 'stream_service' in thread.name or
+                              'stream_writer' in thread.name or 'snapshot_daemon'
+                              in thread.name]
+
+            thread_names = [thread.name for thread in daemon_threads]
+
+            for market in ["SPOT", "USD_M_FUTURES", "COIN_M_FUTURES"]:
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names
+                assert f'snapshot_daemon: market: {Market[market]}' in thread_names
+
+            assert len(daemon_threads) == total_expected_threads
+
+            data_listener_facade.shutdown()
+
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_archiver_facade_initialization_in_listener_mode(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT"]
+                },
+                "websocket_life_time_seconds": 70
+            }
+            logger = setup_logger()
+            observers = [MagicMock(spec=Observer)]
+            archiver_facade = ListenerFacade(
+                config=config,
+                logger=logger,
+                init_observers=observers
+            )
+
+            assert archiver_facade._observers == observers
+            assert isinstance(archiver_facade.whistleblower, Whistleblower)
+            assert archiver_facade.whistleblower.observers == observers
+
+            archiver_facade.shutdown()
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_attach_and_detach_observers(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT"]
+                },
+                "websocket_life_time_seconds": 70
+            }
+            logger = setup_logger()
+            observer1 = MagicMock(spec=Observer)
+            observer2 = MagicMock(spec=Observer)
+            listener_facade = ListenerFacade(
+                config=config,
+                logger=logger,
+                init_observers=[observer1]
+            )
+
+            listener_facade.attach(observer2)
+            assert listener_facade._observers == [observer1, observer2], "Observer2 should be attached"
+
+            listener_facade.detach(observer1)
+            assert listener_facade._observers == [observer2], "Observer1 should be detached"
+
+            listener_facade.shutdown()
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_given_archiver_facade_when_shutdown_called_then_no_threads_are_left(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT"],
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
+            archiver_facade = launch_data_sink(config)
+
+            time.sleep(15)
+
+            archiver_facade.shutdown()
+
+            active_threads = []
+
+            for _ in range(20):
+                active_threads = [
+                    thread for thread in threading.enumerate()
+                    if thread is not threading.current_thread()
+                ]
+                if not active_threads:
+                    break
+                time.sleep(1)
+
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+            assert len(active_threads) == 0, f"Still active threads after shutdown: {[thread.name for thread in active_threads]}"
+
+            del archiver_facade
+
+        @pytest.mark.parametrize('execution_number', range(1))
+        def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(self,execution_number):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
+            archiver_daemon = launch_data_listener(config)
+
+            time.sleep(5)
+
+            archiver_daemon.shutdown()
+
+            active_threads = []
+
+            for _ in range(20):
+                active_threads = [
+                    thread for thread in threading.enumerate()
+                    if thread is not threading.current_thread()
+                ]
+                if not active_threads:
+                    break
+                time.sleep(1)
+
+            for _ in active_threads: print(_)
+
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+            assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
+                                              f": {[thread.name for thread in active_threads]}")
+
+            del archiver_daemon
+
+        @pytest.mark.parametrize('execution_number', range(1))
+        def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(self,execution_number):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
+                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
+                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
+
+                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                                       "DOTUSD_PERP"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 60,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
+            }
+
+            archiver_daemon = launch_data_listener(config)
+
+            time.sleep(5)
+
+            archiver_daemon.shutdown()
+
+            active_threads = []
+
+            for _ in range(20):
+                active_threads = [
+                    thread for thread in threading.enumerate()
+                    if thread is not threading.current_thread()
+                ]
+                if not active_threads:
+                    break
+                time.sleep(1)
+
+            for _ in active_threads: print(_)
+
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+            assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
+                                              f": {[thread.name for thread in active_threads]}")
+
+            del archiver_daemon
+
+
     class TestObserverPattern:
 
         class MockObserver(Observer):
@@ -408,10 +677,9 @@ class TestArchiverFacade:
             }
             logger = setup_logger()
             observer = self.MockObserver()
-            archiver_facade = ArchiverFacade(
+            archiver_facade = ListenerFacade(
                 config=config,
                 logger=logger,
-                run_mode=RunMode.LISTENER,
                 init_observers=[observer]
             )
 
@@ -1118,6 +1386,24 @@ class TestArchiverFacade:
 
             assert str(excinfo.value) == "Invalid or not handled market: mining"
 
+        def test_given_valid_config_then_archiver_facade_is_returned(self):
+            config = {
+                "instruments": {
+                    "spot": ["BTCUSDT"]
+                },
+                "file_duration_seconds": 30,
+                "snapshot_fetcher_interval_seconds": 60,
+                "websocket_life_time_seconds": 70
+            }
+
+            data_sink_listener = launch_data_listener(config=config)
+
+            assert isinstance(data_sink_listener, ListenerFacade), "ArchiverFacade should be returned"
+
+            data_sink_listener.shutdown()
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
 
     class TestLaunchDataListener:
 
@@ -1173,10 +1459,10 @@ class TestArchiverFacade:
                 "websocket_life_time_seconds": 70
             }
 
-            archiver_facade = launch_data_listener(config=config)
+            data_sink_facade = launch_data_listener(config=config)
 
-            assert isinstance(archiver_facade, ArchiverFacade), "ArchiverFacade should be returned"
+            assert isinstance(data_sink_facade, DataSinkFacade), "ArchiverFacade should be returned"
 
-            archiver_facade.shutdown()
+            data_sink_facade.shutdown()
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
