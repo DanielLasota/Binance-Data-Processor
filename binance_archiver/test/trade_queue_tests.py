@@ -1,8 +1,12 @@
+import queue
 import time
 import json
+from queue import Queue
+
 import pytest
 
 from binance_archiver.market_enum import Market
+from binance_archiver.run_mode_enum import RunMode
 from binance_archiver.stream_id import StreamId
 from binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
 
@@ -50,10 +54,10 @@ class TestTradeQueue:
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
         for _ in range(4):
-            TradeQueue(Market.SPOT)
+            TradeQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         with pytest.raises(ClassInstancesAmountLimitException):
-            TradeQueue(Market.SPOT)
+            TradeQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         TradeQueue.clear_instances()
 
@@ -62,7 +66,7 @@ class TestTradeQueue:
         assert instance_count == 0
 
         for _ in range(4):
-            TradeQueue(Market.SPOT)
+            TradeQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         assert TradeQueue.get_instance_count() == 4
 
@@ -70,11 +74,92 @@ class TestTradeQueue:
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
         for _ in range(4):
-            TradeQueue(Market.SPOT)
+            TradeQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         TradeQueue.clear_instances()
 
         assert TradeQueue.get_instance_count() == 0
+        TradeQueue.clear_instances()
+
+    # run_mode tests
+    #
+    def test_given_data_listener_mode_and_global_queue_when_initializing_trade_queue_then_queue_is_set_to_global_queue(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        assert tq.queue is global_queue
+        TradeQueue.clear_instances()
+
+    def test_given_trade_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['BTCUSDT'])
+        tq.currently_accepted_stream_id = stream_listener_id
+        message = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+            "e": "trade",
+            "E": 123456789,
+            "s": "BTCUSDT",
+            "t": 12345,
+            "p": "50000.00",
+            "q": "0.1",
+            "b": 88,
+            "a": 50,
+            "T": 123456789,
+            "m": true,
+            "M": true
+        }
+        ''')
+
+        timestamp_of_receive = 1234567890
+        tq.put_trade_message(stream_listener_id, message, timestamp_of_receive)
+        assert not global_queue.empty()
+        queued_message, received_timestamp = global_queue.get_nowait()
+        assert queued_message == message
+        assert received_timestamp == timestamp_of_receive
+        TradeQueue.clear_instances()
+
+    def test_given_trade_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['ETHUSDT'])
+        tq.currently_accepted_stream_id = stream_listener_id
+        message = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+            "e": "trade",
+            "E": 123456789,
+            "s": "ETHUSDT",
+            "t": 12346,
+            "p": "4000.00",
+            "q": "0.5",
+            "b": 89,
+            "a": 51,
+            "T": 123456789,
+            "m": false,
+            "M": true
+        }
+        ''')
+        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
+        timestamp_of_receive = 1234567890
+        tq.put_trade_message(stream_listener_id, formatted_message, timestamp_of_receive)
+        assert tq.qsize() == 1
+        assert not tq.empty()
+        queued_message, received_timestamp = tq.get_nowait()
+        assert queued_message == formatted_message
+        assert received_timestamp == timestamp_of_receive
+        assert tq.empty()
+        TradeQueue.clear_instances()
+
+    def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        assert tq.empty()
+        with pytest.raises(queue.Empty):
+            tq.get_nowait()
+        TradeQueue.clear_instances()
+
+    def test_given_data_listener_mode_without_global_queue_when_initializing_trade_queue_then_value_error_is_raised(self):
+        with pytest.raises(ValueError):
+            tq = TradeQueue(market=Market.SPOT, run_mode=RunMode.LISTENER)
         TradeQueue.clear_instances()
 
     # _put_with_no_repetitions test
@@ -96,7 +181,7 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        trade_queue: TradeQueue = TradeQueue(market=Market.SPOT)
+        trade_queue: TradeQueue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -153,7 +238,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -411,7 +496,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -646,7 +731,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -868,7 +953,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -1090,7 +1175,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -1312,7 +1397,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -1536,7 +1621,7 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 

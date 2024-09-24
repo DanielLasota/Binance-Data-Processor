@@ -1,11 +1,15 @@
+import queue
 import time
 from collections import deque
 import json
+from queue import Queue
+
 import pytest
 
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue, \
     ClassInstancesAmountLimitException
 from binance_archiver.market_enum import Market
+from binance_archiver.run_mode_enum import RunMode
 from binance_archiver.stream_id import StreamId
 
 
@@ -54,10 +58,10 @@ class TestDifferenceDepthQueue:
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
         for _ in range(4):
-            DifferenceDepthQueue(Market.SPOT)
+            DifferenceDepthQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         with pytest.raises(ClassInstancesAmountLimitException):
-            DifferenceDepthQueue(Market.SPOT)
+            DifferenceDepthQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         DifferenceDepthQueue.clear_instances()
 
@@ -66,7 +70,7 @@ class TestDifferenceDepthQueue:
         assert instance_count == 0
 
         for _ in range(4):
-            DifferenceDepthQueue(Market.SPOT)
+            DifferenceDepthQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         assert DifferenceDepthQueue.get_instance_count() == 4
 
@@ -74,7 +78,7 @@ class TestDifferenceDepthQueue:
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
         for _ in range(4):
-            DifferenceDepthQueue(Market.SPOT)
+            DifferenceDepthQueue(Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         DifferenceDepthQueue.clear_instances()
 
@@ -97,7 +101,7 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -166,7 +170,7 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -558,7 +562,7 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -861,7 +865,7 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         pairs = config['instruments']['spot']
 
@@ -1150,6 +1154,85 @@ class TestDifferenceDepthQueue:
 
         DifferenceDepthQueue.clear_instances()
 
+    # run_mode tests
+    #
+    def test_given_data_listener_mode_and_global_queue_when_initializing_difference_depth_queue_then_queue_is_set_to_global_queue(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        assert ddq.queue is global_queue
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_difference_depth_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['BTCUSDT'])
+        ddq.currently_accepted_stream_id = stream_listener_id.id
+        message = '''
+        {
+            "stream": "btcusdt@depth@100ms",
+            "data": {
+                "E": 123456789,
+                "b": [
+                    ["50000.00", "1.0"]
+                ],
+                "a": [
+                    ["51000.00", "2.0"]
+                ]
+            }
+        }
+        '''
+        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
+        timestamp_of_receive = 1234567890
+        ddq.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        assert not global_queue.empty()
+        queued_message, received_timestamp = global_queue.get_nowait()
+        assert queued_message == formatted_message
+        assert received_timestamp == timestamp_of_receive
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['ETHUSDT'])
+        ddq.currently_accepted_stream_id = stream_listener_id.id
+        message = '''
+        {
+            "stream": "ethusdt@depth@100ms",
+            "data": {
+                "E": 123456789,
+                "b": [
+                    ["4000.00", "1.0"]
+                ],
+                "a": [
+                    ["4100.00", "2.0"]
+                ]
+            }
+        }
+        '''
+        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
+        timestamp_of_receive = 1234567890
+        ddq.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        assert ddq.qsize() == 1
+        assert not ddq.empty()
+        queued_message, received_timestamp = ddq.get_nowait()
+        assert queued_message == formatted_message
+        assert received_timestamp == timestamp_of_receive
+        assert ddq.empty()
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.LISTENER, global_queue=global_queue)
+        assert ddq.empty()
+        with pytest.raises(queue.Empty):
+            ddq.get_nowait()
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_data_listener_mode_without_global_queue_when_initializing_difference_depth_queue_then_value_error_is_raised(self):
+        with pytest.raises(ValueError):
+            ddq = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.LISTENER)
+        DifferenceDepthQueue.clear_instances()
+
     # _append_message_to_compare_structure
     #
     def test_given_putting_message_when_adding_two_different_stream_listeners_message_throws_to_compare_structure_then_structure_is_ok(self):
@@ -1169,7 +1252,7 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -1450,7 +1533,7 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -1987,7 +2070,7 @@ class TestDifferenceDepthQueue:
         }
 
         pairs = config['instruments']['spot']
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -2268,7 +2351,7 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         old_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -2552,7 +2635,7 @@ class TestDifferenceDepthQueue:
         }
 
         pairs = config['instruments']['spot']
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -3133,7 +3216,7 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
         first_stream_listener_id = StreamId(pairs=pairs)
         time.sleep(0.01)
@@ -3695,7 +3778,7 @@ class TestDifferenceDepthQueue:
 
     def test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned(self):
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
         config = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
@@ -4271,7 +4354,7 @@ class TestDifferenceDepthQueue:
 
     def test_given_clearing_difference_depth_queue_when_invocation_then_qsize_equals_zero(self):
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
         config = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
@@ -4840,7 +4923,7 @@ class TestDifferenceDepthQueue:
 
     def test_given_checking_empty_when_method_invocation_then_result_is_ok(self):
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
         config = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
@@ -5429,7 +5512,7 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
         pairs = config['instruments']['spot']
 
         first_stream_listener_id = StreamId(pairs=pairs)
@@ -6235,7 +6318,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
         for _ in range(number_of_runs):
-            difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+            difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
 
             old_stream_listener_id = StreamId(pairs=pairs)
             time.sleep(0.01)

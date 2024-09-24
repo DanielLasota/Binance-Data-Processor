@@ -41,10 +41,10 @@
       "DOTUSD_PERP"
     ]
   },
-  "file_duration_seconds": 300,
+  "file_duration_seconds": 30,
   "snapshot_fetcher_interval_seconds": 60,
-  "websocket_life_time_seconds": 300,
-  "save_to_json": true,
-  "save_to_zip": true,
+  "websocket_life_time_seconds": 60,
+  "save_to_json": false,
+  "save_to_zip": false,
   "send_zip_to_blob": false
 }

@@ -5,6 +5,7 @@ import re
 
 from binance_archiver.exceptions import ClassInstancesAmountLimitException
 from binance_archiver.market_enum import Market
+from binance_archiver.run_mode_enum import RunMode
 from binance_archiver.stream_id import StreamId
 
 
@@ -32,27 +33,28 @@ class TradeQueue:
         with cls._lock:
             cls._instances.clear()
 
-    def __init__(self, market: Market):
+    def __init__(self, market: Market, run_mode: RunMode, global_queue: Queue | None = None):
         self.lock = threading.Lock()
         self._market = market
-        self.queue = Queue()
         self.did_websockets_switch_successfully = False
         self.new_stream_listener_id: StreamId | None = None
         self.currently_accepted_stream_id: StreamId | None = None
         self.no_longer_accepted_stream_id: StreamId = StreamId(pairs=[])
         self.last_message_signs: str = ''
 
+        self.run_mode = run_mode
+
+        if run_mode is RunMode.LISTENER and global_queue is None:
+            raise ValueError('run_mode is RunMode.Listener and global_queue is None')
+
+        self.queue = Queue() if run_mode is RunMode.DATA_SINK else global_queue
+
     @property
     @final
     def market(self):
         return self._market
 
-    def put_trade_message(
-            self,
-            stream_listener_id: StreamId,
-            message: str,
-            timestamp_of_receive: int
-    ) -> None:
+    def put_trade_message(self,stream_listener_id: StreamId,message: str,timestamp_of_receive: int) -> None:
 
         with self.lock:
             if stream_listener_id.id == self.no_longer_accepted_stream_id.id:

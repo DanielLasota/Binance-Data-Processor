@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import pprint
+import queue
 import time
 import traceback
 import zipfile
@@ -14,9 +15,12 @@ from azure.storage.blob import BlobServiceClient
 import io
 import threading
 import requests
+from queue import Queue
 
+from .abc import Subject, Observer
 from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
 from .fastapi_manager import FastAPIManager
+from .run_mode_enum import RunMode
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
@@ -27,48 +31,72 @@ from .url_factory import URLFactory
 from binance_archiver.logo import logo
 
 
-class ArchiverFacade:
+class ArchiverFacade(Subject):
     def __init__(
-        self,
-        config: dict,
-        logger: logging.Logger,
-        azure_blob_parameters_with_key: str | None = None,
-        container_name: str | None = None
+            self,
+            config: dict,
+            logger: logging.Logger,
+            run_mode: RunMode,
+            azure_blob_parameters_with_key: str | None = None,
+            container_name: str | None = None,
+            init_observers: List[Observer] | None = None
     ) -> None:
+        self.run_mode = run_mode
         self.config = config
         self.logger = logger
         self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
         self.container_name = container_name
-
         self.instruments = config["instruments"]
         self.global_shutdown_flag = threading.Event()
 
-        self.queue_pool = QueuePool()
-        self.data_saver = DataSaver(
-            logger=self.logger,
-            azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
-            container_name=self.container_name,
-            global_shutdown_flag=self.global_shutdown_flag
-        )
-        self.snapshot_manager = SnapshotManager(
-            instruments=self.instruments,
-            logger=self.logger,
-            data_saver=self.data_saver,
-            global_shutdown_flag=self.global_shutdown_flag
-        )
+        self.queue_pool = QueuePool(run_mode=run_mode)
         self.stream_service = StreamService(
             instruments=self.instruments,
             logger=self.logger,
             queue_pool=self.queue_pool,
             global_shutdown_flag=self.global_shutdown_flag
         )
-        self.command_line_interface = CommandLineInterface(
+
+        if run_mode is RunMode.DATA_SINK:
+            self.command_line_interface = CommandLineInterface(
+                instruments=self.instruments,
+                logger=self.logger,
+                stream_service=self.stream_service
+            )
+            self.fast_api_manager = FastAPIManager()
+            self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
+
+            self.data_saver = DataSaver(
+                logger=self.logger,
+                azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
+                container_name=self.container_name,
+                global_shutdown_flag=self.global_shutdown_flag
+            )
+        else:
+            self._observers = init_observers if init_observers is not None else []
+
+            self.whistleblower = Whistleblower(
+                observers=self._observers,
+                global_queue=self.queue_pool.global_queue,
+                global_shutdown_flag=self.global_shutdown_flag
+            )
+
+        self.snapshot_manager = SnapshotManager(
             instruments=self.instruments,
             logger=self.logger,
-            stream_service=self.stream_service
+            data_saver=self.data_saver if run_mode is RunMode.DATA_SINK else None,
+            global_shutdown_flag=self.global_shutdown_flag
         )
-        self.fast_api_manager = FastAPIManager()
-        self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
+
+    def attach(self, observer: Observer) -> None:
+        self._observers.append(observer)
+
+    def detach(self, observer: Observer) -> None:
+        self._observers.remove(observer)
+
+    def notify(self, message) -> None:
+        for observer in self._observers:
+            observer.update(message)
 
     def run(self) -> None:
         dump_path = self.config.get("dump_path", "dump/")
@@ -76,39 +104,49 @@ class ArchiverFacade:
         websockets_lifetime_seconds = self.config["websocket_life_time_seconds"]
         snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
 
-        save_to_json = self.config["save_to_json"]
-        save_to_zip = self.config["save_to_zip"]
-        send_zip_to_blob = self.config["send_zip_to_blob"]
+        self.stream_service.run_streams(websockets_lifetime_seconds=websockets_lifetime_seconds)
 
-        self.fast_api_manager.run()
+        save_to_json = self.config["save_to_json"] if 'save_to_json' in self.config else None
+        save_to_zip = self.config["save_to_zip"] if 'save_to_zip' in self.config else None
+        send_zip_to_blob = self.config["send_zip_to_blob"] if 'send_zip_to_blob' in self.config else None
 
-        self.stream_service.run_streams(
-            websockets_lifetime_seconds=websockets_lifetime_seconds
-        )
+        if self.run_mode == RunMode.DATA_SINK:
+            self.fast_api_manager.run()
 
-        self.data_saver.run_data_saver(
-            queue_pool=self.queue_pool,
-            dump_path=dump_path,
-            file_duration_seconds=file_duration_seconds,
-            save_to_json=save_to_json,
-            save_to_zip=save_to_zip,
-            send_zip_to_blob=send_zip_to_blob
-        )
+            self.data_saver.run_data_saver(
+                queue_pool=self.queue_pool,
+                dump_path=dump_path,
+                file_duration_seconds=file_duration_seconds,
+                save_to_json=save_to_json,
+                save_to_zip=save_to_zip,
+                send_zip_to_blob=send_zip_to_blob
+            )
+        else:
+            self.whistleblower.run_whistleblower()
+
+        while not any(queue_.qsize() != 0 for queue_ in self.queue_pool.queue_lookup.values()):
+            time.sleep(0.001)
+
+        time.sleep(5)
 
         self.snapshot_manager.run_snapshots(
             dump_path=dump_path,
             interval=snapshot_fetcher_interval_seconds,
             save_to_json=save_to_json,
             save_to_zip=save_to_zip,
-            send_zip_to_blob=send_zip_to_blob
+            send_zip_to_blob=send_zip_to_blob,
+            run_mode=self.run_mode,
+            global_queue=self.queue_pool.global_queue
         )
 
     def shutdown(self):
         self.logger.info("Shutting down archiver")
         self.global_shutdown_flag.set()
-        self.fast_api_manager.shutdown()
 
-        time.sleep(10)
+        if self.run_mode == RunMode.DATA_SINK:
+            self.fast_api_manager.shutdown()
+
+        # time.sleep(10)
 
         remaining_threads = [
             thread for thread in threading.enumerate()
@@ -123,16 +161,52 @@ class ArchiverFacade:
             self.logger.info("All threads have been successfully stopped.")
 
 
+class Whistleblower:
+    def __init__(
+            self,
+            observers: List[Observer],
+            global_queue: Queue,
+            global_shutdown_flag: threading.Event
+    ) -> None:
+        self.observers = observers
+        self.global_queue = global_queue
+        self.global_shutdown_flag = global_shutdown_flag
+
+    def process_global_queue(self):
+        while not self.global_shutdown_flag.is_set():
+            if self.global_queue.qsize() > 100:
+                print(f'qsize: {self.global_queue.qsize()}')
+            try:
+                message = self.global_queue.get(timeout=1)
+                for observer in self.observers:
+                    observer.update(message)
+                # self.global_queue.task_done()
+            except queue.Empty:
+                continue
+
+    def run_whistleblower(self):
+        whistleblower_thread = threading.Thread(target=self.process_global_queue)
+        whistleblower_thread.daemon = True
+        whistleblower_thread.start()
+
+
 class QueuePool:
-    def __init__(self):
-        self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT)
-        self.spot_trade_stream_message_queue = TradeQueue(market=Market.SPOT)
+    def __init__(
+            self,
+            run_mode: RunMode
+    ):
+        self.global_queue = None
+        if run_mode is RunMode.LISTENER:
+            self.global_queue = Queue()
 
-        self.usd_m_futures_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.USD_M_FUTURES)
-        self.usd_m_futures_trade_stream_message_queue = TradeQueue(market=Market.USD_M_FUTURES)
+        self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=run_mode, global_queue=self.global_queue)
+        self.spot_trade_stream_message_queue = TradeQueue(market=Market.SPOT, run_mode=run_mode, global_queue=self.global_queue)
 
-        self.coin_m_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.COIN_M_FUTURES)
-        self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES)
+        self.usd_m_futures_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.USD_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
+        self.usd_m_futures_trade_stream_message_queue = TradeQueue(market=Market.USD_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
+
+        self.coin_m_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.COIN_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
+        self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
 
         self.queue_lookup = {
             (Market.SPOT, StreamType.DIFFERENCE_DEPTH): self.spot_orderbook_stream_message_queue,
@@ -197,7 +271,7 @@ class StreamService:
         pairs: List[str],
         stream_type: StreamType,
         market: Market,
-        websockets_lifetime_seconds: int,
+        websockets_lifetime_seconds: int
     ) -> None:
 
         def sleep_with_flag_check(duration: int) -> None:
@@ -266,7 +340,6 @@ class StreamService:
                         old_stream_listener = new_stream_listener
                         old_stream_listener.thread = new_stream_listener.thread
 
-                        new_stream_listener_thread = None
                         self.stream_listeners[(market, stream_type, 'new')] = None
                         self.stream_listeners[(market, stream_type, 'old')] = old_stream_listener
 
@@ -294,12 +367,11 @@ class StreamService:
                 if (new_stream_listener is not None and new_stream_listener.websocket_app.sock
                         and new_stream_listener.websocket_app.sock.connected is False):
                     new_stream_listener = None
-                    new_stream_listener_thread = None
+                    # new_stream_listener_thread = None
 
                 if (old_stream_listener is not None and old_stream_listener.websocket_app.sock
                         and old_stream_listener.websocket_app.sock.connected is False):
                     old_stream_listener = None
-                    old_stream_listener_thread = None
 
                 time.sleep(6)
 
@@ -330,7 +402,9 @@ class SnapshotManager:
         interval: int,
         save_to_json: bool,
         save_to_zip: bool,
-        send_zip_to_blob: bool
+        send_zip_to_blob: bool,
+        run_mode: RunMode,
+        global_queue: Queue
     ):
         for market_str, pairs in self.instruments.items():
             market = Market[market_str.upper()]
@@ -340,7 +414,9 @@ class SnapshotManager:
                 interval=interval,
                 save_to_json=save_to_json,
                 save_to_zip=save_to_zip,
-                send_zip_to_blob=send_zip_to_blob
+                send_zip_to_blob=send_zip_to_blob,
+                run_mode=run_mode,
+                global_queue=global_queue
             )
 
     def start_snapshot_daemon(
@@ -350,7 +426,9 @@ class SnapshotManager:
         interval,
         save_to_json,
         save_to_zip,
-        send_zip_to_blob
+        send_zip_to_blob,
+        run_mode,
+        global_queue
     ):
         pairs = self.instruments[market.name.lower()]
 
@@ -364,6 +442,8 @@ class SnapshotManager:
                 save_to_json,
                 save_to_zip,
                 send_zip_to_blob,
+                run_mode,
+                global_queue
             ),
             name=f'snapshot_daemon: market: {market}'
         )
@@ -377,32 +457,36 @@ class SnapshotManager:
         fetch_interval: int,
         save_to_json: bool,
         save_to_zip: bool,
-        send_zip_to_blob: bool
+        send_zip_to_blob: bool,
+        run_mode: RunMode,
+        global_queue: Queue
     ) -> None:
 
         while not self.global_shutdown_flag.is_set():
             for pair in pairs:
                 try:
-                    snapshot, request_timestamp, receive_timestamp = self._get_snapshot(
-                        pair, market
-                    )
+                    snapshot, request_timestamp, receive_timestamp = self._get_snapshot(pair, market)
+
+                    if snapshot is None:
+                        continue
 
                     snapshot["_rq"] = request_timestamp
                     snapshot["_rc"] = receive_timestamp
 
-                    file_name = self.data_saver.get_file_name(
-                        pair=pair, market=market, stream_type=StreamType.DEPTH_SNAPSHOT
-                    )
+                    file_name = DataSaver.get_file_name(pair=pair, market=market, stream_type=StreamType.DEPTH_SNAPSHOT)
                     file_path = os.path.join(dump_path, file_name)
 
-                    if save_to_json:
-                        self.data_saver.save_to_json(snapshot, file_path)
+                    if run_mode is RunMode.DATA_SINK:
+                        if save_to_json:
+                            self.data_saver.save_to_json(snapshot, file_path)
+                        if save_to_zip:
+                            self.data_saver.save_to_zip(snapshot, file_name, file_path)
+                        if send_zip_to_blob:
+                            self.data_saver.send_zipped_json_to_blob(snapshot, file_name)
 
-                    if save_to_zip:
-                        self.data_saver.save_to_zip(snapshot, file_name, file_path)
+                    elif run_mode is RunMode.LISTENER:
+                        global_queue.put(json.dumps(snapshot))
 
-                    if send_zip_to_blob:
-                        self.data_saver.send_zipped_json_to_blob(snapshot, file_name)
                 except Exception as e:
                     self.logger.error(
                         f"Error whilst fetching snapshot: {market} {StreamType.DEPTH_SNAPSHOT}: {e}"
@@ -419,7 +503,7 @@ class SnapshotManager:
                 break
             time.sleep(interval)
 
-    def _get_snapshot(self, pair: str, market: Market) -> Tuple[Dict[str, Any], int, int] | None:
+    def _get_snapshot(self, pair: str, market: Market) -> Tuple[Dict[str, Any], int, int] | (None, None, None):
 
         url = URLFactory.get_snapshot_url(market=market, pair=pair)
 
@@ -435,13 +519,15 @@ class SnapshotManager:
         except Exception as e:
             self.logger.error(f"Error whilst fetching snapshot: {e}")
 
+            return None, None, None
+
 
 class CommandLineInterface:
     def __init__(
         self,
         instruments: dict,
         logger: logging.Logger,
-        stream_service: 'StreamService',
+        stream_service: StreamService,
     ):
         self.instruments = instruments
         self.logger = logger
@@ -604,6 +690,11 @@ class DataSaver:
                 message = json.loads(message)
 
                 stream = message["stream"]
+
+                if not stream:
+                    self.logger.error("Message missing 'stream' key.")
+                    continue
+
                 message["_E"] = timestamp_of_receive
                 stream_data[stream].append(message)
 
@@ -660,7 +751,8 @@ class DataSaver:
         except Exception as e:
             self.logger.error(f"Error uploading zip to blob: {e}")
 
-    def get_file_name(self, pair: str, market: Market, stream_type: StreamType) -> str:
+    @staticmethod
+    def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:
         pair_lower = pair.lower()
         formatted_now_timestamp = TimeUtils.get_utc_formatted_timestamp()
 
@@ -722,7 +814,7 @@ def launch_data_sink(
     if config['send_zip_to_blob'] and (not azure_blob_parameters_with_key or not container_name):
         raise BadAzureParameters('Azure blob parameters with key or container name is missing or empty')
 
-    if 60 > config["websocket_life_time_seconds"] > 60*60*23:
+    if not (60 <= config["websocket_life_time_seconds"] <= 60 * 60 * 23):
         raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
 
     logger = setup_logger(should_dump_logs=should_dump_logs)
@@ -743,8 +835,51 @@ def launch_data_sink(
     archiver_facade = ArchiverFacade(
         config=config,
         logger=logger,
+        run_mode=RunMode.DATA_SINK,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
         container_name=container_name
+    )
+
+    archiver_facade.run()
+
+    return archiver_facade
+
+def launch_data_listener(
+        config,
+        should_dump_logs: bool = False,
+        init_observers: List[object] = None
+) -> ArchiverFacade:
+
+    valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
+
+    instruments = config.get("instruments")
+
+    if not instruments or not isinstance(instruments, dict):
+        raise BadConfigException("Instruments config is missing or not a dictionary.")
+
+    if not (0 < len(instruments) <= 3):
+        raise BadConfigException("Config must contain 1 to 3 markets.")
+
+    for market, pairs in instruments.items():
+        if market not in valid_markets:
+            raise BadConfigException(f"Invalid or not handled market: {market}")
+        if not pairs or not isinstance(pairs, list):
+            raise BadConfigException(f"Pairs for market {market} are missing or invalid.")
+
+    if not (30 <= config["websocket_life_time_seconds"] <= 60 * 60 * 23):
+        raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
+
+    logger = setup_logger(should_dump_logs=should_dump_logs)
+
+    logger.info("\n%s", logo)
+    logger.info("Starting Binance Listener...")
+    logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
+
+    archiver_facade = ArchiverFacade(
+        config=config,
+        logger=logger,
+        run_mode=RunMode.LISTENER,
+        init_observers=init_observers
     )
 
     archiver_facade.run()

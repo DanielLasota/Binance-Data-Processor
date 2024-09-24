@@ -1,4 +1,4 @@
-from binance_archiver.archiver_daemon import launch_data_sink
+from binance_archiver.archiver_daemon import launch_data_sink, launch_data_listener
 
 __version__ = "0.0.1"
 __author__ = "Daniel Lasota <grossmann.root@gmail.com>"
