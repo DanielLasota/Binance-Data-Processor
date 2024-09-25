@@ -21,9 +21,9 @@ from .abc import Subject, Observer
 
 from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
 from .fastapi_manager import FastAPIManager
-from binance_archiver.binance_archiver_enums.run_mode_enum import RunMode
-from binance_archiver.binance_archiver_enums.market_enum import Market
-from binance_archiver.binance_archiver_enums.stream_type_enum import StreamType
+from binance_archiver.enum_.run_mode_enum import RunMode
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.enum_.stream_type_enum import StreamType
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue

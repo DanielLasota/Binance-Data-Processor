@@ -4,16 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="chore: Move Enums, configs into separate folders">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="chore: Reformat SnapshotManager into Strategy Pattern, enum folder rename coz of conflicts&#10;test: tests update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/archiver_daemon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/archiver_daemon.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/enum_/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/market_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/enum_/market_enum.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/run_mode_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/enum_/run_mode_enum.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/stream_type_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/enum_/stream_type_enum.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/blackout_supervisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/blackout_supervisor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/enum/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/enum/market_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/market_enum.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/enum/run_mode_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/run_mode_enum.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/enum/stream_type_enum.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_enums/stream_type_enum.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/load_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/load_config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_listener.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stream_listener.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/test/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/difference_depth_queue_tests.py" afterDir="false" />
@@ -169,6 +170,7 @@
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_data_saver_is_not_initialized_in_listener_mode.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_get_file_name_generates_correct_format.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_given_get_file_name_when_called_then_correct_format_is_returned.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_given_start_stream_writer_when_called_then_thread_is_started.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_given_stream_writer_when_shutdown_flag_set_then_exits_loop.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_initialization_with_blob_parameters.executor": "Run",
@@ -322,6 +324,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "feature/add-listen-only-without-data-sink-feature",
+    "last_opened_file_path": "C:/Users/defrg/PycharmProjects/Binance-Archiver/binance_archiver/queue_pool.py",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -340,51 +343,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver\core\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main_listener">
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="main_listener" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main_listener.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python tests.pytest for trade_queue_tests.TestTradeQueue">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -395,6 +354,40 @@
       <deployment type="dockerfile">
         <settings />
       </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;binance_archiver.test.archiver_daemon_tests.TestArchiverFacade&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_given_get_file_name_when_called_then_correct_format_is_returned" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_given_get_file_name_when_called_then_correct_format_is_returned&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
@@ -450,11 +443,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main_listener" />
-        <item itemvalue="Python.main" />
         <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
         <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
+        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" />
+        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSaver.test_given_get_file_name_when_called_then_correct_format_is_returned" />
       </list>
     </recent_temporary>
   </component>
@@ -492,14 +485,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00043" summary="pre-supervisor update commit">
-      <option name="closed" value="true" />
-      <created>1723884018999</created>
-      <option name="number" value="00043" />
-      <option name="presentableId" value="LOCAL-00043" />
-      <option name="project" value="LOCAL" />
-      <updated>1723884018999</updated>
     </task>
     <task id="LOCAL-00044" summary="supervisor update&#10;tests update">
       <option name="closed" value="true" />
@@ -885,7 +870,15 @@
       <option name="project" value="LOCAL" />
       <updated>1727220459593</updated>
     </task>
-    <option name="localTasksCounter" value="92" />
+    <task id="LOCAL-00092" summary="chore: Reformat SnapshotManager into Strategy Pattern, enum folder rename coz of conflicts&#10;test: tests update">
+      <option name="closed" value="true" />
+      <created>1727222549896</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1727222549896</updated>
+    </task>
+    <option name="localTasksCounter" value="93" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -945,7 +938,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="update" />
     <MESSAGE value="refactor: Move checking proper id.pairs_amount to StreamId class" />
     <MESSAGE value="chore: Relocate tests folder" />
     <MESSAGE value="chore: Relocate main.py" />
@@ -970,7 +962,8 @@
     <MESSAGE value="feat: Working mode launch_data_listener add" />
     <MESSAGE value="refactor: Split ArchiverFacade into ListenerFacade and DataSinkFacade&#10;test: split" />
     <MESSAGE value="chore: Move Enums, configs into separate folders" />
-    <option name="LAST_COMMIT_MESSAGE" value="chore: Move Enums, configs into separate folders" />
+    <MESSAGE value="chore: Reformat SnapshotManager into Strategy Pattern, enum folder rename coz of conflicts&#10;test: tests update" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: Reformat SnapshotManager into Strategy Pattern, enum folder rename coz of conflicts&#10;test: tests update" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

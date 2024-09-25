@@ -16,7 +16,7 @@ from ..exceptions import (
     WebSocketLifeTimeException
 )
 
-from ..archiver_daemon import (
+from ..binance_archiver_facade import (
     launch_data_sink,
     launch_data_listener,
     DataSinkFacade,
@@ -28,14 +28,14 @@ from ..archiver_daemon import (
     TimeUtils, Whistleblower, SnapshotManager, ListenerSnapshotStrategy, DataSinkSnapshotStrategy, SnapshotStrategy
 )
 from ..fastapi_manager import FastAPIManager
-from binance_archiver.binance_archiver_enums.run_mode_enum import RunMode
+from binance_archiver.enum_.run_mode_enum import RunMode
 
 from ..setup_logger import setup_logger
 from ..difference_depth_queue import DifferenceDepthQueue
 from ..stream_id import StreamId
 from ..trade_queue import TradeQueue
-from binance_archiver.binance_archiver_enums.market_enum import Market
-from binance_archiver.binance_archiver_enums.stream_type_enum import StreamType
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.enum_.stream_type_enum import StreamType
 
 
 class TestArchiverFacade:
@@ -1553,7 +1553,7 @@ class TestArchiverFacade:
             market = Market.SPOT
             stream_type = StreamType.DIFFERENCE_DEPTH
 
-            with patch('binance_archiver.archiver_daemon.TimeUtils.get_utc_formatted_timestamp',
+            with patch('binance_archiver.binance_archiver_facade.TimeUtils.get_utc_formatted_timestamp',
                        return_value='01-01-2022T00-00-00Z'):
                 file_name = data_saver.get_file_name(pair, market, stream_type)
 
