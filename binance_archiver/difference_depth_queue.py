@@ -8,7 +8,6 @@ from collections import deque
 
 from binance_archiver.exceptions import ClassInstancesAmountLimitException
 from binance_archiver.enum_.market_enum import Market
-from binance_archiver.enum_.run_mode_enum import RunMode
 from binance_archiver.stream_id import StreamId
 
 
@@ -36,7 +35,7 @@ class DifferenceDepthQueue:
         with cls._lock:
             cls._instances.clear()
 
-    def __init__(self, market: Market, run_mode: RunMode, global_queue: Queue | None = None):
+    def __init__(self, market: Market, global_queue: Queue | None = None):
         self._market = market
         self.lock = threading.Lock()
         self.currently_accepted_stream_id = None
@@ -44,12 +43,7 @@ class DifferenceDepthQueue:
         self.did_websockets_switch_successfully = False
         self._two_last_throws = {}
 
-        self.run_mode = run_mode
-
-        if run_mode is RunMode.LISTENER and global_queue is None:
-            raise ValueError('run_mode is RunMode.Listener and global_queue is None')
-
-        self.queue = Queue() if run_mode is RunMode.DATA_SINK else global_queue
+        self.queue = Queue() if global_queue is None else global_queue
 
     @property
     @final

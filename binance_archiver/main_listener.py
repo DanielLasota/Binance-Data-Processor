@@ -1,7 +1,7 @@
 from binance_archiver import launch_data_listener
 from binance_archiver.binance_archiver_facade import Observer
 from load_config import load_config
-import time
+
 
 class ConcreteObserver(Observer):
     def update(self, message):

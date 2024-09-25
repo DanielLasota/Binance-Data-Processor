@@ -8,7 +8,7 @@ from queue import Queue
 from unittest.mock import patch, MagicMock
 import pytest
 
-from ..abc import Observer
+from ..abstract_base_classes import Observer
 from ..exceptions import (
     BadAzureParameters,
     BadConfigException,
@@ -24,11 +24,11 @@ from ..binance_archiver_facade import (
     StreamService,
     DataSaver,
     CommandLineInterface,
-    QueuePool,
+    QueuePoolDataSink,
+    QueuePoolListener,
     TimeUtils, Whistleblower, SnapshotManager, ListenerSnapshotStrategy, DataSinkSnapshotStrategy, SnapshotStrategy
 )
 from ..fastapi_manager import FastAPIManager
-from binance_archiver.enum_.run_mode_enum import RunMode
 
 from ..setup_logger import setup_logger
 from ..difference_depth_queue import DifferenceDepthQueue
@@ -220,7 +220,7 @@ class TestArchiverFacade:
                 logger=logger
             )
 
-            assert isinstance(data_sink_facade.queue_pool, QueuePool)
+            assert isinstance(data_sink_facade.queue_pool, QueuePoolDataSink)
             assert isinstance(data_sink_facade.stream_service, StreamService)
             assert isinstance(data_sink_facade.command_line_interface, CommandLineInterface)
             assert isinstance(data_sink_facade.fast_api_manager, FastAPIManager)
@@ -747,10 +747,10 @@ class TestArchiverFacade:
             assert not thread.is_alive(), "Whistleblower thread should have exited"
 
 
-    class TestQueuePool:
+    class TestQueuePoolDataSink:
 
         def test_given_queue_pool_when_initialized_then_queues_are_set_properly(self):
-            queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+            queue_pool = QueuePoolDataSink()
 
             expected_keys = [
                 (Market.SPOT, StreamType.DIFFERENCE_DEPTH),
@@ -762,8 +762,10 @@ class TestArchiverFacade:
             ]
 
             assert set(queue_pool.queue_lookup.keys()) == set(
-                expected_keys), "queue_lookup keys do not match expected keys"
+                expected_keys
+            ), "queue_lookup keys do not match expected keys"
 
+            # Check if queues are instances of the correct classes
             assert isinstance(queue_pool.spot_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(queue_pool.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(queue_pool.coin_m_orderbook_stream_message_queue, DifferenceDepthQueue)
@@ -772,14 +774,16 @@ class TestArchiverFacade:
             assert isinstance(queue_pool.usd_m_futures_trade_stream_message_queue, TradeQueue)
             assert isinstance(queue_pool.coin_m_trade_stream_message_queue, TradeQueue)
 
-            assert len(TradeQueue._instances) == 3
-            assert len(DifferenceDepthQueue._instances) == 3
+            # Verify that the correct number of instances have been created
+            assert len(TradeQueue._instances) == 3, "There should be 3 instances of TradeQueue"
+            assert len(DifferenceDepthQueue._instances) == 3, "There should be 3 instances of DifferenceDepthQueue"
 
+            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_queue_pool_when_get_queue_called_then_returns_correct_queue(self):
-            queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+            queue_pool = QueuePoolDataSink()
 
             expected_queues = {
                 (Market.SPOT, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
@@ -792,42 +796,164 @@ class TestArchiverFacade:
 
             for (market, stream_type), expected_queue_type in expected_queues.items():
                 queue = queue_pool.get_queue(market, stream_type)
-                assert isinstance(queue, expected_queue_type)
-                assert queue.market == market
+                assert isinstance(queue,
+                                  expected_queue_type), f"Queue for {market}, {stream_type} should be {expected_queue_type}"
+                assert queue.market == market, f"Queue market should be {market}"
 
+            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_queue_pool_when_more_than_allowed_trade_queues_created_then_exception_is_thrown(self):
-            queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+            queue_pool = QueuePoolDataSink()
 
-            queue_pool.fourth_trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+            # Create up to the allowed limit
+            queue_pool.fourth_trade_queue = TradeQueue(market=Market.SPOT)
 
             with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
-                queue_pool.fifth_trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+                # Attempt to create one more than allowed
+                queue_pool.fifth_trade_queue = TradeQueue(market=Market.SPOT)
 
             assert str(excinfo.value) == "Cannot create more than 4 instances of TradeQueue"
 
+            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_queue_pool_when_more_than_allowed_difference_depth_queues_created_then_exception_is_thrown(self):
-            queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+            queue_pool = QueuePoolDataSink()
 
-            queue_pool.fourth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+            # Create up to the allowed limit
+            queue_pool.fourth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
             with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
-                queue_pool.fifth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+                # Attempt to create one more than allowed
+                queue_pool.fifth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
             assert str(excinfo.value) == "Cannot create more than 4 instances of DifferenceDepthQueue"
 
+            # Clear instances after test
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_queue_pool_initialization_in_data_sink_mode(self):
+            queue_pool = QueuePoolListener()
+
+            assert queue_pool.global_queue is not None, "Global queue should be initialized in LISTENER mode"
+
+            # Check if queues are initialized with the global_queue
+            assert queue_pool.spot_orderbook_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.spot_trade_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.usd_m_futures_orderbook_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.usd_m_futures_trade_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.coin_m_orderbook_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.coin_m_trade_stream_message_queue.queue == queue_pool.global_queue
+
+            # Clear instances after test
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+
+    class TestQueuePoolListener:
+
+        def test_given_queue_pool_when_initialized_then_queues_are_set_properly(self):
+            queue_pool = QueuePoolListener()
+
+            expected_keys = [
+                (Market.SPOT, StreamType.DIFFERENCE_DEPTH),
+                (Market.SPOT, StreamType.TRADE),
+                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH),
+                (Market.USD_M_FUTURES, StreamType.TRADE),
+                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH),
+                (Market.COIN_M_FUTURES, StreamType.TRADE)
+            ]
+
+            assert set(queue_pool.queue_lookup.keys()) == set(
+                expected_keys
+            ), "queue_lookup keys do not match expected keys"
+
+            # Check if queues are instances of the correct classes
+            assert isinstance(queue_pool.spot_orderbook_stream_message_queue, DifferenceDepthQueue)
+            assert isinstance(queue_pool.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
+            assert isinstance(queue_pool.coin_m_orderbook_stream_message_queue, DifferenceDepthQueue)
+
+            assert isinstance(queue_pool.spot_trade_stream_message_queue, TradeQueue)
+            assert isinstance(queue_pool.usd_m_futures_trade_stream_message_queue, TradeQueue)
+            assert isinstance(queue_pool.coin_m_trade_stream_message_queue, TradeQueue)
+
+            # Verify that the correct number of instances have been created
+            assert len(TradeQueue._instances) == 3, "There should be 3 instances of TradeQueue"
+            assert len(DifferenceDepthQueue._instances) == 3, "There should be 3 instances of DifferenceDepthQueue"
+
+            # Clear instances after test
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_given_queue_pool_when_get_queue_called_then_returns_correct_queue(self):
+            queue_pool = QueuePoolListener()
+
+            expected_queues = {
+                (Market.SPOT, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
+                (Market.SPOT, StreamType.TRADE): TradeQueue,
+                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
+                (Market.USD_M_FUTURES, StreamType.TRADE): TradeQueue,
+                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
+                (Market.COIN_M_FUTURES, StreamType.TRADE): TradeQueue
+            }
+
+            for (market, stream_type), expected_queue_type in expected_queues.items():
+                queue = queue_pool.get_queue(market, stream_type)
+                assert isinstance(queue,
+                                  expected_queue_type), f"Queue for {market}, {stream_type} should be {expected_queue_type}"
+                assert queue.market == market, f"Queue market should be {market}"
+
+            # Clear instances after test
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_given_queue_pool_when_more_than_allowed_trade_queues_created_then_exception_is_thrown(self):
+            queue_pool = QueuePoolListener()
+
+            # Create up to the allowed limit
+            queue_pool.fourth_trade_queue = TradeQueue(market=Market.SPOT)
+
+            with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
+                # Attempt to create one more than allowed
+                queue_pool.fifth_trade_queue = TradeQueue(market=Market.SPOT)
+
+            assert str(excinfo.value) == "Cannot create more than 4 instances of TradeQueue"
+
+            # Clear instances after test
+            DifferenceDepthQueue.clear_instances()
+            TradeQueue.clear_instances()
+
+        def test_given_queue_pool_when_more_than_allowed_difference_depth_queues_created_then_exception_is_thrown(self):
+            queue_pool = QueuePoolListener()
+
+            # Create up to the allowed limit
+            queue_pool.fourth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+
+            with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
+                # Attempt to create one more than allowed
+                queue_pool.fifth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+
+            assert str(excinfo.value) == "Cannot create more than 4 instances of DifferenceDepthQueue"
+
+            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_queue_pool_initialization_in_listener_mode(self):
-            queue_pool = QueuePool(run_mode=RunMode.LISTENER)
+            queue_pool = QueuePoolListener()
 
             assert queue_pool.global_queue is not None, "Global queue should be initialized in LISTENER mode"
+
+            assert queue_pool.spot_orderbook_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.spot_trade_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.usd_m_futures_orderbook_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.usd_m_futures_trade_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.coin_m_orderbook_stream_message_queue.queue == queue_pool.global_queue
+            assert queue_pool.coin_m_trade_stream_message_queue.queue == queue_pool.global_queue
 
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
@@ -841,7 +967,7 @@ class TestArchiverFacade:
             }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
-            queue_pool = QueuePool(run_mode=RunMode.LISTENER)
+            queue_pool = QueuePoolListener()
             stream_service = StreamService(
                 instruments=instruments,
                 logger=logger,
@@ -859,7 +985,7 @@ class TestArchiverFacade:
             }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
-            queue_pool = QueuePool(run_mode=RunMode.LISTENER)
+            queue_pool = QueuePoolListener()
             stream_service = StreamService(
                 instruments=instruments,
                 logger=logger,
@@ -1272,7 +1398,7 @@ class TestArchiverFacade:
             }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
-            queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+            queue_pool = QueuePoolDataSink()
             stream_service = StreamService(
                 instruments=instruments,
                 logger=logger,
@@ -1299,7 +1425,7 @@ class TestArchiverFacade:
             }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
-            queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+            queue_pool = QueuePoolDataSink()
             stream_service = StreamService(
                 instruments=instruments,
                 logger=logger,
@@ -1393,7 +1519,7 @@ class TestArchiverFacade:
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
-            queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+            queue_pool = QueuePoolDataSink()
             with patch.object(data_saver, 'start_stream_writer') as mock_start_stream_writer:
                 data_saver.run_data_saver(
                     queue_pool=queue_pool,
@@ -1418,7 +1544,7 @@ class TestArchiverFacade:
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
-            queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+            queue = DifferenceDepthQueue(market=Market.SPOT)
             with patch('threading.Thread') as mock_thread:
                 data_saver.start_stream_writer(
                     queue=queue,
@@ -1447,7 +1573,7 @@ class TestArchiverFacade:
 
             stream_listener_id = StreamId(pairs=['BTCUSDT'])
 
-            queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+            queue = DifferenceDepthQueue(market=Market.SPOT)
             queue.put_queue_message(
                 message='{"stream": "btcusdt@depth", "data": {}}',
                 stream_listener_id=stream_listener_id,
@@ -1485,7 +1611,7 @@ class TestArchiverFacade:
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
-            queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+            queue = DifferenceDepthQueue(market=Market.SPOT)
             with patch.object(data_saver, 'save_to_json') as mock_save_to_json:
                 data_saver._process_stream_data(
                     queue=queue,
@@ -1510,7 +1636,7 @@ class TestArchiverFacade:
 
             stream_listener_id = StreamId(pairs=['BTCUSDT'])
 
-            queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+            queue = DifferenceDepthQueue(market=Market.SPOT)
             message = '{"stream": "btcusdt@depth", "data": {}}'
 
             queue.currently_accepted_stream_id = stream_listener_id.id

@@ -6,10 +6,9 @@ import threading
 import pytest
 import websocket
 
-from binance_archiver.binance_archiver_facade import QueuePool
+from binance_archiver.binance_archiver_facade import QueuePoolDataSink, QueuePoolListener
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
-from binance_archiver.enum_.run_mode_enum import RunMode
 from binance_archiver.setup_logger import setup_logger
 from binance_archiver.stream_id import StreamId
 from binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
@@ -50,7 +49,7 @@ class TestStreamListener:
         instruments = config['instruments']
         global_shutdown_flag = threading.Event()
 
-        queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+        queue_pool = QueuePoolDataSink()
 
         for market_str in ['spot', 'usd_m_futures', 'coin_m_futures']:
             market = Market[market_str.upper()]
@@ -113,7 +112,7 @@ class TestStreamListener:
 
         logger = setup_logger()
         instruments = config['instruments']
-        queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+        queue_pool = QueuePoolDataSink()
 
         with pytest.raises(WrongListInstanceException) as excinfo:
             queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH)
@@ -147,7 +146,7 @@ class TestStreamListener:
 
         logger = setup_logger()
         instruments = config['instruments']
-        queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+        queue_pool = QueuePoolDataSink()
 
         with pytest.raises(PairsLengthException) as excinfo:
             pairs = instruments['spot']
@@ -167,7 +166,7 @@ class TestStreamListener:
 
     def test_given_trade_stream_listener_when_on_open_then_message_is_being_logged(self, caplog):
         pairs = ['BTCUSDT']
-        queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        queue = TradeQueue(market=Market.SPOT)
         stream_listener = StreamListener(
             logger=setup_logger(),
             queue=queue,
@@ -188,7 +187,7 @@ class TestStreamListener:
 
     def test_given_trade_stream_listener_when_on_close_then_close_message_is_being_logged(self, caplog):
         pairs = ['BTCUSDT']
-        queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        queue = TradeQueue(market=Market.SPOT)
         stream_listener = StreamListener(
             logger=setup_logger(),
             queue=queue,
@@ -215,7 +214,7 @@ class TestStreamListener:
     def test_given_trade_stream_listener_when_connected_then_error_is_being_logged(self, caplog):
         logger=setup_logger()
         pairs = ['BTCUSDT']
-        queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        queue = TradeQueue(market=Market.SPOT)
         stream_listener = StreamListener(
             logger=logger,
             queue=queue,
@@ -251,7 +250,7 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
             logger=logger,
@@ -303,7 +302,7 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
         difference_depth_stream_listener = StreamListener(
             logger=logger,
@@ -357,7 +356,7 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
             logger=logger,
@@ -417,7 +416,7 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
         difference_depth_queue_listener = StreamListener(
             logger=setup_logger(),
@@ -468,7 +467,7 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
             queue=trade_queue,
@@ -551,7 +550,7 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
             queue=trade_queue,
@@ -632,7 +631,7 @@ class TestOther:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT, run_mode=RunMode.DATA_SINK)
+        trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
             queue=trade_queue,

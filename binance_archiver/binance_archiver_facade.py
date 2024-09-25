@@ -17,11 +17,10 @@ import io
 import threading
 import requests
 from queue import Queue
-from .abc import Subject, Observer
+from .abstract_base_classes import Subject, Observer
 
 from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
 from .fastapi_manager import FastAPIManager
-from binance_archiver.enum_.run_mode_enum import RunMode
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from .setup_logger import setup_logger
@@ -44,7 +43,7 @@ class ListenerFacade(Subject):
         self.instruments = config["instruments"]
         self.global_shutdown_flag = threading.Event()
 
-        self.queue_pool = QueuePool(RunMode.LISTENER)
+        self.queue_pool = QueuePoolListener()
         self.stream_service = StreamService(
             instruments=self.instruments,
             logger=self.logger,
@@ -133,7 +132,7 @@ class DataSinkFacade:
         self.instruments = config["instruments"]
         self.global_shutdown_flag = threading.Event()
 
-        self.queue_pool = QueuePool(run_mode=RunMode.DATA_SINK)
+        self.queue_pool = QueuePoolDataSink()
         self.stream_service = StreamService(
             instruments=self.instruments,
             logger=self.logger,
@@ -242,23 +241,41 @@ class Whistleblower:
         whistleblower_thread.start()
 
 
-class QueuePool:
-    def __init__(
-            self,
-            run_mode: RunMode
-    ):
-        self.global_queue = None
-        if run_mode is RunMode.LISTENER:
-            self.global_queue = Queue()
+class QueuePoolDataSink:
+    def __init__(self):
 
-        self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT, run_mode=run_mode, global_queue=self.global_queue)
-        self.spot_trade_stream_message_queue = TradeQueue(market=Market.SPOT, run_mode=run_mode, global_queue=self.global_queue)
+        self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT)
+        self.spot_trade_stream_message_queue = TradeQueue(market=Market.SPOT)
 
-        self.usd_m_futures_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.USD_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
-        self.usd_m_futures_trade_stream_message_queue = TradeQueue(market=Market.USD_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
+        self.usd_m_futures_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.USD_M_FUTURES)
+        self.usd_m_futures_trade_stream_message_queue = TradeQueue(market=Market.USD_M_FUTURES)
 
-        self.coin_m_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.COIN_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
-        self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES, run_mode=run_mode, global_queue=self.global_queue)
+        self.coin_m_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.COIN_M_FUTURES)
+        self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES)
+
+        self.queue_lookup = {
+            (Market.SPOT, StreamType.DIFFERENCE_DEPTH): self.spot_orderbook_stream_message_queue,
+            (Market.SPOT, StreamType.TRADE): self.spot_trade_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.usd_m_futures_orderbook_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.TRADE): self.usd_m_futures_trade_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.coin_m_orderbook_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_trade_stream_message_queue,
+        }
+
+    def get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
+        return self.queue_lookup.get((market, stream_type))
+
+
+class QueuePoolListener:
+    def __init__(self):
+        self.global_queue = Queue()
+
+        self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=self.global_queue)
+        self.spot_trade_stream_message_queue = TradeQueue(market=Market.SPOT, global_queue=self.global_queue)
+        self.usd_m_futures_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.USD_M_FUTURES, global_queue=self.global_queue)
+        self.usd_m_futures_trade_stream_message_queue = TradeQueue(market=Market.USD_M_FUTURES, global_queue=self.global_queue)
+        self.coin_m_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.COIN_M_FUTURES, global_queue=self.global_queue)
+        self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES, global_queue=self.global_queue)
 
         self.queue_lookup = {
             (Market.SPOT, StreamType.DIFFERENCE_DEPTH): self.spot_orderbook_stream_message_queue,
@@ -278,7 +295,7 @@ class StreamService:
         self,
         instruments: dict,
         logger: logging.Logger,
-        queue_pool: QueuePool,
+        queue_pool: QueuePoolDataSink | QueuePoolListener,
         global_shutdown_flag: threading.Event
     ):
         self.instruments = instruments
@@ -587,7 +604,7 @@ class SnapshotManager:
                 break
             time.sleep(interval)
 
-    def _get_snapshot(self, pair: str, market: Market) -> Tuple[Dict[str, Any], int, int]:
+    def _get_snapshot(self, pair: str, market: Market) -> Tuple[Dict[str, Any], int, int] | (None, None, None):
         url = URLFactory.get_snapshot_url(market=market, pair=pair)
 
         try:
@@ -666,7 +683,7 @@ class DataSaver:
 
     def run_data_saver(
         self,
-        queue_pool: QueuePool,
+        queue_pool: QueuePoolDataSink | QueuePoolListener,
         dump_path: str,
         file_duration_seconds: int,
         save_to_json: bool,
