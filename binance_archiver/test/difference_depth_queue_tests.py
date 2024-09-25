@@ -2053,7 +2053,7 @@ class TestDifferenceDepthQueue:
 
         config = {
             "instruments": {
-                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
             "file_duration_seconds": 30,
             "snapshot_fetcher_interval_seconds": 30,
@@ -2162,7 +2162,7 @@ class TestDifferenceDepthQueue:
 
         _old_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869216,
@@ -2274,7 +2274,7 @@ class TestDifferenceDepthQueue:
 
         _new_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869217,
@@ -2333,7 +2333,7 @@ class TestDifferenceDepthQueue:
 
         config = {
             "instruments": {
-                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
             "file_duration_seconds": 30,
             "snapshot_fetcher_interval_seconds": 30,
@@ -2439,7 +2439,7 @@ class TestDifferenceDepthQueue:
 
         _old_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869216,
@@ -2551,7 +2551,7 @@ class TestDifferenceDepthQueue:
 
         _new_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869217,
@@ -2606,6 +2606,559 @@ class TestDifferenceDepthQueue:
                                                                        two_last_throws_comparison_structure)
         assert do_they_match is False
         DifferenceDepthQueue.clear_instances()
+
+    def test_given_comparing_two_throws_when_throws_are_not_equal_because_one_asset_is_duplicated_then_method_returns_false(self):
+        """difference lays in a _old_listener_message_1 / _new_listener_message_1"""
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        _old_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_3 = '''            
+            {
+                "stream": "avaxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ],
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_3 = '''            
+            {
+                "stream": "avaxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "DOTUSDT",
+                    "U": 7871863948,
+                    "u": 7871863948,
+                    "b": [
+                        [
+                            "2.32300000",
+                            "1811.61000000"
+                        ]
+                    ],
+                    "a": []
+                }
+            }
+        '''
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+
+        difference_depth_queue._two_last_throws = {
+            old_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                    ],
+                    maxlen=old_stream_listener_id.pairs_amount),
+            new_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                    ],
+                    maxlen=new_stream_listener_id.pairs_amount)
+        }
+
+        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount,
+                                                                       two_last_throws_comparison_structure)
+        assert do_they_match is False
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount,
+                                                                       two_last_throws_comparison_structure)
+        assert do_they_match is False
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_comparing_two_throws_when_throws_are_equal_but_one_asset_is_duplicated_then_method_returns_false(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        _old_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ],
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_3 = '''
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869316,
+                    "s": "DOTUSDT",
+                    "U": 7871863948,
+                    "u": 7871863948,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ]
+                    ],
+                    "a": []
+                }
+            }
+        '''
+
+        _new_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ],
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_3 = '''
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869316,
+                    "s": "DOTUSDT",
+                    "U": 7871863948,
+                    "u": 7871863948,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ]
+                    ],
+                    "a": []
+                }
+            }
+        '''
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+
+        difference_depth_queue._two_last_throws = {
+            old_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                    ],
+                maxlen=old_stream_listener_id.pairs_amount),
+            new_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                    ],
+                    maxlen=new_stream_listener_id.pairs_amount)
+        }
+
+        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        assert do_they_match is False
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        assert do_they_match is False
+        DifferenceDepthQueue.clear_instances()
+
 
     # set_new_stream_id_as_currently_accepted
     #
@@ -6061,7 +6614,7 @@ class TestDifferenceDepthQueue:
 
     # benchmark
     #
-    @pytest.mark.skip
+    # @pytest.mark.skip
     def test_comparison_algorithm_benchmark(self):
         total_execution_time = 0
         number_of_runs = 1000
