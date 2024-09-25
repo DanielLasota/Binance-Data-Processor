@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: New production_config.json.json, minor changes">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="build: Requirements update, build update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/difference_depth_queue_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -345,7 +344,29 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver\core\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue">
+  <component name="RunManager" selected="Python.main">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -392,23 +413,6 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestStreamService" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestStreamService&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -445,11 +449,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main" />
         <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
         <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" />
         <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager" />
-        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestStreamService" />
       </list>
     </recent_temporary>
   </component>
@@ -487,30 +491,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00051" summary="alpha iteration of subscription workz">
-      <option name="closed" value="true" />
-      <created>1724935074036</created>
-      <option name="number" value="00051" />
-      <option name="presentableId" value="LOCAL-00051" />
-      <option name="project" value="LOCAL" />
-      <updated>1724935074036</updated>
-    </task>
-    <task id="LOCAL-00052" summary="subsciption modify improvement">
-      <option name="closed" value="true" />
-      <created>1724939813317</created>
-      <option name="number" value="00052" />
-      <option name="presentableId" value="LOCAL-00052" />
-      <option name="project" value="LOCAL" />
-      <updated>1724939813317</updated>
-    </task>
-    <task id="LOCAL-00053" summary="subsciption modify improvement">
-      <option name="closed" value="true" />
-      <created>1724943498731</created>
-      <option name="number" value="00053" />
-      <option name="presentableId" value="LOCAL-00053" />
-      <option name="project" value="LOCAL" />
-      <updated>1724943498731</updated>
     </task>
     <task id="LOCAL-00054" summary="flask to fastapi refactor">
       <option name="closed" value="true" />
@@ -880,7 +860,31 @@
       <option name="project" value="LOCAL" />
       <updated>1727256066289</updated>
     </task>
-    <option name="localTasksCounter" value="100" />
+    <task id="LOCAL-00100" summary="perf: difference_depth_queue.py json to orjson refactor + minor if refactors">
+      <option name="closed" value="true" />
+      <created>1727265547871</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1727265547871</updated>
+    </task>
+    <task id="LOCAL-00101" summary="build: Requirements update, build update">
+      <option name="closed" value="true" />
+      <created>1727267890632</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1727267890632</updated>
+    </task>
+    <task id="LOCAL-00102" summary="build: Requirements update, build update">
+      <option name="closed" value="true" />
+      <created>1727267973865</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1727267973865</updated>
+    </task>
+    <option name="localTasksCounter" value="103" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -940,8 +944,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="refactor: Remove configs from main.py" />
-    <MESSAGE value="perf: Change removing event timestamp to re, all process 2 times faster&#10;test: Huge tests change" />
     <MESSAGE value="refactor: Remove _sort_entries_by_symbol" />
     <MESSAGE value="chore: Minor things refactored" />
     <MESSAGE value="fix: Subscription feature fix" />
@@ -965,7 +967,9 @@
     <MESSAGE value="fix: TradeQueue and DifferenceDepthQueue singleton change from 4 to 3" />
     <MESSAGE value="feat: New production_config.json.json" />
     <MESSAGE value="feat: New production_config.json.json, minor changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: New production_config.json.json, minor changes" />
+    <MESSAGE value="perf: difference_depth_queue.py json to orjson refactor + minor if refactors" />
+    <MESSAGE value="build: Requirements update, build update" />
+    <option name="LAST_COMMIT_MESSAGE" value="build: Requirements update, build update" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

@@ -9,3 +9,4 @@ Flask
 Flask-CORS
 fastapi
 uvicorn
+orjson
