@@ -11,11 +11,8 @@ from load_config import load_config
 
 if __name__ == "__main__":
 
-    config = ...
-
-    if is_running_in_docker() is False:
-        load_dotenv('C:/Users/defrg/archer.env')
-        config = load_config('production_config.json')
+    # load_dotenv('C:/Users/defrg/archer.env')
+    # config = load_config('almost_production_config.json')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
@@ -26,8 +23,7 @@ if __name__ == "__main__":
     config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
     container_name_secret_name = os.environ.get('CONTAINER_NAME_SECRET_NAME')
 
-    if is_running_in_docker() is True:
-        config = json.loads(client.get_secret(config_secret_name).value)
+    config = json.loads(client.get_secret(config_secret_name).value)
     azure_blob_parameters_with_key = client.get_secret(blob_parameters_secret_name).value
     container_name = client.get_secret(container_name_secret_name).value
 
