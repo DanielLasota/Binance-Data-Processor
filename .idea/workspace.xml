@@ -6,15 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="chore: Minor refactor">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/blackout_supervisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/blackout_supervisor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/stream_id.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stream_id.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stream_listener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/test/difference_depth_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/difference_depth_queue_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/stream_listener_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/stream_listener_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/test/trade_queue_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/trade_queue_tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/trade_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/trade_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/url_factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/url_factory.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -201,8 +197,14 @@
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePool.test_given_queue_pool_when_more_than_allowed_trade_queues_created_then_exception_is_thrown.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePool.test_queue_pool_initialization_in_listener_mode.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolDataSink.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolDataSink.test_given_queue_pool_when_get_queue_called_then_returns_correct_queue.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolDataSink.test_given_queue_pool_when_more_than_allowed_difference_depth_queues_created_then_exception_is_thrown.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolDataSink.test_given_queue_pool_when_more_than_allowed_trade_queues_created_then_exception_is_thrown.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolDataSink.test_queue_pool_initialization_in_data_sink_mode.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolListener.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolListener.test_given_queue_pool_when_get_queue_called_then_returns_correct_queue.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolListener.test_given_queue_pool_when_more_than_allowed_difference_depth_queues_created_then_exception_is_thrown.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolListener.test_given_queue_pool_when_more_than_allowed_trade_queues_created_then_exception_is_thrown.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestQueuePoolListener.test_queue_pool_initialization_in_listener_mode.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestDataSinkSnapshotStrategy.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestListenerSnapshotStrategy.executor": "Run",
@@ -344,7 +346,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver\core\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade">
+  <component name="RunManager" selected="Python tests.pytest for trade_queue_tests.TestTradeQueue">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -374,23 +376,6 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSinkFacade.test_given_archiver_facade_when_shutdown_called_then_no_threads_are_left" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSinkFacade.test_given_archiver_facade_when_shutdown_called_then_no_threads_are_left&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -405,6 +390,23 @@
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
       <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
@@ -444,11 +446,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" />
         <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
         <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
-        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestDataSinkFacade.test_given_archiver_facade_when_shutdown_called_then_no_threads_are_left" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue.test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown" />
+        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" />
       </list>
     </recent_temporary>
   </component>
@@ -486,14 +488,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00047" summary="is_someone_overlapping_right_now_flag clutch add">
-      <option name="closed" value="true" />
-      <created>1724692742618</created>
-      <option name="number" value="00047" />
-      <option name="presentableId" value="LOCAL-00047" />
-      <option name="project" value="LOCAL" />
-      <updated>1724692742618</updated>
     </task>
     <task id="LOCAL-00048" summary="is_someone_overlapping_right_now_flag clutch shutdown fix">
       <option name="closed" value="true" />
@@ -879,7 +873,15 @@
       <option name="project" value="LOCAL" />
       <updated>1727229303108</updated>
     </task>
-    <option name="localTasksCounter" value="96" />
+    <task id="LOCAL-00096" summary="chore: Minor refactor">
+      <option name="closed" value="true" />
+      <created>1727230625127</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1727230625127</updated>
+    </task>
+    <option name="localTasksCounter" value="97" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

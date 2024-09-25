@@ -807,39 +807,28 @@ class TestArchiverFacade:
                                   expected_queue_type), f"Queue for {market}, {stream_type} should be {expected_queue_type}"
                 assert queue.market == market, f"Queue market should be {market}"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_queue_pool_when_more_than_allowed_trade_queues_created_then_exception_is_thrown(self):
             queue_pool = QueuePoolDataSink()
 
-            # Create up to the allowed limit
-            queue_pool.fourth_trade_queue = TradeQueue(market=Market.SPOT)
-
             with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
-                # Attempt to create one more than allowed
-                queue_pool.fifth_trade_queue = TradeQueue(market=Market.SPOT)
+                queue_pool.fourth_trade_queue = TradeQueue(market=Market.SPOT)
 
-            assert str(excinfo.value) == "Cannot create more than 4 instances of TradeQueue"
+            assert str(excinfo.value) == "Cannot create more than 3 instances of TradeQueue"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_queue_pool_when_more_than_allowed_difference_depth_queues_created_then_exception_is_thrown(self):
             queue_pool = QueuePoolDataSink()
 
-            # Create up to the allowed limit
-            queue_pool.fourth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-
             with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
-                # Attempt to create one more than allowed
-                queue_pool.fifth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+                queue_pool.fourth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-            assert str(excinfo.value) == "Cannot create more than 4 instances of DifferenceDepthQueue"
+            assert str(excinfo.value) == "Cannot create more than 3 instances of DifferenceDepthQueue"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
@@ -914,39 +903,28 @@ class TestArchiverFacade:
                                   expected_queue_type), f"Queue for {market}, {stream_type} should be {expected_queue_type}"
                 assert queue.market == market, f"Queue market should be {market}"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_queue_pool_when_more_than_allowed_trade_queues_created_then_exception_is_thrown(self):
             queue_pool = QueuePoolListener()
 
-            # Create up to the allowed limit
-            queue_pool.fourth_trade_queue = TradeQueue(market=Market.SPOT)
-
             with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
-                # Attempt to create one more than allowed
-                queue_pool.fifth_trade_queue = TradeQueue(market=Market.SPOT)
+                queue_pool.fourth_trade_queue = TradeQueue(market=Market.SPOT)
 
-            assert str(excinfo.value) == "Cannot create more than 4 instances of TradeQueue"
+            assert str(excinfo.value) == "Cannot create more than 3 instances of TradeQueue"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_queue_pool_when_more_than_allowed_difference_depth_queues_created_then_exception_is_thrown(self):
             queue_pool = QueuePoolListener()
 
-            # Create up to the allowed limit
-            queue_pool.fourth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-
             with pytest.raises(ClassInstancesAmountLimitException) as excinfo:
-                # Attempt to create one more than allowed
-                queue_pool.fifth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+                queue_pool.fourth_difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-            assert str(excinfo.value) == "Cannot create more than 4 instances of DifferenceDepthQueue"
+            assert str(excinfo.value) == "Cannot create more than 3 instances of DifferenceDepthQueue"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 

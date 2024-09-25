@@ -51,7 +51,7 @@ class TestTradeQueue:
     # TradeQueue singleton init test
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
-        for _ in range(4):
+        for _ in range(3):
             TradeQueue(Market.SPOT)
 
         with pytest.raises(ClassInstancesAmountLimitException):
@@ -63,15 +63,15 @@ class TestTradeQueue:
         instance_count = TradeQueue.get_instance_count()
         assert instance_count == 0
 
-        for _ in range(4):
+        for _ in range(3):
             TradeQueue(Market.SPOT)
 
-        assert TradeQueue.get_instance_count() == 4
+        assert TradeQueue.get_instance_count() == 3
 
         TradeQueue.clear_instances()
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
-        for _ in range(4):
+        for _ in range(3):
             TradeQueue(Market.SPOT)
 
         TradeQueue.clear_instances()

@@ -11,7 +11,7 @@ from binance_archiver.stream_id import StreamId
 class TradeQueue:
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 4
+    _instances_amount_limit = 3
     _transaction_signs_compiled_pattern = re.compile(r'"s":"([^"]+)","t":(\d+)')
 
     def __new__(cls, *args, **kwargs):

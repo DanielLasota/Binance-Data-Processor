@@ -14,7 +14,7 @@ from binance_archiver.stream_id import StreamId
 class DifferenceDepthQueue:
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 4
+    _instances_amount_limit = 3
     _event_timestamp_pattern = re.compile(r'"E":\d+,')
 
     def __new__(cls, *args, **kwargs):
