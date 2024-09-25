@@ -26,7 +26,12 @@ from ..binance_archiver_facade import (
     CommandLineInterface,
     QueuePoolDataSink,
     QueuePoolListener,
-    TimeUtils, Whistleblower, SnapshotManager, ListenerSnapshotStrategy, DataSinkSnapshotStrategy, SnapshotStrategy
+    TimeUtils,
+    Whistleblower,
+    SnapshotManager,
+    ListenerSnapshotStrategy,
+    DataSinkSnapshotStrategy,
+    SnapshotStrategy
 )
 from ..fastapi_manager import FastAPIManager
 
@@ -709,6 +714,7 @@ class TestArchiverFacade:
             global_queue = Queue()
             global_shutdown_flag = threading.Event()
             whistleblower = Whistleblower(
+                logger=setup_logger(),
                 observers=observers,
                 global_queue=global_queue,
                 global_shutdown_flag=global_shutdown_flag
@@ -733,6 +739,7 @@ class TestArchiverFacade:
             global_queue = Queue()
             global_shutdown_flag = threading.Event()
             whistleblower = Whistleblower(
+                logger=setup_logger(),
                 observers=observers,
                 global_queue=global_queue,
                 global_shutdown_flag=global_shutdown_flag
@@ -1679,7 +1686,8 @@ class TestArchiverFacade:
             market = Market.SPOT
             stream_type = StreamType.DIFFERENCE_DEPTH
 
-            with patch('binance_archiver.binance_archiver_facade.TimeUtils.get_utc_formatted_timestamp',
+            with patch('binance_archiver.binance_archiver_facade'
+                       '.TimeUtils.get_utc_formatted_timestamp_for_file_name',
                        return_value='01-01-2022T00-00-00Z'):
                 file_name = data_saver.get_file_name(pair, market, stream_type)
 
@@ -1705,7 +1713,7 @@ class TestArchiverFacade:
     class TestTimeUtils:
 
         def test_given_time_utils_when_getting_utc_formatted_timestamp_then_format_is_correct(self):
-            timestamp = TimeUtils.get_utc_formatted_timestamp()
+            timestamp = TimeUtils.get_utc_formatted_timestamp_for_file_name()
             pattern = re.compile(r'\d{2}-\d{2}-\d{4}T\d{2}-\d{2}-\d{2}Z')
             assert re.match(r'\d{2}-\d{2}-\d{4}T\d{2}-\d{2}-\d{2}Z', timestamp), \
                 "Timestamp should match the format '%d-%m-%YT%H-%M-%SZ'"

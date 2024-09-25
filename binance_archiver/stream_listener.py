@@ -3,7 +3,6 @@ import logging
 import threading
 import time
 import traceback
-from typing import List
 
 from websocket import WebSocketApp, ABNF
 
@@ -22,7 +21,7 @@ class StreamListener:
         self,
         logger: logging.Logger,
         queue: TradeQueue | DifferenceDepthQueue,
-        pairs: List[str],
+        pairs: list[str],
         stream_type: StreamType,
         market: Market
     ):
@@ -115,7 +114,7 @@ class StreamListener:
     def _construct_websocket_app(
         self,
         queue: DifferenceDepthQueue | TradeQueue,
-        pairs: List[str],
+        pairs: list[str],
         stream_type: StreamType,
         market: Market
     ) -> WebSocketApp:

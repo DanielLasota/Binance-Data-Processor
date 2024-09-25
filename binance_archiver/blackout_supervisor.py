@@ -2,7 +2,6 @@ import logging
 import time
 import threading
 from datetime import datetime, timezone
-# import logging
 
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType

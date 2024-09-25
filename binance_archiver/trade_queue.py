@@ -1,5 +1,5 @@
 from queue import Queue
-from typing import Any, final
+from typing import final
 import threading
 import re
 
@@ -75,11 +75,11 @@ class TradeQueue:
         match = TradeQueue._transaction_signs_compiled_pattern.search(message)
         return '"s":"' + match.group(1) + '","t":' + match.group(2)
 
-    def get(self) -> Any:
+    def get(self) -> any:
         message, received_timestamp = self.queue.get()
         return message, received_timestamp
 
-    def get_nowait(self) -> Any:
+    def get_nowait(self) -> any:
         message, received_timestamp = self.queue.get_nowait()
         return message, received_timestamp
 

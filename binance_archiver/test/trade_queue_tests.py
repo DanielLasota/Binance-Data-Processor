@@ -2,7 +2,6 @@ import queue
 import time
 import json
 from queue import Queue
-
 import pytest
 
 from binance_archiver.enum_.market_enum import Market

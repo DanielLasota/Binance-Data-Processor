@@ -2,7 +2,6 @@ import json
 import logging
 import time
 import threading
-
 import pytest
 import websocket
 

@@ -3,8 +3,8 @@ import re
 import threading
 import uuid
 from queue import Queue
-from typing import Any, Dict, final
 from collections import deque
+from typing import final
 
 from binance_archiver.exceptions import ClassInstancesAmountLimitException
 from binance_archiver.enum_.market_enum import Market
@@ -91,7 +91,7 @@ class DifferenceDepthQueue:
         return DifferenceDepthQueue._event_timestamp_pattern.sub('', message)
 
     @staticmethod
-    def _do_last_two_throws_match(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool:
+    def _do_last_two_throws_match(amount_of_listened_pairs: int, two_last_throws: dict) -> bool:
         keys = list(two_last_throws.keys())
 
         if len(keys) < 2:
@@ -119,11 +119,11 @@ class DifferenceDepthQueue:
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True
 
-    def get(self) -> Any:
+    def get(self) -> any:
         entry = self.queue.get()
         return entry
 
-    def get_nowait(self) -> Any:
+    def get_nowait(self) -> any:
         entry = self.queue.get_nowait()
         return entry
 

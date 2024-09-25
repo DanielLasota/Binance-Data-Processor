@@ -3,7 +3,6 @@ import time
 from collections import deque
 import json
 from queue import Queue
-
 import pytest
 
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue, \

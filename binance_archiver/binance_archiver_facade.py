@@ -10,25 +10,25 @@ import traceback
 import zipfile
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import List, Any, Dict, Tuple
 from collections import defaultdict
+
 from azure.storage.blob import BlobServiceClient
 import io
 import threading
 import requests
 from queue import Queue
-from .abstract_base_classes import Subject, Observer
 
-from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
-from .fastapi_manager import FastAPIManager
+from binance_archiver.logo import logo
+from .setup_logger import setup_logger
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
-from .setup_logger import setup_logger
+from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
+from .abstract_base_classes import Subject, Observer
+from .fastapi_manager import FastAPIManager
 from .stream_listener import StreamListener
-from .difference_depth_queue import DifferenceDepthQueue
 from .trade_queue import TradeQueue
+from .difference_depth_queue import DifferenceDepthQueue
 from .url_factory import URLFactory
-from binance_archiver.logo import logo
 
 
 class ListenerFacade(Subject):
@@ -54,6 +54,7 @@ class ListenerFacade(Subject):
         self._observers = init_observers if init_observers is not None else []
 
         self.whistleblower = Whistleblower(
+            logger=self.logger,
             observers=self._observers,
             global_queue=self.queue_pool.global_queue,
             global_shutdown_flag=self.global_shutdown_flag
@@ -215,10 +216,12 @@ class DataSinkFacade:
 class Whistleblower:
     def __init__(
             self,
-            observers: List[Observer],
+            logger: logging.Logger,
+            observers: list[Observer],
             global_queue: Queue,
             global_shutdown_flag: threading.Event
     ) -> None:
+        self.logger = logger
         self.observers = observers
         self.global_queue = global_queue
         self.global_shutdown_flag = global_shutdown_flag
@@ -226,7 +229,7 @@ class Whistleblower:
     def process_global_queue(self):
         while not self.global_shutdown_flag.is_set():
             if self.global_queue.qsize() > 100:
-                print(f'qsize: {self.global_queue.qsize()}')
+                self.logger.warning(f'qsize: {self.global_queue.qsize()}')
             try:
                 message = self.global_queue.get(timeout=1)
                 for observer in self.observers:
@@ -337,7 +340,7 @@ class StreamService:
     def _stream_service(
         self,
         queue: DifferenceDepthQueue | TradeQueue,
-        pairs: List[str],
+        pairs: list[str],
         stream_type: StreamType,
         market: Market,
         websockets_lifetime_seconds: int
@@ -540,7 +543,7 @@ class SnapshotManager:
     def start_snapshot_daemon(
         self,
         market: Market,
-        pairs: List[str],
+        pairs: list[str],
         dump_path: str,
         interval: int
     ):
@@ -558,7 +561,7 @@ class SnapshotManager:
 
     def _snapshot_daemon(
         self,
-        pairs: List[str],
+        pairs: list[str],
         market: Market,
         dump_path: str,
         fetch_interval: int
@@ -604,7 +607,7 @@ class SnapshotManager:
                 break
             time.sleep(interval)
 
-    def _get_snapshot(self, pair: str, market: Market) -> Tuple[Dict[str, Any], int, int] | (None, None, None):
+    def _get_snapshot(self, pair: str, market: Market) -> tuple[dict[str, any] | None, int | None, int | None]:
         url = URLFactory.get_snapshot_url(market=market, pair=pair)
 
         try:
@@ -854,7 +857,7 @@ class DataSaver:
     @staticmethod
     def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:
         pair_lower = pair.lower()
-        formatted_now_timestamp = TimeUtils.get_utc_formatted_timestamp()
+        formatted_now_timestamp = TimeUtils.get_utc_formatted_timestamp_for_file_name()
 
         market_mapping = {
             Market.SPOT: "spot",
@@ -876,7 +879,7 @@ class DataSaver:
 
 class TimeUtils:
     @staticmethod
-    def get_utc_formatted_timestamp() -> str:
+    def get_utc_formatted_timestamp_for_file_name() -> str:
         return datetime.utcnow().strftime("%d-%m-%YT%H-%M-%SZ")
 
     @staticmethod
@@ -946,7 +949,7 @@ def launch_data_sink(
 def launch_data_listener(
         config,
         should_dump_logs: bool = False,
-        init_observers: List[object] = None
+        init_observers: list[object] = None
 ) -> ListenerFacade:
 
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}

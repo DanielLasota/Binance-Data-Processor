@@ -1,12 +1,11 @@
 import uuid
 import time
-from typing import Tuple, List
 
 from binance_archiver.exceptions import BadStreamIdParameter
 
 
 class StreamId:
-    def __init__(self, pairs: List[str]):
+    def __init__(self, pairs: list[str]):
         self.start_timestamp = time.time_ns()
         self.uuid = uuid.uuid4()
         self._pairs = pairs
@@ -19,5 +18,5 @@ class StreamId:
         return amount_of_listened_pairs
 
     @property
-    def id(self) -> Tuple[int, uuid.UUID]:
+    def id(self) -> tuple[int, uuid.UUID]:
         return self.start_timestamp, self.uuid
