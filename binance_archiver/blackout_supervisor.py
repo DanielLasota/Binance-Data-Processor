@@ -4,8 +4,8 @@ import threading
 from datetime import datetime, timezone
 # import logging
 
-from binance_archiver.enum.market_enum import Market
-from binance_archiver.enum.stream_type_enum import StreamType
+from binance_archiver.binance_archiver_enums.market_enum import Market
+from binance_archiver.binance_archiver_enums.stream_type_enum import StreamType
 
 
 class BlackoutSupervisor:

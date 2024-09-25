@@ -8,6 +8,7 @@ import queue
 import time
 import traceback
 import zipfile
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import List, Any, Dict, Tuple
 from collections import defaultdict
@@ -16,16 +17,16 @@ import io
 import threading
 import requests
 from queue import Queue
-
 from .abc import Subject, Observer
+
 from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
 from .fastapi_manager import FastAPIManager
-from binance_archiver.enum.run_mode_enum import RunMode
+from binance_archiver.binance_archiver_enums.run_mode_enum import RunMode
+from binance_archiver.binance_archiver_enums.market_enum import Market
+from binance_archiver.binance_archiver_enums.stream_type_enum import StreamType
 from .setup_logger import setup_logger
 from .stream_listener import StreamListener
 from .difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.enum.market_enum import Market
-from binance_archiver.enum.stream_type_enum import StreamType
 from .trade_queue import TradeQueue
 from .url_factory import URLFactory
 from binance_archiver.logo import logo
@@ -59,10 +60,12 @@ class ListenerFacade(Subject):
             global_shutdown_flag=self.global_shutdown_flag
         )
 
+        snapshot_strategy = ListenerSnapshotStrategy(global_queue=self.queue_pool.global_queue)
+
         self.snapshot_manager = SnapshotManager(
             instruments=self.instruments,
             logger=self.logger,
-            data_saver=None,
+            snapshot_strategy=snapshot_strategy,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
@@ -93,12 +96,7 @@ class ListenerFacade(Subject):
 
         self.snapshot_manager.run_snapshots(
             dump_path=dump_path,
-            interval=snapshot_fetcher_interval_seconds,
-            save_to_json=False,
-            save_to_zip=False,
-            send_zip_to_blob=False,
-            run_mode=RunMode.LISTENER,
-            global_queue=self.queue_pool.global_queue
+            interval=snapshot_fetcher_interval_seconds
         )
 
     def shutdown(self):
@@ -158,10 +156,17 @@ class DataSinkFacade:
             global_shutdown_flag=self.global_shutdown_flag
         )
 
+        snapshot_strategy = DataSinkSnapshotStrategy(
+            data_saver=self.data_saver,
+            save_to_json=self.config["save_to_json"],
+            save_to_zip=self.config["save_to_zip"],
+            send_zip_to_blob=self.config["send_zip_to_blob"]
+        )
+
         self.snapshot_manager = SnapshotManager(
             instruments=self.instruments,
             logger=self.logger,
-            data_saver=self.data_saver,
+            snapshot_strategy=snapshot_strategy,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
@@ -173,29 +178,20 @@ class DataSinkFacade:
 
         self.stream_service.run_streams(websockets_lifetime_seconds=websockets_lifetime_seconds)
 
-        save_to_json = self.config["save_to_json"] if 'save_to_json' in self.config else None
-        save_to_zip = self.config["save_to_zip"] if 'save_to_zip' in self.config else None
-        send_zip_to_blob = self.config["send_zip_to_blob"] if 'send_zip_to_blob' in self.config else None
-
         self.fast_api_manager.run()
 
         self.data_saver.run_data_saver(
             queue_pool=self.queue_pool,
             dump_path=dump_path,
             file_duration_seconds=file_duration_seconds,
-            save_to_json=save_to_json,
-            save_to_zip=save_to_zip,
-            send_zip_to_blob=send_zip_to_blob
+            save_to_json=self.config["save_to_json"],
+            save_to_zip=self.config["save_to_zip"],
+            send_zip_to_blob=self.config["send_zip_to_blob"]
         )
 
         self.snapshot_manager.run_snapshots(
             dump_path=dump_path,
-            interval=snapshot_fetcher_interval_seconds,
-            save_to_json=save_to_json,
-            save_to_zip=save_to_zip,
-            send_zip_to_blob=send_zip_to_blob,
-            run_mode=RunMode.DATA_SINK,
-            global_queue=self.queue_pool.global_queue
+            interval=snapshot_fetcher_interval_seconds
         )
 
     def shutdown(self):
@@ -439,67 +435,105 @@ class StreamService:
                     stream_listener.change_subscription(action=action, pair=asset_upper)
 
 
+class SnapshotStrategy(ABC):
+    @abstractmethod
+    def handle_snapshot(
+        self,
+        snapshot: dict,
+        pair: str,
+        market: Market,
+        dump_path: str,
+        file_name: str
+    ):
+        ...
+
+
+class DataSinkSnapshotStrategy(SnapshotStrategy):
+    def __init__(
+        self,
+        data_saver: DataSaver,
+        save_to_json: bool,
+        save_to_zip: bool,
+        send_zip_to_blob: bool
+    ):
+        self.data_saver = data_saver
+        self.save_to_json = save_to_json
+        self.save_to_zip = save_to_zip
+        self.send_zip_to_blob = send_zip_to_blob
+
+    def handle_snapshot(
+        self,
+        snapshot: dict,
+        pair: str,
+        market: Market,
+        dump_path: str,
+        file_name: str
+    ):
+        file_path = os.path.join(dump_path, file_name)
+        if self.save_to_json:
+            self.data_saver.save_to_json(snapshot, file_path)
+        if self.save_to_zip:
+            self.data_saver.save_to_zip(snapshot, file_name, file_path)
+        if self.send_zip_to_blob:
+            self.data_saver.send_zipped_json_to_blob(snapshot, file_name)
+
+
+class ListenerSnapshotStrategy(SnapshotStrategy):
+    def __init__(self, global_queue: Queue):
+        self.global_queue = global_queue
+
+    def handle_snapshot(
+        self,
+        snapshot: dict,
+        pair: str,
+        market: Market,
+        dump_path: str,
+        file_name: str
+    ):
+        self.global_queue.put(json.dumps(snapshot))
+
+
 class SnapshotManager:
     def __init__(
         self,
         instruments: dict,
         logger: logging.Logger,
-        data_saver: DataSaver | None,
+        snapshot_strategy: SnapshotStrategy,
         global_shutdown_flag: threading.Event
     ):
         self.instruments = instruments
         self.logger = logger
-        self.data_saver = data_saver
+        self.snapshot_strategy = snapshot_strategy
         self.global_shutdown_flag = global_shutdown_flag
 
     def run_snapshots(
         self,
         dump_path: str,
-        interval: int,
-        save_to_json: bool,
-        save_to_zip: bool,
-        send_zip_to_blob: bool,
-        run_mode: RunMode,
-        global_queue: Queue
+        interval: int
     ):
         for market_str, pairs in self.instruments.items():
             market = Market[market_str.upper()]
             self.start_snapshot_daemon(
                 market=market,
+                pairs=pairs,
                 dump_path=dump_path,
-                interval=interval,
-                save_to_json=save_to_json,
-                save_to_zip=save_to_zip,
-                send_zip_to_blob=send_zip_to_blob,
-                run_mode=run_mode,
-                global_queue=global_queue
+                interval=interval
             )
 
     def start_snapshot_daemon(
         self,
-        market,
-        dump_path,
-        interval,
-        save_to_json,
-        save_to_zip,
-        send_zip_to_blob,
-        run_mode,
-        global_queue
+        market: Market,
+        pairs: List[str],
+        dump_path: str,
+        interval: int
     ):
-        pairs = self.instruments[market.name.lower()]
-
         thread = threading.Thread(
             target=self._snapshot_daemon,
             args=(
                 pairs,
                 market,
                 dump_path,
-                interval,
-                save_to_json,
-                save_to_zip,
-                send_zip_to_blob,
-                run_mode,
-                global_queue
+                interval
             ),
             name=f'snapshot_daemon: market: {market}'
         )
@@ -510,14 +544,8 @@ class SnapshotManager:
         pairs: List[str],
         market: Market,
         dump_path: str,
-        fetch_interval: int,
-        save_to_json: bool,
-        save_to_zip: bool,
-        send_zip_to_blob: bool,
-        run_mode: RunMode,
-        global_queue: Queue
+        fetch_interval: int
     ) -> None:
-
         while not self.global_shutdown_flag.is_set():
             for pair in pairs:
                 try:
@@ -529,19 +557,19 @@ class SnapshotManager:
                     snapshot["_rq"] = request_timestamp
                     snapshot["_rc"] = receive_timestamp
 
-                    file_name = DataSaver.get_file_name(pair=pair, market=market, stream_type=StreamType.DEPTH_SNAPSHOT)
-                    file_path = os.path.join(dump_path, file_name)
+                    file_name = DataSaver.get_file_name(
+                        pair=pair,
+                        market=market,
+                        stream_type=StreamType.DEPTH_SNAPSHOT
+                    )
 
-                    if run_mode is RunMode.DATA_SINK:
-                        if save_to_json:
-                            self.data_saver.save_to_json(snapshot, file_path)
-                        if save_to_zip:
-                            self.data_saver.save_to_zip(snapshot, file_name, file_path)
-                        if send_zip_to_blob:
-                            self.data_saver.send_zipped_json_to_blob(snapshot, file_name)
-
-                    elif run_mode is RunMode.LISTENER:
-                        global_queue.put(json.dumps(snapshot))
+                    self.snapshot_strategy.handle_snapshot(
+                        snapshot=snapshot,
+                        pair=pair,
+                        market=market,
+                        dump_path=dump_path,
+                        file_name=file_name
+                    )
 
                 except Exception as e:
                     self.logger.error(
@@ -559,8 +587,7 @@ class SnapshotManager:
                 break
             time.sleep(interval)
 
-    def _get_snapshot(self, pair: str, market: Market) -> Tuple[Dict[str, Any], int, int] | (None, None, None):
-
+    def _get_snapshot(self, pair: str, market: Market) -> Tuple[Dict[str, Any], int, int]:
         url = URLFactory.get_snapshot_url(market=market, pair=pair)
 
         try:

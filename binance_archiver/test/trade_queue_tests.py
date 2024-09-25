@@ -5,8 +5,8 @@ from queue import Queue
 
 import pytest
 
-from binance_archiver.enum.market_enum import Market
-from binance_archiver.enum.run_mode_enum import RunMode
+from binance_archiver.binance_archiver_enums.market_enum import Market
+from binance_archiver.binance_archiver_enums.run_mode_enum import RunMode
 from binance_archiver.stream_id import StreamId
 from binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
 

@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import threading
 import time
@@ -24,17 +25,17 @@ from ..archiver_daemon import (
     DataSaver,
     CommandLineInterface,
     QueuePool,
-    TimeUtils, Whistleblower, SnapshotManager
+    TimeUtils, Whistleblower, SnapshotManager, ListenerSnapshotStrategy, DataSinkSnapshotStrategy, SnapshotStrategy
 )
 from ..fastapi_manager import FastAPIManager
-from binance_archiver.enum.run_mode_enum import RunMode
+from binance_archiver.binance_archiver_enums.run_mode_enum import RunMode
 
 from ..setup_logger import setup_logger
 from ..difference_depth_queue import DifferenceDepthQueue
 from ..stream_id import StreamId
 from ..trade_queue import TradeQueue
-from binance_archiver.enum.market_enum import Market
-from binance_archiver.enum.stream_type_enum import StreamType
+from binance_archiver.binance_archiver_enums.market_enum import Market
+from binance_archiver.binance_archiver_enums.stream_type_enum import StreamType
 
 
 class TestArchiverFacade:
@@ -207,7 +208,10 @@ class TestArchiverFacade:
                 "instruments": {
                     "spot": ["BTCUSDT"]
                 },
-                "websocket_life_time_seconds": 70
+                "websocket_life_time_seconds": 70,
+                "save_to_json": False,
+                "save_to_zip": False,
+                "send_zip_to_blob": False
             }
             logger = setup_logger()
 
@@ -872,57 +876,391 @@ class TestArchiverFacade:
 
     class TestSnapshotManager:
 
-        def test_snapshot_manager_puts_snapshots_into_global_queue(self):
-            instruments = {
-                "spot": ["BTCUSDT"]
-            }
-            logger = setup_logger()
-            global_shutdown_flag = threading.Event()
-            data_saver = None  # Not used in LISTENER mode
-            snapshot_manager = SnapshotManager(
-                instruments=instruments,
-                logger=logger,
-                data_saver=data_saver,
-                global_shutdown_flag=global_shutdown_flag
-            )
+        def test_init(self):
+            assert True
 
-            global_queue = Queue()
-            run_mode = RunMode.LISTENER
+        class TestSnapshotManager:
 
-            with patch.object(snapshot_manager, '_get_snapshot',
-                              return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
-                daemon_thread = threading.Thread(
-                    target=snapshot_manager._snapshot_daemon,
-                    args=(
-                        ["BTCUSDT"],
-                        Market.SPOT,
-                        "",
-                        1,
-                        False,
-                        False,
-                        False,
-                        run_mode,
-                        global_queue
-                    ),
-                    name='snapshot_daemon_thread',
-                    daemon=True
+            def test_given_listener_strategy_when_snapshot_received_then_snapshot_put_into_global_queue(self):
+                instruments = {
+                    "spot": ["BTCUSDT"]
+                }
+                logger = setup_logger()
+                global_shutdown_flag = threading.Event()
+
+                global_queue = Queue()
+                snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
+
+                snapshot_manager = SnapshotManager(
+                    instruments=instruments,
+                    logger=logger,
+                    snapshot_strategy=snapshot_strategy,
+                    global_shutdown_flag=global_shutdown_flag
                 )
-                daemon_thread.start()
 
-                time.sleep(0.5)
+                with patch.object(snapshot_manager, '_get_snapshot',
+                                  return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
+                    daemon_thread = threading.Thread(
+                        target=snapshot_manager._snapshot_daemon,
+                        args=(
+                            ["BTCUSDT"],
+                            Market.SPOT,
+                            "",
+                            1
+                        ),
+                        name='snapshot_daemon_thread',
+                        daemon=True
+                    )
+                    daemon_thread.start()
 
-                global_shutdown_flag.set()
+                    time.sleep(0.5)
 
-                daemon_thread.join(timeout=2)
+                    global_shutdown_flag.set()
 
-                assert not global_queue.empty(), "Global queue should have snapshot data"
+                    daemon_thread.join(timeout=2)
 
+                    assert not global_queue.empty(), "Global queue powinna zawierać dane snapshotu"
+
+                    message = global_queue.get()
+                    assert isinstance(message, str), "Dane snapshotu powinny być zserializowane jako string JSON"
+
+                    expected_snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
+                    assert message == json.dumps(expected_snapshot), "Dane snapshotu powinny zgadzać się z oczekiwanymi"
+
+            def test_given_data_sink_strategy_when_snapshot_received_then_data_saver_methods_called(self):
+                instruments = {
+                    "spot": ["BTCUSDT"]
+                }
+                logger = setup_logger()
+                global_shutdown_flag = threading.Event()
+
+                data_saver = MagicMock(spec=DataSaver)
+                snapshot_strategy = DataSinkSnapshotStrategy(
+                    data_saver=data_saver,
+                    save_to_json=True,
+                    save_to_zip=True,
+                    send_zip_to_blob=True
+                )
+
+                snapshot_manager = SnapshotManager(
+                    instruments=instruments,
+                    logger=logger,
+                    snapshot_strategy=snapshot_strategy,
+                    global_shutdown_flag=global_shutdown_flag
+                )
+
+                with patch.object(snapshot_manager, '_get_snapshot',
+                                  return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
+                    with patch.object(DataSaver, 'get_file_name', return_value='file_name.json'):
+                        daemon_thread = threading.Thread(
+                            target=snapshot_manager._snapshot_daemon,
+                            args=(
+                                ["BTCUSDT"],
+                                Market.SPOT,
+                                "dump_path",
+                                1
+                            ),
+                            name='snapshot_daemon_thread',
+                            daemon=True
+                        )
+                        daemon_thread.start()
+
+                        time.sleep(0.5)
+
+                        global_shutdown_flag.set()
+
+                        daemon_thread.join(timeout=2)
+
+                        file_name = 'file_name.json'
+                        file_path = os.path.join("dump_path", file_name)
+
+                        expected_snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
+
+                        data_saver.save_to_json.assert_called_with(expected_snapshot, file_path)
+                        data_saver.save_to_zip.assert_called_with(expected_snapshot, file_name, file_path)
+                        data_saver.send_zipped_json_to_blob.assert_called_with(expected_snapshot, file_name)
+
+            def test_given_exception_in_get_snapshot_when_snapshot_fetched_then_error_logged_and_no_snapshot_processed(self):
+                instruments = {
+                    "spot": ["BTCUSDT"]
+                }
+                logger = setup_logger()
+                global_shutdown_flag = threading.Event()
+
+                global_queue = Queue()
+                snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
+
+                snapshot_manager = SnapshotManager(
+                    instruments=instruments,
+                    logger=logger,
+                    snapshot_strategy=snapshot_strategy,
+                    global_shutdown_flag=global_shutdown_flag
+                )
+
+                with patch.object(snapshot_manager, '_get_snapshot', side_effect=Exception("Test exception")):
+                    with patch.object(logger, 'error') as mock_logger_error:
+                        daemon_thread = threading.Thread(
+                            target=snapshot_manager._snapshot_daemon,
+                            args=(
+                                ["BTCUSDT"],
+                                Market.SPOT,
+                                "",
+                                1
+                            ),
+                            name='snapshot_daemon_thread',
+                            daemon=True
+                        )
+                        daemon_thread.start()
+
+                        time.sleep(0.5)
+
+                        global_shutdown_flag.set()
+
+                        daemon_thread.join(timeout=2)
+
+                        mock_logger_error.assert_called()
+                        assert global_queue.empty(), "Global queue powinna być pusta po wyjątku"
+
+            def test_given_shutdown_flag_set_when_daemon_running_then_thread_exits(self):
+                instruments = {
+                    "spot": ["BTCUSDT"]
+                }
+                logger = setup_logger()
+                global_shutdown_flag = threading.Event()
+
+                global_queue = Queue()
+                snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
+
+                snapshot_manager = SnapshotManager(
+                    instruments=instruments,
+                    logger=logger,
+                    snapshot_strategy=snapshot_strategy,
+                    global_shutdown_flag=global_shutdown_flag
+                )
+
+                with patch.object(snapshot_manager, '_get_snapshot') as mock_get_snapshot:
+                    daemon_thread = threading.Thread(
+                        target=snapshot_manager._snapshot_daemon,
+                        args=(
+                            ["BTCUSDT"],
+                            Market.SPOT,
+                            "",
+                            2
+                        ),
+                        name='snapshot_daemon_thread',
+                        daemon=True
+                    )
+                    daemon_thread.start()
+
+                    time.sleep(0.5)
+
+                    global_shutdown_flag.set()
+
+                    daemon_thread.join(timeout=2)
+
+                    assert not daemon_thread.is_alive(), "Wątek snapshot_daemon powinien zakończyć działanie po ustawieniu flagi global_shutdown_flag"
+
+            def test_given_successful_response_when_get_snapshot_called_then_data_and_timestamps_returned(self):
+                instruments = {
+                    "spot": ["BTCUSDT"]
+                }
+                logger = setup_logger()
+                global_shutdown_flag = threading.Event()
+
+                snapshot_strategy = MagicMock(spec=SnapshotStrategy)
+
+                snapshot_manager = SnapshotManager(
+                    instruments=instruments,
+                    logger=logger,
+                    snapshot_strategy=snapshot_strategy,
+                    global_shutdown_flag=global_shutdown_flag
+                )
+
+                response_data = {"bids": [], "asks": []}
+                with patch('requests.get') as mock_get:
+                    mock_response = MagicMock()
+                    mock_response.status_code = 200
+                    mock_response.json.return_value = response_data
+                    mock_get.return_value = mock_response
+
+                    with patch.object(TimeUtils, 'get_utc_timestamp_epoch_milliseconds', side_effect=[1000, 2000]):
+                        data, request_timestamp, receive_timestamp = snapshot_manager._get_snapshot("BTCUSDT",
+                                                                                                    Market.SPOT)
+
+                        assert data == response_data
+                        assert request_timestamp == 1000
+                        assert receive_timestamp == 2000
+
+            def test_given_exception_when_get_snapshot_called_then_none_returned_and_error_logged(self):
+                instruments = {
+                    "spot": ["BTCUSDT"]
+                }
+                logger = setup_logger()
+                global_shutdown_flag = threading.Event()
+
+                snapshot_strategy = MagicMock(spec=SnapshotStrategy)
+
+                snapshot_manager = SnapshotManager(
+                    instruments=instruments,
+                    logger=logger,
+                    snapshot_strategy=snapshot_strategy,
+                    global_shutdown_flag=global_shutdown_flag
+                )
+
+                with patch('requests.get', side_effect=Exception("Network error")):
+                    with patch.object(logger, 'error') as mock_logger_error:
+                        data, request_timestamp, receive_timestamp = snapshot_manager._get_snapshot("BTCUSDT",
+                                                                                                    Market.SPOT)
+
+                        assert data is None
+                        assert request_timestamp is None
+                        assert receive_timestamp is None
+                        mock_logger_error.assert_called()
+
+            def test_given_shutdown_flag_set_when_sleep_with_flag_check_called_then_method_exits_early(self):
+                logger = setup_logger()
+                global_shutdown_flag = threading.Event()
+
+                snapshot_manager = SnapshotManager(
+                    instruments={},
+                    logger=logger,
+                    snapshot_strategy=MagicMock(spec=SnapshotStrategy),
+                    global_shutdown_flag=global_shutdown_flag
+                )
+
+                # Ustawienie flagi shutdown po krótkim czasie
+                def set_flag():
+                    time.sleep(0.5)
+                    global_shutdown_flag.set()
+
+                threading.Thread(target=set_flag).start()
+
+                start_time = time.time()
+                snapshot_manager._sleep_with_flag_check(duration=5)
+                elapsed_time = time.time() - start_time
+
+                assert elapsed_time < 1.5, "Metoda powinna zakończyć działanie szybko po ustawieniu flagi global_shutdown_flag"
+
+        class TestListenerSnapshotStrategy:
+
+            def test_given_snapshot_when_handle_snapshot_called_then_snapshot_put_into_global_queue(self):
+                global_queue = Queue()
+                snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
+
+                snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
+                snapshot_strategy.handle_snapshot(
+                    snapshot=snapshot,
+                    pair="BTCUSDT",
+                    market=Market.SPOT,
+                    dump_path="",
+                    file_name=""
+                )
+
+                assert not global_queue.empty(), "Global queue powinna zawierać dane snapshotu"
                 message = global_queue.get()
-                assert isinstance(message, str), "Snapshot data should be serialized as JSON string"
+                assert message == json.dumps(snapshot), "Dane snapshotu powinny być zserializowane jako string JSON"
 
-                # Optionally, check the contents of the message
-                assert message == json.dumps({"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}), \
-                    "Snapshot data should match expected value"
+        class TestDataSinkSnapshotStrategy:
+
+            def test_given_all_save_options_true_when_handle_snapshot_called_then_all_methods_called(self):
+                data_saver = MagicMock(spec=DataSaver)
+                snapshot_strategy = DataSinkSnapshotStrategy(
+                    data_saver=data_saver,
+                    save_to_json=True,
+                    save_to_zip=True,
+                    send_zip_to_blob=True
+                )
+
+                snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
+                file_name = "file_name.json"
+                file_path = os.path.join("dump_path", file_name)
+
+                snapshot_strategy.handle_snapshot(
+                    snapshot=snapshot,
+                    pair="BTCUSDT",
+                    market=Market.SPOT,
+                    dump_path="dump_path",
+                    file_name=file_name
+                )
+
+                data_saver.save_to_json.assert_called_with(snapshot, file_path)
+                data_saver.save_to_zip.assert_called_with(snapshot, file_name, file_path)
+                data_saver.send_zipped_json_to_blob.assert_called_with(snapshot, file_name)
+
+            def test_given_save_to_json_false_when_handle_snapshot_called_then_save_to_json_not_called(self):
+                data_saver = MagicMock(spec=DataSaver)
+                snapshot_strategy = DataSinkSnapshotStrategy(
+                    data_saver=data_saver,
+                    save_to_json=False,
+                    save_to_zip=True,
+                    send_zip_to_blob=True
+                )
+
+                snapshot = {"snapshot": "data"}
+                file_name = "file_name.json"
+                file_path = os.path.join("dump_path", file_name)
+
+                snapshot_strategy.handle_snapshot(
+                    snapshot=snapshot,
+                    pair="BTCUSDT",
+                    market=Market.SPOT,
+                    dump_path="dump_path",
+                    file_name=file_name
+                )
+
+                data_saver.save_to_json.assert_not_called()
+                data_saver.save_to_zip.assert_called_once()
+                data_saver.send_zipped_json_to_blob.assert_called_once()
+
+            def test_given_save_to_zip_false_when_handle_snapshot_called_then_save_to_zip_not_called(self):
+                data_saver = MagicMock(spec=DataSaver)
+                snapshot_strategy = DataSinkSnapshotStrategy(
+                    data_saver=data_saver,
+                    save_to_json=True,
+                    save_to_zip=False,
+                    send_zip_to_blob=True
+                )
+
+                snapshot = {"snapshot": "data"}
+                file_name = "file_name.json"
+                file_path = os.path.join("dump_path", file_name)
+
+                snapshot_strategy.handle_snapshot(
+                    snapshot=snapshot,
+                    pair="BTCUSDT",
+                    market=Market.SPOT,
+                    dump_path="dump_path",
+                    file_name=file_name
+                )
+
+                data_saver.save_to_json.assert_called_once()
+                data_saver.save_to_zip.assert_not_called()
+                data_saver.send_zipped_json_to_blob.assert_called_once()
+
+            def test_given_send_zip_to_blob_false_when_handle_snapshot_called_then_send_zip_to_blob_not_called(self):
+                data_saver = MagicMock(spec=DataSaver)
+                snapshot_strategy = DataSinkSnapshotStrategy(
+                    data_saver=data_saver,
+                    save_to_json=True,
+                    save_to_zip=True,
+                    send_zip_to_blob=False
+                )
+
+                snapshot = {"snapshot": "data"}
+                file_name = "file_name.json"
+                file_path = os.path.join("dump_path", file_name)
+
+                snapshot_strategy.handle_snapshot(
+                    snapshot=snapshot,
+                    pair="BTCUSDT",
+                    market=Market.SPOT,
+                    dump_path="dump_path",
+                    file_name=file_name
+                )
+
+                data_saver.save_to_json.assert_called_once()
+                data_saver.save_to_zip.assert_called_once()
+                data_saver.send_zipped_json_to_blob.assert_not_called()
 
 
     class TestCommandLineInterface:
