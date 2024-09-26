@@ -10,7 +10,7 @@ import pytest
 
 from ..abstract_base_classes import Observer
 from ..exceptions import (
-    BadAzureParameters,
+    BadStorageProviderParameters,
     BadConfigException,
     ClassInstancesAmountLimitException,
     WebSocketLifeTimeException
@@ -51,31 +51,6 @@ class TestArchiverFacade:
 
     class TestDataSinkFacade:
 
-        def test_given_send_zip_to_blob_is_true_and_azure_blob_parameters_with_key_is_bad_then_exception_is_thrown(self):
-            config = {
-                "instruments": {
-                    "spot": ["BTCUSDT"]
-                },
-                "file_duration_seconds": 30,
-                "snapshot_fetcher_interval_seconds": 60,
-                "websocket_life_time_seconds": 70,
-                "save_to_json": False,
-                "save_to_zip": False,
-                "send_zip_to_blob": True
-            }
-
-            azure_blob_parameters_with_key = ''
-            container_name = 'some_container_name'
-
-            with pytest.raises(BadAzureParameters) as excinfo:
-                data_sink_facade = launch_data_sink(
-                    config=config,
-                    azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
-                )
-
-            assert str(excinfo.value) == "Azure blob parameters with key or container name is missing or empty"
-
         def test_given_send_zip_to_blob_is_true_and_container_name_is_bad_then_exception_is_thrown(self):
             config = {
                 "instruments": {
@@ -90,16 +65,14 @@ class TestArchiverFacade:
             }
 
             azure_blob_parameters_with_key = 'DefaultEndpointsProtocol=...'
-            container_name = ''
 
-            with pytest.raises(BadAzureParameters) as excinfo:
+            with pytest.raises(BadStorageProviderParameters) as excinfo:
                 data_sink_facade = launch_data_sink(
                     config=config,
                     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
                 )
 
-            assert str(excinfo.value) == "Azure blob parameters with key or container name is missing or empty"
+            assert str(excinfo.value) == "At least one of the Azure or Backblaze parameter sets must be fully specified."
 
         def test_given_archiver_facade_when_init_then_global_shutdown_flag_is_false(self):
             config = {
@@ -274,55 +247,6 @@ class TestArchiverFacade:
             assert len(active_threads) == 0, f"Still active threads after shutdown: {[thread.name for thread in active_threads]}"
 
             del archiver_facade
-
-        @pytest.mark.parametrize('execution_number', range(1))
-        def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(self,execution_number):
-            config = {
-                "instruments": {
-                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-                                       "DOTUSD_PERP"]
-                },
-                "file_duration_seconds": 30,
-                "snapshot_fetcher_interval_seconds": 60,
-                "websocket_life_time_seconds": 60,
-                "save_to_json": False,
-                "save_to_zip": False,
-                "send_zip_to_blob": False
-            }
-
-            archiver_daemon = launch_data_sink(config)
-
-            time.sleep(5)
-
-            archiver_daemon.shutdown()
-
-            active_threads = []
-
-            for _ in range(20):
-                active_threads = [
-                    thread for thread in threading.enumerate()
-                    if thread is not threading.current_thread()
-                ]
-                if not active_threads:
-                    break
-                time.sleep(1)
-
-            for _ in active_threads: print(_)
-
-            DifferenceDepthQueue.clear_instances()
-            TradeQueue.clear_instances()
-
-            assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
-                                              f": {[thread.name for thread in active_threads]}")
-
-            del archiver_daemon
 
         @pytest.mark.parametrize('execution_number', range(1))
         def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(self,execution_number):
@@ -566,55 +490,6 @@ class TestArchiverFacade:
             assert len(active_threads) == 0, f"Still active threads after shutdown: {[thread.name for thread in active_threads]}"
 
             del archiver_facade
-
-        @pytest.mark.parametrize('execution_number', range(1))
-        def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(self,execution_number):
-            config = {
-                "instruments": {
-                    "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                             "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                    "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-                                      "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                    "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-                                       "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-                                       "DOTUSD_PERP"]
-                },
-                "file_duration_seconds": 30,
-                "snapshot_fetcher_interval_seconds": 60,
-                "websocket_life_time_seconds": 60,
-                "save_to_json": False,
-                "save_to_zip": False,
-                "send_zip_to_blob": False
-            }
-
-            archiver_daemon = launch_data_listener(config)
-
-            time.sleep(5)
-
-            archiver_daemon.shutdown()
-
-            active_threads = []
-
-            for _ in range(20):
-                active_threads = [
-                    thread for thread in threading.enumerate()
-                    if thread is not threading.current_thread()
-                ]
-                if not active_threads:
-                    break
-                time.sleep(1)
-
-            for _ in active_threads: print(_)
-
-            DifferenceDepthQueue.clear_instances()
-            TradeQueue.clear_instances()
-
-            assert len(active_threads) == 0, (f"Still active threads after run {execution_number + 1}"
-                                              f": {[thread.name for thread in active_threads]}")
-
-            del archiver_daemon
 
         @pytest.mark.parametrize('execution_number', range(1))
         def test_given_archiver_daemon_when_shutdown_method_during_no_stream_switch_is_called_then_no_threads_are_left(self,execution_number):
@@ -1474,33 +1349,45 @@ class TestArchiverFacade:
                                                    'AccountName=test_account;AccountKey=test_key;'
                                                    'EndpointSuffix=core.windows.net')
             self.container_name = 'test_container'
+            self.backblaze_s3_parameters = {
+                'access_key_id': 'test_access_key_id',
+                'secret_access_key': 'test_secret_access_key',
+                'endpoint_url': 'https://s3.eu-central-003.backblazeb2.com'
+            }
+            self.backblaze_bucket_name = 'test_bucket'
 
         def test_given_blob_parameters_when_initializing_then_blob_service_client_is_initialized(self):
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
-                container_name=self.container_name,
+                azure_container_name=self.container_name,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
-            assert data_saver.blob_service_client is not None, "BlobServiceClient should be initialized"
-            assert data_saver.container_name == self.container_name, "Container name should be set"
+            assert data_saver.azure_blob_service_client is not None, "BlobServiceClient should be initialized"
+            assert data_saver.azure_container_name == self.container_name, "Container name should be set"
 
         def test_given_no_blob_parameters_when_initializing_then_blob_service_client_is_none(self):
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
-            assert data_saver.blob_service_client is None, "BlobServiceClient should be None when parameters are missing"
+            assert data_saver.azure_blob_service_client is None, "BlobServiceClient should be None when parameters are missing"
 
         def test_given_data_saver_when_run_then_stream_writers_are_started(self):
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
@@ -1525,7 +1412,9 @@ class TestArchiverFacade:
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
@@ -1552,7 +1441,9 @@ class TestArchiverFacade:
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
@@ -1567,7 +1458,6 @@ class TestArchiverFacade:
 
             with patch.object(data_saver, '_process_stream_data') as mock_process_stream_data, \
                     patch.object(data_saver, '_sleep_with_flag_check') as mock_sleep_with_flag_check:
-
                 def side_effect(duration):
                     self.global_shutdown_flag.set()
 
@@ -1592,7 +1482,9 @@ class TestArchiverFacade:
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
@@ -1615,7 +1507,9 @@ class TestArchiverFacade:
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
@@ -1656,7 +1550,9 @@ class TestArchiverFacade:
             data_saver = DataSaver(
                 logger=self.logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
@@ -1681,11 +1577,14 @@ class TestArchiverFacade:
             data_saver = DataSaver(
                 logger=logger,
                 azure_blob_parameters_with_key=None,
-                container_name=None,
+                azure_container_name=None,
+                backblaze_s3_parameters=None,
+                backblaze_bucket_name=None,
                 global_shutdown_flag=global_shutdown_flag
             )
 
-            assert data_saver.blob_service_client is None, "BlobServiceClient should be None in LISTENER mode"
+            assert data_saver.azure_blob_service_client is None, "BlobServiceClient should be None in LISTENER mode"
+            assert data_saver.s3_client is None, "Backblaze S3 Client should be None in LISTENER mode"
 
 
     class TestTimeUtils:
@@ -1748,10 +1647,10 @@ class TestArchiverFacade:
                 launch_data_sink(
                     config=config,
                     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                    azure_container_name=container_name
                 )
 
-            assert str(excinfo.value) == "Instruments config is missing or not a dictionary."
+            assert str(excinfo.value) == "Config must contain 1 to 3 markets and must be a dictionary."
 
         def test_given_market_type_is_empty_then_exception_is_thrown(self):
             config = {
@@ -1775,7 +1674,7 @@ class TestArchiverFacade:
                 launch_data_sink(
                     config=config,
                     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                    azure_container_name=container_name
                 )
 
             assert str(excinfo.value) == "Pairs for market spot are missing or invalid."
@@ -1804,10 +1703,10 @@ class TestArchiverFacade:
                 launch_data_sink(
                     config=config,
                     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                    azure_container_name=container_name
                 )
 
-            assert str(excinfo.value) == "Config must contain 1 to 3 markets."
+            assert str(excinfo.value) == "Config must contain 1 to 3 markets and must be a dictionary."
 
         def test_given_not_handled_market_type_then_exception_is_thrown(self):
             config = {
@@ -1829,10 +1728,10 @@ class TestArchiverFacade:
                 launch_data_sink(
                     config=config,
                     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-                    container_name=container_name
+                    azure_container_name=container_name
                 )
 
-            assert str(excinfo.value) == "Invalid or not handled market: mining"
+            assert str(excinfo.value) == "Invalid pairs for market mining or market not handled."
 
         def test_given_valid_config_then_archiver_facade_is_returned(self):
             config = {
@@ -1869,7 +1768,7 @@ class TestArchiverFacade:
             with pytest.raises(BadConfigException) as excinfo:
                 launch_data_listener(config=config)
 
-            assert str(excinfo.value) == "Instruments config is missing or not a dictionary."
+            assert str(excinfo.value) == "Config must contain 1 to 3 markets and must be a dictionary."
 
         def test_given_invalid_market_in_instruments_then_exception_is_raised(self):
             config = {
@@ -1882,7 +1781,7 @@ class TestArchiverFacade:
             with pytest.raises(BadConfigException) as excinfo:
                 launch_data_listener(config=config)
 
-            assert str(excinfo.value) == "Invalid or not handled market: invalid_market"
+            assert str(excinfo.value) == "Invalid pairs for market invalid_market."
 
         def test_given_invalid_websocket_life_time_seconds_then_exception_is_raised(self):
             config = {

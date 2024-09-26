@@ -9,7 +9,6 @@ class ConcreteObserver(Observer):
         ...
 
 if __name__ == '__main__':
-
     sample_observer = ConcreteObserver()
 
     data_listener = launch_data_listener(

@@ -10,3 +10,4 @@ Flask-CORS
 fastapi
 uvicorn
 orjson
+boto3

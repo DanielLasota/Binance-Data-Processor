@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='binance-archiver',
-    version='0.0.1',
+    version='0.0.2',
     packages=find_packages(),
     install_requires=[
         'azure-storage-blob',
@@ -16,7 +16,8 @@ setup(
         'Flask-CORS',
         'fastapi',
         'uvicorn',
-        'orjson'
+        'orjson',
+        'boto3'
     ],
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",

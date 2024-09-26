@@ -11,7 +11,8 @@ import zipfile
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from collections import defaultdict
-
+import boto3
+from botocore.client import Config
 from azure.storage.blob import BlobServiceClient
 import io
 import threading
@@ -22,7 +23,7 @@ from binance_archiver.logo import logo
 from .setup_logger import setup_logger
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
-from .exceptions import WebSocketLifeTimeException, BadAzureParameters, BadConfigException
+from .exceptions import WebSocketLifeTimeException, BadStorageProviderParameters, BadConfigException
 from .abstract_base_classes import Subject, Observer
 from .fastapi_manager import FastAPIManager
 from .stream_listener import StreamListener
@@ -103,8 +104,6 @@ class ListenerFacade(Subject):
         self.logger.info("Shutting down archiver")
         self.global_shutdown_flag.set()
 
-        # time.sleep(10)
-
         remaining_threads = [
             thread for thread in threading.enumerate()
             if thread is not threading.current_thread() and thread.is_alive()
@@ -124,12 +123,16 @@ class DataSinkFacade:
             config: dict,
             logger: logging.Logger,
             azure_blob_parameters_with_key: str | None = None,
-            container_name: str | None = None,
+            azure_container_name: str | None = None,
+            backblaze_s3_parameters: dict[str, str] | None = None,
+            backblaze_bucket_name: str | None = None
     ) -> None:
         self.config = config
         self.logger = logger
         self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
-        self.container_name = container_name
+        self.azure_container_name = azure_container_name
+        self.backblaze_s3_parameters = backblaze_s3_parameters
+        self.backblaze_bucket_name = backblaze_bucket_name
         self.instruments = config["instruments"]
         self.global_shutdown_flag = threading.Event()
 
@@ -152,7 +155,9 @@ class DataSinkFacade:
         self.data_saver = DataSaver(
             logger=self.logger,
             azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
-            container_name=self.container_name,
+            azure_container_name=self.azure_container_name,
+            backblaze_s3_parameters=self.backblaze_s3_parameters,
+            backblaze_bucket_name=self.backblaze_bucket_name,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
@@ -228,13 +233,15 @@ class Whistleblower:
 
     def process_global_queue(self):
         while not self.global_shutdown_flag.is_set():
-            if self.global_queue.qsize() > 100:
+
+            if self.global_queue.qsize() > 200:
                 self.logger.warning(f'qsize: {self.global_queue.qsize()}')
+
             try:
                 message = self.global_queue.get(timeout=1)
                 for observer in self.observers:
                     observer.update(message)
-                # self.global_queue.task_done()
+
             except queue.Empty:
                 continue
 
@@ -439,7 +446,6 @@ class StreamService:
                 if (new_stream_listener is not None and new_stream_listener.websocket_app.sock
                         and new_stream_listener.websocket_app.sock.connected is False):
                     new_stream_listener = None
-                    # new_stream_listener_thread = None
 
                 if (old_stream_listener is not None and old_stream_listener.websocket_app.sock
                         and old_stream_listener.websocket_app.sock.connected is False):
@@ -667,22 +673,52 @@ class DataSaver:
     def __init__(
         self,
         logger: logging.Logger,
-        azure_blob_parameters_with_key: str | None,
-        container_name: str | None,
-        global_shutdown_flag: threading.Event
+        azure_blob_parameters_with_key: str | None = None,
+        azure_container_name: str | None = None,
+        backblaze_s3_parameters: dict | None = None,
+        backblaze_bucket_name: str | None = None,
+        global_shutdown_flag: threading.Event = threading.Event()
     ):
         self.logger = logger
         self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
-        self.container_name = container_name
+        self.azure_container_name = azure_container_name
+        self.backblaze_s3_parameters = backblaze_s3_parameters
+        self.backblaze_bucket_name = backblaze_bucket_name
         self.global_shutdown_flag = global_shutdown_flag
 
-        if azure_blob_parameters_with_key and container_name:
-            self.blob_service_client = BlobServiceClient.from_connection_string(
-                azure_blob_parameters_with_key
-            )
-            self.container_name = container_name
+        if self.azure_blob_parameters_with_key and self.azure_container_name:
+            try:
+                self.azure_blob_service_client = BlobServiceClient.from_connection_string(
+                    self.azure_blob_parameters_with_key
+                )
+                self.azure_container_client = self.azure_blob_service_client.get_container_client(
+                    self.azure_container_name
+                )
+                self.logger.debug(f"Connected to Azure Blob container: {self.azure_container_name}")
+            except Exception as e:
+                self.logger.error(f"Could not connect to Azure: {e}")
+                self.azure_blob_service_client = None
+                self.azure_container_client = None
         else:
-            self.blob_service_client = None
+            self.azure_blob_service_client = None
+            self.azure_container_client = None
+
+        if self.backblaze_s3_parameters and self.backblaze_bucket_name:
+            try:
+                self.s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=self.backblaze_s3_parameters.get('access_key_id'),
+                    aws_secret_access_key=self.backblaze_s3_parameters.get('secret_access_key'),
+                    endpoint_url=self.backblaze_s3_parameters.get('endpoint_url'),
+                    region_name='us-east-1',
+                    config=Config(signature_version='s3v4')
+                )
+                self.logger.debug(f"Connected to Backblaze S3 bucket: {self.backblaze_bucket_name}")
+            except Exception as e:
+                self.logger.error(f"Error whilst connecting to Backblaze S3: {e}")
+                self.s3_client = None
+        else:
+            self.s3_client = None
 
     def run_data_saver(
         self,
@@ -792,10 +828,8 @@ class DataSaver:
                 message, timestamp_of_receive = queue.get_nowait()
                 message = json.loads(message)
 
-                stream = message["stream"]
-
+                stream = message.get("stream")
                 if not stream:
-                    self.logger.error("Message missing 'stream' key.")
                     continue
 
                 message["_E"] = timestamp_of_receive
@@ -819,8 +853,9 @@ class DataSaver:
         try:
             with open(file_path, "w") as f:
                 json.dump(data, f)
+            self.logger.debug(f"Saved to JSON: {file_path}")
         except IOError as e:
-            self.logger.error(f"IO error when writing to file {file_path}: {e}")
+            self.logger.error(f"IO Error whilst saving to file {file_path}: {e}")
 
     def save_to_zip(self, data, file_name, file_path):
         zip_file_path = f"{file_path}.zip"
@@ -829,33 +864,60 @@ class DataSaver:
                 json_data = json.dumps(data)
                 json_filename = f"{file_name}.json"
                 zipf.writestr(json_filename, json_data)
+            self.logger.debug(f"Saved to ZIP: {zip_file_path}")
         except IOError as e:
-            self.logger.error(f"IO error when writing to zip file {zip_file_path}: {e}")
+            self.logger.error(f"IO Error whilst saving to zip: {zip_file_path}: {e}")
 
-    def send_zipped_json_to_blob(self, data, file_name):
-        if not self.blob_service_client:
-            self.logger.error("Blob service client is not configured.")
-            return
+    def send_zipped_json_to_blob(self, data, file_name: str):
+        if self.s3_client and self.backblaze_bucket_name:
+            self.send_zipped_json_to_backblaze(data, file_name)
+        elif self.azure_blob_service_client and self.azure_container_client:
+            self.send_zipped_json_to_azure(data, file_name)
+        else:
+            self.logger.error("No storage client Configured")
 
+    def send_zipped_json_to_azure(self, data, file_name: str):
         try:
             zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
                 json_data = json.dumps(data)
                 json_filename = f"{file_name}.json"
                 zipf.writestr(json_filename, json_data)
 
             zip_buffer.seek(0)
 
-            blob_client = self.blob_service_client.get_blob_client(
-                container=self.container_name, blob=f"{file_name}.zip"
-            )
-
+            blob_client = self.azure_container_client.get_blob_client(blob=f"{file_name}.zip")
             blob_client.upload_blob(zip_buffer, overwrite=True)
+            self.logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container: {self.azure_container_name}")
         except Exception as e:
-            self.logger.error(f"Error uploading zip to blob: {e}")
+            self.logger.error(f"Błąd podczas przesyłania pliku ZIP do Azure Blob: {e}")
+
+    def send_zipped_json_to_backblaze(self, data, file_name: str):
+        try:
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+                json_data = json.dumps(data)
+                json_filename = f"{file_name}.json"
+                zipf.writestr(json_filename, json_data)
+
+            zip_buffer.seek(0)
+
+            response = self.s3_client.put_object(
+                Bucket=self.backblaze_bucket_name,
+                Key=f"{file_name}.zip",
+                Body=zip_buffer.getvalue()
+            )
+            http_status_code = response['ResponseMetadata']['HTTPStatusCode']
+
+            if http_status_code != 200 :
+                self.logger.error(f'sth bad with upload response {response}')
+
+            self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: {self.backblaze_bucket_name}")
+        except Exception as e:
+            self.logger.error(f"Error whilst uploading ZIP to BackBlaze B2: {e}")
 
     @staticmethod
-    def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:
+    def get_file_name(pair: str, market: 'Market', stream_type: 'StreamType') -> str:
         pair_lower = pair.lower()
         formatted_now_timestamp = TimeUtils.get_utc_formatted_timestamp_for_file_name()
 
@@ -894,56 +956,69 @@ class TimeUtils:
 def launch_data_sink(
         config,
         azure_blob_parameters_with_key: str | None = None,
-        container_name: str | None = None,
+        azure_container_name: str | None = None,
+        backblaze_access_key_id: str | None = None,
+        backblaze_secret_access_key: str | None = None,
+        backblaze_endpoint_url: str | None = None,
+        backblaze_bucket_name: str | None = None,
         should_dump_logs: bool = False
 ) -> DataSinkFacade:
-
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
-
     instruments = config.get("instruments")
 
-    if not instruments or not isinstance(instruments, dict):
-        raise BadConfigException("Instruments config is missing or not a dictionary.")
-
-    if not (0 < len(instruments) <= 3):
-        raise BadConfigException("Config must contain 1 to 3 markets.")
+    if not isinstance(instruments, dict) or not (0 < len(instruments) <= 3):
+        raise BadConfigException("Config must contain 1 to 3 markets and must be a dictionary.")
 
     for market, pairs in instruments.items():
-        if market not in valid_markets:
-            raise BadConfigException(f"Invalid or not handled market: {market}")
-        if not pairs or not isinstance(pairs, list):
+        if market not in valid_markets or not isinstance(pairs, list):
+            raise BadConfigException(f"Invalid pairs for market {market} or market not handled.")
+        if not pairs:
             raise BadConfigException(f"Pairs for market {market} are missing or invalid.")
 
-    if config['send_zip_to_blob'] and (not azure_blob_parameters_with_key or not container_name):
-        raise BadAzureParameters('Azure blob parameters with key or container name is missing or empty')
+    send_zip_to_blob = config.get('send_zip_to_blob', False)
+    if send_zip_to_blob:
+        azure_params_ok = azure_blob_parameters_with_key is not None and azure_container_name is not None
+        backblaze_params_ok = (backblaze_access_key_id is not None and
+                               backblaze_secret_access_key is not None and
+                               backblaze_endpoint_url is not None and
+                               backblaze_bucket_name is not None)
 
-    if not (60 <= config["websocket_life_time_seconds"] <= 60 * 60 * 23):
-        raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
+        if not azure_params_ok and not backblaze_params_ok:
+            raise BadStorageProviderParameters(
+                'At least one of the Azure or Backblaze parameter sets must be fully specified.')
+
+    if not (60 <= config.get("websocket_life_time_seconds", 0) <= 60 * 60 * 23):
+        raise WebSocketLifeTimeException('Invalid websocket_life_time_seconds')
 
     logger = setup_logger(should_dump_logs=should_dump_logs)
-
     logger.info("\n%s", logo)
     logger.info("Starting Binance Archiver...")
     logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
 
     dump_path = config.get("dump_path", "dump/")
-    if dump_path[0] == "/":
-        logger.warning(
-            "Specified dump_path starts with '/': presumably dump_path is wrong"
-        )
+    if dump_path.startswith("/"):
+        logger.warning("Specified dump_path starts with '/': presumably dump_path is wrong.")
 
-    if not os.path.exists(dump_path):
-        os.makedirs(dump_path)
+    os.makedirs(dump_path, exist_ok=True)
+
+    backblaze_s3_parameters = None
+    if all([backblaze_access_key_id, backblaze_secret_access_key, backblaze_endpoint_url]):
+        backblaze_s3_parameters = {
+            'access_key_id': backblaze_access_key_id,
+            'secret_access_key': backblaze_secret_access_key,
+            'endpoint_url': backblaze_endpoint_url
+        }
 
     archiver_facade = DataSinkFacade(
         config=config,
         logger=logger,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-        container_name=container_name
+        azure_container_name=azure_container_name,
+        backblaze_s3_parameters=backblaze_s3_parameters,
+        backblaze_bucket_name=backblaze_bucket_name
     )
 
     archiver_facade.run()
-
     return archiver_facade
 
 def launch_data_listener(
@@ -953,26 +1028,20 @@ def launch_data_listener(
 ) -> ListenerFacade:
 
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
-
     instruments = config.get("instruments")
 
-    if not instruments or not isinstance(instruments, dict):
-        raise BadConfigException("Instruments config is missing or not a dictionary.")
-
-    if not (0 < len(instruments) <= 3):
-        raise BadConfigException("Config must contain 1 to 3 markets.")
+    if not isinstance(instruments, dict) or not (0 < len(instruments) <= 3):
+        raise BadConfigException("Config must contain 1 to 3 markets and must be a dictionary.")
 
     for market, pairs in instruments.items():
-        if market not in valid_markets:
-            raise BadConfigException(f"Invalid or not handled market: {market}")
-        if not pairs or not isinstance(pairs, list):
-            raise BadConfigException(f"Pairs for market {market} are missing or invalid.")
+        if market not in valid_markets or not isinstance(pairs, list):
+            raise BadConfigException(f"Invalid pairs for market {market}.")
 
-    if not (30 <= config["websocket_life_time_seconds"] <= 60 * 60 * 23):
+    websocket_lifetime = config.get("websocket_life_time_seconds", 0)
+    if not (30 <= websocket_lifetime <= 60 * 60 * 23):
         raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
 
     logger = setup_logger(should_dump_logs=should_dump_logs)
-
     logger.info("\n%s", logo)
     logger.info("Starting Binance Listener...")
     logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
@@ -984,5 +1053,4 @@ def launch_data_listener(
     )
 
     listener_facade.run()
-
     return listener_facade

@@ -2,7 +2,7 @@ class BadConfigException(Exception):
     ...
 
 
-class BadAzureParameters(Exception):
+class BadStorageProviderParameters(Exception):
     ...
 
 
