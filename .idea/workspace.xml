@@ -4,21 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="build: Requirements update, build update">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/blackout_supervisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/blackout_supervisor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/config/almost_production_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/config/almost_production_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/config/test_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/config/test_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/exceptions.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/exceptions.py" afterDir="false" />
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="chore: configs update">
       <change beforePath="$PROJECT_DIR$/binance_archiver/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/main_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_listener.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/setup_logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/blackout_supervisor_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/blackout_supervisor_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -365,7 +352,29 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver\core\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main_listener">
+  <component name="RunManager" selected="Python.main">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main_listener" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -398,23 +407,6 @@
       <deployment type="dockerfile">
         <settings />
       </deployment>
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for blackout_supervisor_tests.TestBlackoutSupervisor" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;blackout_supervisor_tests.TestBlackoutSupervisor&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
@@ -470,11 +462,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main" />
         <item itemvalue="Python.main_listener" />
         <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
         <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
-        <item itemvalue="Python tests.pytest for blackout_supervisor_tests.TestBlackoutSupervisor" />
       </list>
     </recent_temporary>
   </component>
@@ -512,22 +504,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00055" summary="fast_api_manager.run relocate to .run&#10;tests fix">
-      <option name="closed" value="true" />
-      <created>1725042018597</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1725042018597</updated>
-    </task>
-    <task id="LOCAL-00056" summary="logger update">
-      <option name="closed" value="true" />
-      <created>1725089177479</created>
-      <option name="number" value="00056" />
-      <option name="presentableId" value="LOCAL-00056" />
-      <option name="project" value="LOCAL" />
-      <updated>1725089177479</updated>
     </task>
     <task id="LOCAL-00057" summary="logger update">
       <option name="closed" value="true" />
@@ -905,7 +881,23 @@
       <option name="project" value="LOCAL" />
       <updated>1727269035222</updated>
     </task>
-    <option name="localTasksCounter" value="104" />
+    <task id="LOCAL-00104" summary="feat: BackBlaze handle add">
+      <option name="closed" value="true" />
+      <created>1727385496872</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1727385496872</updated>
+    </task>
+    <task id="LOCAL-00105" summary="chore: configs update">
+      <option name="closed" value="true" />
+      <created>1727388305187</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1727388305187</updated>
+    </task>
+    <option name="localTasksCounter" value="106" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -965,8 +957,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="refactor: Remove _sort_entries_by_symbol" />
-    <MESSAGE value="chore: Minor things refactored" />
     <MESSAGE value="fix: Subscription feature fix" />
     <MESSAGE value="fix: Fixed subscription feature - added @100 postfix" />
     <MESSAGE value="refactor: setup_logger.py simplify" />
@@ -990,7 +980,9 @@
     <MESSAGE value="feat: New production_config.json.json, minor changes" />
     <MESSAGE value="perf: difference_depth_queue.py json to orjson refactor + minor if refactors" />
     <MESSAGE value="build: Requirements update, build update" />
-    <option name="LAST_COMMIT_MESSAGE" value="build: Requirements update, build update" />
+    <MESSAGE value="feat: BackBlaze handle add" />
+    <MESSAGE value="chore: configs update" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: configs update" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
