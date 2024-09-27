@@ -1,5 +1,5 @@
 from binance_archiver import launch_data_listener
-from binance_archiver.binance_archiver_facade import Observer
+from binance_archiver.abstract_base_classes import Observer
 from load_config import load_config
 
 
