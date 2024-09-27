@@ -1,23 +1,19 @@
-import json
 import re
+import orjson
 import threading
-import uuid
 from queue import Queue
-from typing import Any, Dict, final
 from collections import deque
+from typing import final
 
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_id import StreamId
-
-
-class ClassInstancesAmountLimitException(Exception):
-    ...
+from binance_archiver.exceptions import ClassInstancesAmountLimitException
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.stream_id import StreamId
 
 
 class DifferenceDepthQueue:
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 4
+    _instances_amount_limit = 3
     _event_timestamp_pattern = re.compile(r'"E":\d+,')
 
     def __new__(cls, *args, **kwargs):
@@ -38,14 +34,15 @@ class DifferenceDepthQueue:
         with cls._lock:
             cls._instances.clear()
 
-    def __init__(self, market: Market):
+    def __init__(self, market: Market, global_queue: Queue | None = None):
         self._market = market
-        self.queue = Queue()
         self.lock = threading.Lock()
         self.currently_accepted_stream_id = None
         self.no_longer_accepted_stream_id = None
         self.did_websockets_switch_successfully = False
         self._two_last_throws = {}
+
+        self.queue = Queue() if global_queue is None else global_queue
 
     @property
     @final
@@ -75,13 +72,6 @@ class DifferenceDepthQueue:
         message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
         message_list.append(message_str)
 
-    def _update_deque_max_len_if_needed(self, id_index: tuple[int, uuid.UUID], new_max_len: int) -> None:
-        if id_index in self._two_last_throws:
-            existing_deque = self._two_last_throws[id_index]
-            if existing_deque.maxlen != new_max_len:
-                updated_deque = deque(existing_deque, maxlen=new_max_len)
-                self._two_last_throws[id_index] = updated_deque
-
     def update_deque_max_len(self, new_max_len: int) -> None:
         for id_index in self._two_last_throws:
             existing_deque = self._two_last_throws[id_index]
@@ -93,26 +83,25 @@ class DifferenceDepthQueue:
         return DifferenceDepthQueue._event_timestamp_pattern.sub('', message)
 
     @staticmethod
-    def _do_last_two_throws_match(amount_of_listened_pairs: int, two_last_throws: Dict) -> bool:
-        keys = list(two_last_throws.keys())
-
-        if len(keys) < 2:
+    def _do_last_two_throws_match(amount_of_listened_pairs: int, two_last_throws: dict) -> bool:
+        if len(two_last_throws) < 2:
             return False
 
-        if len(two_last_throws[keys[0]]) == len(two_last_throws[keys[1]]) == amount_of_listened_pairs:
+        keys = list(two_last_throws.keys())
+        last_throw = two_last_throws[keys[0]]
+        second_last_throw = two_last_throws[keys[1]]
 
-            last_throw_streams_set: set[str] = {json.loads(entry)['stream'] for entry in two_last_throws[keys[0]]}
-            second_last_throw_streams_set: set[str] = {json.loads(entry)['stream'] for entry in two_last_throws[keys[1]]}
+        if len(last_throw) != amount_of_listened_pairs or len(second_last_throw) != amount_of_listened_pairs:
+            return False
 
-            if len(last_throw_streams_set) != amount_of_listened_pairs:
-                return False
-            if len(second_last_throw_streams_set) != amount_of_listened_pairs:
-                return False
+        last_throw_streams_set = {orjson.loads(entry)['stream'] for entry in last_throw}
+        second_last_throw_streams_set = {orjson.loads(entry)['stream'] for entry in second_last_throw}
 
-            if two_last_throws[keys[0]] == two_last_throws[keys[1]]:
-                return True
+        if len(last_throw_streams_set) != amount_of_listened_pairs or len(
+                second_last_throw_streams_set) != amount_of_listened_pairs:
+            return False
 
-        return False
+        return last_throw == second_last_throw
 
     def set_new_stream_id_as_currently_accepted(self):
         self.currently_accepted_stream_id = max(self._two_last_throws.keys(), key=lambda x: x[0])
@@ -121,11 +110,11 @@ class DifferenceDepthQueue:
         self._two_last_throws = {}
         self.did_websockets_switch_successfully = True
 
-    def get(self) -> Any:
+    def get(self) -> any:
         entry = self.queue.get()
         return entry
 
-    def get_nowait(self) -> Any:
+    def get_nowait(self) -> any:
         entry = self.queue.get_nowait()
         return entry
 

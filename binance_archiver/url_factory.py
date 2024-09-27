@@ -1,5 +1,4 @@
-from typing import List
-from binance_archiver.binance_archiver.market_enum import Market
+from binance_archiver.enum_.market_enum import Market
 
 
 class URLFactory:
@@ -32,7 +31,7 @@ class URLFactory:
     @staticmethod
     def get_trade_stream_url(
             market: Market,
-            pairs: List[str]
+            pairs: list[str]
     ) -> str | None:
         base_urls = {
             Market.SPOT: 'wss://stream.binance.com:443/stream?streams={}',
@@ -49,7 +48,7 @@ class URLFactory:
     @staticmethod
     def get_orderbook_stream_url(
             market: Market,
-            pairs: List[str]
+            pairs: list[str]
     ) -> str | None:
         base_urls = {
             Market.SPOT: 'wss://stream.binance.com:443/stream?streams={}',

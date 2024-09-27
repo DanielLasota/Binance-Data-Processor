@@ -1,4 +1,4 @@
-class TestBlackoutSupervisor:
+class TestFlaskManager:
 
     def test(self):
         ...

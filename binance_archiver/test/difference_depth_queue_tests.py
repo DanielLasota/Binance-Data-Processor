@@ -1,12 +1,14 @@
+import queue
 import time
 from collections import deque
 import json
+from queue import Queue
 import pytest
 
-from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue, \
+from binance_archiver.difference_depth_queue import DifferenceDepthQueue, \
     ClassInstancesAmountLimitException
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_id import StreamId
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.stream_id import StreamId
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
@@ -16,41 +18,44 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
-def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
-
-    pretty_message_from_sample_test = '''            
-        {
-            "stream": "trxusdt@depth@100ms",
-            "data": {
-                "e": "depthUpdate",
-                "E": 1720337869317,
-                "s": "TRXUSDT",
-                "U": 4609985365,
-                "u": 4609985365,
-                "b": [
-                    [
-                        "0.12984000",
-                        "123840.00000000"
-                    ]
-                ],
-                "a": [
-                ]
-            }
-        }
-    '''
-
-    binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
-    assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
-                                      '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
-                                      '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
-
 
 class TestDifferenceDepthQueue:
 
-    # DifferenceDepthQueue singleton init tests
+    # format_message_string_that_is_pretty_to_binance_string_format method from above
+    #
+    def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format(self):
+
+        pretty_message_from_sample_test = '''            
+            {
+                "stream": "trxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+                    ]
+                }
+            }
+        '''
+
+        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(
+            pretty_message_from_sample_test)
+        assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
+                                          '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
+                                          '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
+
+    # DifferenceDepthQueue singleton init test
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
-        for _ in range(4):
+        for _ in range(3):
             DifferenceDepthQueue(Market.SPOT)
 
         with pytest.raises(ClassInstancesAmountLimitException):
@@ -62,15 +67,15 @@ class TestDifferenceDepthQueue:
         instance_count = DifferenceDepthQueue.get_instance_count()
         assert instance_count == 0
 
-        for _ in range(4):
+        for _ in range(3):
             DifferenceDepthQueue(Market.SPOT)
 
-        assert DifferenceDepthQueue.get_instance_count() == 4
+        assert DifferenceDepthQueue.get_instance_count() == 3
 
         DifferenceDepthQueue.clear_instances()
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
-        for _ in range(4):
+        for _ in range(3):
             DifferenceDepthQueue(Market.SPOT)
 
         DifferenceDepthQueue.clear_instances()
@@ -78,7 +83,7 @@ class TestDifferenceDepthQueue:
         assert DifferenceDepthQueue.get_instance_count() == 0
         DifferenceDepthQueue.clear_instances()
 
-    # put_queue_message tests
+    # put_queue_message test
     #
     def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(self):
 
@@ -1147,6 +1152,81 @@ class TestDifferenceDepthQueue:
 
         DifferenceDepthQueue.clear_instances()
 
+    # run_mode tests
+    #
+    def test_given_data_listener_mode_and_global_queue_when_initializing_difference_depth_queue_then_queue_is_set_to_global_queue(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        assert ddq.queue is global_queue
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_difference_depth_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['BTCUSDT'])
+        ddq.currently_accepted_stream_id = stream_listener_id.id
+        message = '''
+        {
+            "stream": "btcusdt@depth@100ms",
+            "data": {
+                "E": 123456789,
+                "b": [
+                    ["50000.00", "1.0"]
+                ],
+                "a": [
+                    ["51000.00", "2.0"]
+                ]
+            }
+        }
+        '''
+        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
+        timestamp_of_receive = 1234567890
+        ddq.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        assert not global_queue.empty()
+        queued_message, received_timestamp = global_queue.get_nowait()
+        assert queued_message == formatted_message
+        assert received_timestamp == timestamp_of_receive
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['ETHUSDT'])
+        ddq.currently_accepted_stream_id = stream_listener_id.id
+        message = '''
+        {
+            "stream": "ethusdt@depth@100ms",
+            "data": {
+                "E": 123456789,
+                "b": [
+                    ["4000.00", "1.0"]
+                ],
+                "a": [
+                    ["4100.00", "2.0"]
+                ]
+            }
+        }
+        '''
+        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
+        timestamp_of_receive = 1234567890
+        ddq.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        assert ddq.qsize() == 1
+        assert not ddq.empty()
+        queued_message, received_timestamp = ddq.get_nowait()
+        assert queued_message == formatted_message
+        assert received_timestamp == timestamp_of_receive
+        assert ddq.empty()
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
+        global_queue = Queue()
+        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        assert ddq.empty()
+        with pytest.raises(queue.Empty):
+            ddq.get_nowait()
+        DifferenceDepthQueue.clear_instances()
+
+
     # _append_message_to_compare_structure
     #
     def test_given_putting_message_when_adding_two_different_stream_listeners_message_throws_to_compare_structure_then_structure_is_ok(self):
@@ -1973,7 +2053,7 @@ class TestDifferenceDepthQueue:
 
         config = {
             "instruments": {
-                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
             "file_duration_seconds": 30,
             "snapshot_fetcher_interval_seconds": 30,
@@ -2082,7 +2162,7 @@ class TestDifferenceDepthQueue:
 
         _old_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869216,
@@ -2194,7 +2274,7 @@ class TestDifferenceDepthQueue:
 
         _new_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869217,
@@ -2253,7 +2333,7 @@ class TestDifferenceDepthQueue:
 
         config = {
             "instruments": {
-                "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
             "file_duration_seconds": 30,
             "snapshot_fetcher_interval_seconds": 30,
@@ -2359,7 +2439,7 @@ class TestDifferenceDepthQueue:
 
         _old_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869216,
@@ -2471,7 +2551,7 @@ class TestDifferenceDepthQueue:
 
         _new_listener_message_3 = '''            
             {
-                "stream": "trxusdt@depth@100ms",
+                "stream": "avaxusdt@depth@100ms",
                 "data": {
                     "e": "depthUpdate",
                     "E": 1720337869217,
@@ -2526,6 +2606,559 @@ class TestDifferenceDepthQueue:
                                                                        two_last_throws_comparison_structure)
         assert do_they_match is False
         DifferenceDepthQueue.clear_instances()
+
+    def test_given_comparing_two_throws_when_throws_are_not_equal_because_one_asset_is_duplicated_then_method_returns_false(self):
+        """difference lays in a _old_listener_message_1 / _new_listener_message_1"""
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        _old_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_3 = '''            
+            {
+                "stream": "avaxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ],
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_3 = '''            
+            {
+                "stream": "avaxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "DOTUSDT",
+                    "U": 7871863948,
+                    "u": 7871863948,
+                    "b": [
+                        [
+                            "2.32300000",
+                            "1811.61000000"
+                        ]
+                    ],
+                    "a": []
+                }
+            }
+        '''
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+
+        difference_depth_queue._two_last_throws = {
+            old_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                    ],
+                    maxlen=old_stream_listener_id.pairs_amount),
+            new_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                    ],
+                    maxlen=new_stream_listener_id.pairs_amount)
+        }
+
+        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount,
+                                                                       two_last_throws_comparison_structure)
+        assert do_they_match is False
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount,
+                                                                       two_last_throws_comparison_structure)
+        assert do_they_match is False
+        DifferenceDepthQueue.clear_instances()
+
+    def test_given_comparing_two_throws_when_throws_are_equal_but_one_asset_is_duplicated_then_method_returns_false(self):
+
+        config = {
+            "instruments": {
+                "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
+            },
+            "file_duration_seconds": 30,
+            "snapshot_fetcher_interval_seconds": 30,
+            "websocket_life_time_seconds": 30,
+            "save_to_json": True,
+            "save_to_zip": False,
+            "send_zip_to_blob": False
+        }
+
+        pairs = config['instruments']['spot']
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+
+        old_stream_listener_id = StreamId(pairs=pairs)
+        time.sleep(0.01)
+        new_stream_listener_id = StreamId(pairs=pairs)
+
+        _old_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ],
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869216,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _old_listener_message_3 = '''
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869316,
+                    "s": "DOTUSDT",
+                    "U": 7871863948,
+                    "u": 7871863948,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ]
+                    ],
+                    "a": []
+                }
+            }
+        '''
+
+        _new_listener_message_1 = '''            
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "DOTUSDT",
+                    "U": 7871863945,
+                    "u": 7871863947,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ],
+                        [
+                            "6.19300000",
+                            "1592.79000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "6.20800000",
+                            "1910.71000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_2 = '''            
+            {
+                "stream": "adausdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869217,
+                    "s": "ADAUSDT",
+                    "U": 8823504433,
+                    "u": 8823504452,
+                    "b": [
+                        [
+                            "0.36440000",
+                            "46561.40000000"
+                        ],
+                        [
+                            "0.36430000",
+                            "76839.90000000"
+                        ],
+                        [
+                            "0.36400000",
+                            "76688.60000000"
+                        ],
+                        [
+                            "0.36390000",
+                            "106235.50000000"
+                        ],
+                        [
+                            "0.36370000",
+                            "35413.10000000"
+                        ]
+                    ],
+                    "a": [
+                        [
+                            "0.36450000",
+                            "16441.60000000"
+                        ],
+                        [
+                            "0.36460000",
+                            "20497.10000000"
+                        ],
+                        [
+                            "0.36470000",
+                            "39808.80000000"
+                        ],
+                        [
+                            "0.36480000",
+                            "75106.10000000"
+                        ],
+                        [
+                            "0.36900000",
+                            "32.90000000"
+                        ],
+                        [
+                            "0.37120000",
+                            "361.70000000"
+                        ]
+                    ]
+                }
+            }
+        '''
+
+        _new_listener_message_3 = '''
+            {
+                "stream": "dotusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869316,
+                    "s": "DOTUSDT",
+                    "U": 7871863948,
+                    "u": 7871863948,
+                    "b": [
+                        [
+                            "6.19800000",
+                            "1816.61000000"
+                        ]
+                    ],
+                    "a": []
+                }
+            }
+        '''
+
+        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
+        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
+        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
+        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
+        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
+        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+
+        difference_depth_queue._two_last_throws = {
+            old_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                    ],
+                maxlen=old_stream_listener_id.pairs_amount),
+            new_stream_listener_id.id:
+                deque(
+                    [
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
+                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                    ],
+                    maxlen=new_stream_listener_id.pairs_amount)
+        }
+
+        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        assert do_they_match is False
+        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        assert do_they_match is False
+        DifferenceDepthQueue.clear_instances()
+
 
     # set_new_stream_id_as_currently_accepted
     #
@@ -5981,7 +6614,7 @@ class TestDifferenceDepthQueue:
 
     # benchmark
     #
-    # @pytest.mark.skip
+    @pytest.mark.skip
     def test_comparison_algorithm_benchmark(self):
         total_execution_time = 0
         number_of_runs = 1000

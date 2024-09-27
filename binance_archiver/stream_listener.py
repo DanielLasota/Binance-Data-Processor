@@ -3,25 +3,17 @@ import logging
 import threading
 import time
 import traceback
-from typing import List
 
 from websocket import WebSocketApp, ABNF
 
-from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_id import StreamId
-from binance_archiver.binance_archiver.stream_type_enum import StreamType
-from binance_archiver.binance_archiver.blackout_supervisor import BlackoutSupervisor
-from binance_archiver.binance_archiver.trade_queue import TradeQueue
-from binance_archiver.binance_archiver.url_factory import URLFactory
-
-
-class PairsLengthException(Exception):
-    ...
-
-
-class WrongListInstanceException(Exception):
-    ...
+from binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.exceptions import WrongListInstanceException, PairsLengthException
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.stream_id import StreamId
+from binance_archiver.enum_.stream_type_enum import StreamType
+from binance_archiver.blackout_supervisor import BlackoutSupervisor
+from binance_archiver.trade_queue import TradeQueue
+from binance_archiver.url_factory import URLFactory
 
 
 class StreamListener:
@@ -29,7 +21,7 @@ class StreamListener:
         self,
         logger: logging.Logger,
         queue: TradeQueue | DifferenceDepthQueue,
-        pairs: List[str],
+        pairs: list[str],
         stream_type: StreamType,
         market: Market
     ):
@@ -122,7 +114,7 @@ class StreamListener:
     def _construct_websocket_app(
         self,
         queue: DifferenceDepthQueue | TradeQueue,
-        pairs: List[str],
+        pairs: list[str],
         stream_type: StreamType,
         market: Market
     ) -> WebSocketApp:
