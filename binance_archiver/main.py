@@ -38,12 +38,6 @@ if __name__ == "__main__":
     backblaze_endpoint_url = client.get_secret(backblaze_endpoint_url_secret_name).value
     backblaze_bucket_name = client.get_secret(backblaze_bucket_name_secret_name).value
 
-    # data_sink = launch_data_sink(
-    #     config,
-    #     azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-    #     azure_container_name=container_name
-    # )
-
     data_sink = launch_data_sink(
         config,
         backblaze_access_key_id=backblaze_access_key_id,
