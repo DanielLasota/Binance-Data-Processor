@@ -23,10 +23,10 @@ if __name__ == "__main__":
     blob_parameters_secret_name = os.environ.get('AZURE_BLOB_PARAMETERS_WITH_KEY_SECRET_NAME')
     azure_container_name_secret_name = os.environ.get('AZURE_CONTAINER_NAME_SECRET_NAME')
 
-    backblaze_access_key_id_secret_name = os.environ.get('BACKBLAZE_ACCESS_KEY_ID')
-    backblaze_secret_access_key_secret_name = os.environ.get('BACKBLAZE_SECRET_ACCESS_KEY')
-    backblaze_endpoint_url_secret_name = os.environ.get('BACKBLAZE_ENDPOINT_URL')
-    backblaze_bucket_name_secret_name = os.environ.get('BACKBLAZE_BUCKET_NAME')
+    backblaze_access_key_id_secret_name = os.environ.get('BACKBLAZE_ACCESS_KEY_ID_BINANCE_PROD')
+    backblaze_bucket_name_secret_name = os.environ.get('BACKBLAZE_BUCKET_NAME_BINANCE_PROD')
+    backblaze_secret_access_key_secret_name = os.environ.get('BACKBLAZE_SECRET_ACCESS_KEY_BINANCE_PROD')
+    backblaze_endpoint_url_secret_name = os.environ.get('BACKBLAZE_ENDPOINT_URL_BINANCE_PROD')
 
     config = json.loads(client.get_secret(config_secret_name).value)
 

@@ -599,7 +599,7 @@ class SnapshotManager:
 
                 except Exception as e:
                     self.logger.error(
-                        f"Error whilst fetching snapshot: {market} {StreamType.DEPTH_SNAPSHOT}: {e}"
+                        f"Error whilst fetching snapshot: {pair} {market}: {e}"
                     )
 
             self._sleep_with_flag_check(fetch_interval)
