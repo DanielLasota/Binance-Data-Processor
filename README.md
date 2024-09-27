@@ -52,7 +52,7 @@ if __name__ == '__main__':
     data_sink = launch_data_sink(
         config,
         azure_blob_parameters_with_key=azure_blob_parameters_with_key,
-        container_name=container_name
+        azure_container_name=container_name
     )
 
     time.sleep(2115)

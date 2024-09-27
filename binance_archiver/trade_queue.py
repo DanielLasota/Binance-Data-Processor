@@ -1,20 +1,17 @@
 from queue import Queue
-from typing import Any, final
+from typing import final
 import threading
 import re
 
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_id import StreamId
-
-
-class ClassInstancesAmountLimitException(Exception):
-    ...
+from binance_archiver.exceptions import ClassInstancesAmountLimitException
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.stream_id import StreamId
 
 
 class TradeQueue:
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 4
+    _instances_amount_limit = 3
     _transaction_signs_compiled_pattern = re.compile(r'"s":"([^"]+)","t":(\d+)')
 
     def __new__(cls, *args, **kwargs):
@@ -35,27 +32,24 @@ class TradeQueue:
         with cls._lock:
             cls._instances.clear()
 
-    def __init__(self, market: Market):
+    def __init__(self, market: Market, global_queue: Queue | None = None):
         self.lock = threading.Lock()
         self._market = market
-        self.queue = Queue()
+
         self.did_websockets_switch_successfully = False
         self.new_stream_listener_id: StreamId | None = None
         self.currently_accepted_stream_id: StreamId | None = None
         self.no_longer_accepted_stream_id: StreamId = StreamId(pairs=[])
         self.last_message_signs: str = ''
 
+        self.queue = Queue() if global_queue is None else global_queue
+
     @property
     @final
     def market(self):
         return self._market
 
-    def put_trade_message(
-            self,
-            stream_listener_id: StreamId,
-            message: str,
-            timestamp_of_receive: int
-    ) -> None:
+    def put_trade_message(self,stream_listener_id: StreamId,message: str,timestamp_of_receive: int) -> None:
 
         with self.lock:
             if stream_listener_id.id == self.no_longer_accepted_stream_id.id:
@@ -81,11 +75,11 @@ class TradeQueue:
         match = TradeQueue._transaction_signs_compiled_pattern.search(message)
         return '"s":"' + match.group(1) + '","t":' + match.group(2)
 
-    def get(self) -> Any:
+    def get(self) -> any:
         message, received_timestamp = self.queue.get()
         return message, received_timestamp
 
-    def get_nowait(self) -> Any:
+    def get_nowait(self) -> any:
         message, received_timestamp = self.queue.get_nowait()
         return message, received_timestamp
 

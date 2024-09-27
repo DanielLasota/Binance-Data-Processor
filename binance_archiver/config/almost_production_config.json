@@ -12,7 +12,9 @@
       "LTCUSDT",
       "AVAXUSDT",
       "TRXUSDT",
-      "DOTUSDT"
+      "DOTUSDT",
+      "BCHUSDT",
+      "SUIUSDT"
     ],
     "usd_m_futures": [
       "BTCUSDT",
@@ -25,7 +27,9 @@
       "LTCUSDT",
       "AVAXUSDT",
       "TRXUSDT",
-      "DOTUSDT"
+      "DOTUSDT",
+      "BCHUSDT",
+      "SUIUSDT"
     ],
     "coin_m_futures": [
       "BTCUSD_PERP",
@@ -38,12 +42,14 @@
       "LTCUSD_PERP",
       "AVAXUSD_PERP",
       "TRXUSD_PERP",
-      "DOTUSD_PERP"
+      "DOTUSD_PERP",
+      "BCHUSD_PERP",
+      "SUIUSD_PERP"
     ]
   },
-  "file_duration_seconds": 300,
+  "file_duration_seconds": 30,
   "snapshot_fetcher_interval_seconds": 60,
-  "websocket_life_time_seconds": 30,
+  "websocket_life_time_seconds": 60,
   "save_to_json": false,
   "save_to_zip": false,
   "send_zip_to_blob": false

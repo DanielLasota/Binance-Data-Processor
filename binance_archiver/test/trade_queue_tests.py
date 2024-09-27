@@ -1,10 +1,12 @@
+import queue
 import time
 import json
+from queue import Queue
 import pytest
 
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_id import StreamId
-from binance_archiver.binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.stream_id import StreamId
+from binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
@@ -14,41 +16,42 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
-def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format():
-
-    pretty_message_from_sample_test = '''            
-        {
-            "stream": "trxusdt@depth@100ms",
-            "data": {
-                "e": "depthUpdate",
-                "E": 1720337869317,
-                "s": "TRXUSDT",
-                "U": 4609985365,
-                "u": 4609985365,
-                "b": [
-                    [
-                        "0.12984000",
-                        "123840.00000000"
-                    ]
-                ],
-                "a": [
-                ]
-            }
-        }
-    '''
-
-    binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
-    assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
-                                      '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
-                                      '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
-
 
 class TestTradeQueue:
 
-    # TradeQueue singleton init tests
+    def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format(self):
+
+        pretty_message_from_sample_test = '''            
+            {
+                "stream": "trxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+                    ]
+                }
+            }
+        '''
+
+        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(
+            pretty_message_from_sample_test)
+        assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
+                                          '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
+                                          '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
+
+    # TradeQueue singleton init test
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
-        for _ in range(4):
+        for _ in range(3):
             TradeQueue(Market.SPOT)
 
         with pytest.raises(ClassInstancesAmountLimitException):
@@ -60,15 +63,15 @@ class TestTradeQueue:
         instance_count = TradeQueue.get_instance_count()
         assert instance_count == 0
 
-        for _ in range(4):
+        for _ in range(3):
             TradeQueue(Market.SPOT)
 
-        assert TradeQueue.get_instance_count() == 4
+        assert TradeQueue.get_instance_count() == 3
 
         TradeQueue.clear_instances()
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
-        for _ in range(4):
+        for _ in range(3):
             TradeQueue(Market.SPOT)
 
         TradeQueue.clear_instances()
@@ -76,11 +79,86 @@ class TestTradeQueue:
         assert TradeQueue.get_instance_count() == 0
         TradeQueue.clear_instances()
 
-    # _put_with_no_repetitions tests
+    # run_mode tests
+    #
+    def test_given_data_listener_mode_and_global_queue_when_initializing_trade_queue_then_queue_is_set_to_global_queue(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        assert tq.queue is global_queue
+        TradeQueue.clear_instances()
+
+    def test_given_trade_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['BTCUSDT'])
+        tq.currently_accepted_stream_id = stream_listener_id
+        message = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+            "e": "trade",
+            "E": 123456789,
+            "s": "BTCUSDT",
+            "t": 12345,
+            "p": "50000.00",
+            "q": "0.1",
+            "b": 88,
+            "a": 50,
+            "T": 123456789,
+            "m": true,
+            "M": true
+        }
+        ''')
+
+        timestamp_of_receive = 1234567890
+        tq.put_trade_message(stream_listener_id, message, timestamp_of_receive)
+        assert not global_queue.empty()
+        queued_message, received_timestamp = global_queue.get_nowait()
+        assert queued_message == message
+        assert received_timestamp == timestamp_of_receive
+        TradeQueue.clear_instances()
+
+    def test_given_trade_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        stream_listener_id = StreamId(pairs=['ETHUSDT'])
+        tq.currently_accepted_stream_id = stream_listener_id
+        message = format_message_string_that_is_pretty_to_binance_string_format('''
+        {
+            "e": "trade",
+            "E": 123456789,
+            "s": "ETHUSDT",
+            "t": 12346,
+            "p": "4000.00",
+            "q": "0.5",
+            "b": 89,
+            "a": 51,
+            "T": 123456789,
+            "m": false,
+            "M": true
+        }
+        ''')
+        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
+        timestamp_of_receive = 1234567890
+        tq.put_trade_message(stream_listener_id, formatted_message, timestamp_of_receive)
+        assert tq.qsize() == 1
+        assert not tq.empty()
+        queued_message, received_timestamp = tq.get_nowait()
+        assert queued_message == formatted_message
+        assert received_timestamp == timestamp_of_receive
+        assert tq.empty()
+        TradeQueue.clear_instances()
+
+    def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
+        global_queue = Queue()
+        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        assert tq.empty()
+        with pytest.raises(queue.Empty):
+            tq.get_nowait()
+        TradeQueue.clear_instances()
+
+    # _put_with_no_repetitions test
     #
 
-    def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(
-            self):
+    def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(self):
         config = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
@@ -137,8 +215,7 @@ class TestTradeQueue:
 
         TradeQueue.clear_instances()
 
-    def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue(
-            self):
+    def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue(self):
 
         config = {
             "instruments": {
@@ -1522,6 +1599,7 @@ class TestTradeQueue:
         TradeQueue.clear_instances()
 
     def test_checking_size_when_method_invocation_then_result_is_ok(self):
+        """change on _new_listener_message_3"""
         config = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
@@ -1649,7 +1727,7 @@ class TestTradeQueue:
             "M": true
           }
         }
-        ''')  # change here
+        ''')
 
         _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {

@@ -9,7 +9,7 @@ def setup_logger(should_dump_logs: bool | None = False) -> logging.Logger:
     log_file_path = 'logs/'
 
     logger = logging.getLogger('DaemonManager')
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     now_utc = datetime.utcnow().strftime('%d-%m-%YT%H-%M-%SZ')
 

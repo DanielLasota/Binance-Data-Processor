@@ -2,10 +2,9 @@ import logging
 import time
 import threading
 from datetime import datetime, timezone
-# import logging
 
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.stream_type_enum import StreamType
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.enum_.stream_type_enum import StreamType
 
 
 class BlackoutSupervisor:
@@ -15,7 +14,7 @@ class BlackoutSupervisor:
             market: Market,
             check_interval_in_seconds,
             max_interval_without_messages_in_seconds,
-            on_error_callback=None,
+            on_error_callback = None,
             logger: logging.Logger | None = None,
     ) -> None:
         self.stream_type = stream_type
@@ -60,6 +59,7 @@ class BlackoutSupervisor:
             self.on_error_callback()
         else:
             raise Exception('Error callback not set')
+
         self._stop_as_we_reached_no_signal()
 
     def _stop_as_we_reached_no_signal(self):

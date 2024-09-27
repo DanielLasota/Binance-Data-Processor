@@ -2,20 +2,19 @@ import json
 import logging
 import time
 import threading
-
 import pytest
 import websocket
 
-from binance_archiver.binance_archiver.archiver_daemon import ArchiverDaemon
-from binance_archiver.binance_archiver.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.binance_archiver.market_enum import Market
-from binance_archiver.binance_archiver.setup_logger import setup_logger
-from binance_archiver.binance_archiver.stream_id import StreamId
-from binance_archiver.binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
+from binance_archiver.binance_archiver_facade import QueuePoolDataSink, QueuePoolListener
+from binance_archiver.difference_depth_queue import DifferenceDepthQueue
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.setup_logger import setup_logger
+from binance_archiver.stream_id import StreamId
+from binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
     PairsLengthException
-from binance_archiver.binance_archiver.stream_type_enum import StreamType
-from binance_archiver.binance_archiver.blackout_supervisor import BlackoutSupervisor
-from binance_archiver.binance_archiver.trade_queue import TradeQueue
+from binance_archiver.enum_.stream_type_enum import StreamType
+from binance_archiver.blackout_supervisor import BlackoutSupervisor
+from binance_archiver.trade_queue import TradeQueue
 
 
 class TestStreamListener:
@@ -23,15 +22,19 @@ class TestStreamListener:
     def test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters(self):
         config = {
             "instruments": {
-                "spot": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "SHIBUSDT",
-                         "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                "usd_m_futures": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
-                                  "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"],
-
-                "coin_m_futures": ["BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
-                                   "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
-                                   "DOTUSD_PERP"]
+                "spot": [
+                    "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT",
+                    "ADAUSDT", "SHIBUSDT", "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"
+                ],
+                "usd_m_futures": [
+                    "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT",
+                    "ADAUSDT", "LTCUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT"
+                ],
+                "coin_m_futures": [
+                    "BTCUSD_PERP", "ETHUSD_PERP", "BNBUSD_PERP", "SOLUSD_PERP", "XRPUSD_PERP",
+                    "DOGEUSD_PERP", "ADAUSD_PERP", "LTCUSD_PERP", "AVAXUSD_PERP", "TRXUSD_PERP",
+                    "DOTUSD_PERP"
+                ]
             },
             "file_duration_seconds": 30,
             "snapshot_fetcher_interval_seconds": 60,
@@ -42,100 +45,51 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
+        instruments = config['instruments']
+        global_shutdown_flag = threading.Event()
 
-        spot_difference_depth_stream_listener = StreamListener(
-            logger=logger,
-            queue=archiver_daemon.spot_orderbook_stream_message_queue,
-            pairs=config['instruments']['spot'],
-            stream_type=StreamType.DIFFERENCE_DEPTH,
-            market=Market.SPOT
-        )
+        queue_pool = QueuePoolDataSink()
 
-        spot_trade_stream_listener = StreamListener(
-            logger=logger,
-            queue=archiver_daemon.spot_trade_stream_message_queue,
-            pairs=config['instruments']['spot'],
-            stream_type=StreamType.TRADE,
-            market=Market.SPOT
-        )
+        for market_str in ['spot', 'usd_m_futures', 'coin_m_futures']:
+            market = Market[market_str.upper()]
+            pairs = instruments[market_str]
 
-        assert isinstance(spot_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
-        assert isinstance(spot_difference_depth_stream_listener.id, StreamId)
-        assert spot_difference_depth_stream_listener.id.pairs_amount == 12
-        assert spot_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
+            queue = queue_pool.get_queue(market, StreamType.DIFFERENCE_DEPTH)
+            difference_depth_stream_listener = StreamListener(
+                logger=logger,
+                queue=queue,
+                pairs=pairs,
+                stream_type=StreamType.DIFFERENCE_DEPTH,
+                market=market
+            )
 
-        assert isinstance(spot_trade_stream_listener.websocket_app, websocket.WebSocketApp)
-        assert isinstance(spot_trade_stream_listener.id, StreamId)
-        assert spot_trade_stream_listener.id.pairs_amount == 12
-        assert spot_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
+            expected_pairs_amount = len(pairs)
 
-        spot_trade_stream_listener.websocket_app.close()
-        spot_trade_stream_listener._blackout_supervisor.shutdown_supervisor()
-        spot_difference_depth_stream_listener.websocket_app.close()
-        spot_difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
+            assert isinstance(difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
+            assert isinstance(difference_depth_stream_listener.id, StreamId)
+            assert difference_depth_stream_listener.id.pairs_amount == expected_pairs_amount
+            assert difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", \
+                "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
 
-        usd_m_futures_difference_depth_stream_listener = StreamListener(
-            logger=logger,
-            queue=archiver_daemon.usd_m_futures_orderbook_stream_message_queue,
-            pairs=config['instruments']['usd_m_futures'],
-            stream_type=StreamType.DIFFERENCE_DEPTH,
-            market=Market.USD_M_FUTURES
-        )
+            queue = queue_pool.get_queue(market, StreamType.TRADE)
+            trade_stream_listener = StreamListener(
+                logger=logger,
+                queue=queue,
+                pairs=pairs,
+                stream_type=StreamType.TRADE,
+                market=market
+            )
 
-        usd_m_futures_trade_stream_listener = StreamListener(
-            logger=logger,
-            queue=archiver_daemon.usd_m_futures_trade_stream_message_queue,
-            pairs=config['instruments']['usd_m_futures'],
-            stream_type=StreamType.TRADE,
-            market=Market.USD_M_FUTURES
-        )
+            assert isinstance(trade_stream_listener.websocket_app, websocket.WebSocketApp)
+            assert isinstance(trade_stream_listener.id, StreamId)
+            assert trade_stream_listener.id.pairs_amount == expected_pairs_amount
+            assert trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", \
+                "on_message should be assigned to _on_trade_message when stream_type is TRADE"
 
-        assert isinstance(usd_m_futures_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
-        assert isinstance(usd_m_futures_difference_depth_stream_listener.id, StreamId)
-        assert usd_m_futures_difference_depth_stream_listener.id.pairs_amount == 11
-        assert usd_m_futures_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
-
-        assert isinstance(usd_m_futures_trade_stream_listener.websocket_app, websocket.WebSocketApp)
-        assert isinstance(usd_m_futures_trade_stream_listener.id, StreamId)
-        assert usd_m_futures_trade_stream_listener.id.pairs_amount == 11
-        assert usd_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
-
-        usd_m_futures_difference_depth_stream_listener.websocket_app.close()
-        usd_m_futures_difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
-        usd_m_futures_trade_stream_listener.websocket_app.close()
-        usd_m_futures_trade_stream_listener._blackout_supervisor.shutdown_supervisor()
-
-        coin_m_futures_difference_depth_stream_listener = StreamListener(
-            logger=logger,
-            queue=archiver_daemon.coin_m_orderbook_stream_message_queue,
-            pairs=config['instruments']['coin_m_futures'],
-            stream_type=StreamType.DIFFERENCE_DEPTH,
-            market=Market.COIN_M_FUTURES
-        )
-
-        coin_m_futures_trade_stream_listener = StreamListener(
-            logger=logger,
-            queue=archiver_daemon.coin_m_trade_stream_message_queue,
-            pairs=config['instruments']['coin_m_futures'],
-            stream_type=StreamType.TRADE,
-            market=Market.COIN_M_FUTURES
-        )
-
-        assert isinstance(coin_m_futures_difference_depth_stream_listener.websocket_app, websocket.WebSocketApp)
-        assert isinstance(coin_m_futures_difference_depth_stream_listener.id, StreamId)
-        assert coin_m_futures_difference_depth_stream_listener.id.pairs_amount == 11
-        assert coin_m_futures_difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
-
-        assert isinstance(coin_m_futures_trade_stream_listener.websocket_app, websocket.WebSocketApp)
-        assert isinstance(coin_m_futures_trade_stream_listener.id, StreamId)
-        assert coin_m_futures_trade_stream_listener.id.pairs_amount == 11
-        assert coin_m_futures_trade_stream_listener.websocket_app.on_message.__name__ == "_on_trade_message", "on_message should be assigned to _on_trade_message when stream_type is TRADE"
-
-        coin_m_futures_difference_depth_stream_listener.websocket_app.close()
-        coin_m_futures_difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
-        coin_m_futures_trade_stream_listener.websocket_app.close()
-        coin_m_futures_trade_stream_listener._blackout_supervisor.shutdown_supervisor()
+            trade_stream_listener.websocket_app.close()
+            trade_stream_listener._blackout_supervisor.shutdown_supervisor()
+            difference_depth_stream_listener.websocket_app.close()
+            difference_depth_stream_listener._blackout_supervisor.shutdown_supervisor()
 
         DifferenceDepthQueue.clear_instances()
         TradeQueue.clear_instances()
@@ -156,13 +110,15 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
+        instruments = config['instruments']
+        queue_pool = QueuePoolDataSink()
 
         with pytest.raises(WrongListInstanceException) as excinfo:
+            queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH)
             stream_listener = StreamListener(
                 logger=logger,
-                queue=archiver_daemon.spot_orderbook_stream_message_queue,
-                pairs=config['instruments']['spot'][0],
+                queue=queue,
+                pairs=instruments['spot'][0],  # Incorrect type as intended to be should be a list
                 stream_type=StreamType.DIFFERENCE_DEPTH,
                 market=Market.SPOT
             )
@@ -188,13 +144,16 @@ class TestStreamListener:
         }
 
         logger = setup_logger()
-        archiver_daemon = ArchiverDaemon(instruments=config['instruments'], logger=logger)
+        instruments = config['instruments']
+        queue_pool = QueuePoolDataSink()
 
         with pytest.raises(PairsLengthException) as excinfo:
+            pairs = instruments['spot']
+            queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH)
             stream_listener = StreamListener(
                 logger=logger,
-                queue=archiver_daemon.spot_orderbook_stream_message_queue,
-                pairs=config['instruments']['spot'],
+                queue=queue,
+                pairs=pairs,
                 stream_type=StreamType.DIFFERENCE_DEPTH,
                 market=Market.SPOT
             )
@@ -566,11 +525,9 @@ class TestStreamListener:
         difference_depth_queue_listener.websocket_app.on_message = None
         time.sleep(12)
 
-        # Check if the supervisor's shutdown flag is set due to no incoming messages
         assert difference_depth_queue_listener.supervisor_signal_shutdown_flag.is_set(), \
             "Supervisor's shutdown signal should be set after a period without incoming messages."
 
-        # Clean up
         difference_depth_queue_listener.websocket_app.close()
         DifferenceDepthQueue.clear_instances()
 
@@ -659,7 +616,6 @@ class TestStreamListener:
 class TestOther:
 
     def test_non_unittest_test_given_trade_stream_listener_when_init_then_supervisor_starts_correctly(self):
-        # Konfiguracja
         config = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
