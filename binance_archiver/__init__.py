@@ -1,4 +1,7 @@
 from binance_archiver.binance_archiver_facade import launch_data_sink, launch_data_listener
+from binance_archiver.scraper import download_data
+
+__all__ = ['launch_data_sink', 'launch_data_listener', 'download_data']
 
 __version__ = "0.0.1"
 __author__ = "Daniel Lasota <grossmann.root@gmail.com>"

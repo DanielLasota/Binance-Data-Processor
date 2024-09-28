@@ -1,4 +1,4 @@
-class TestFastApiManager:
+class TestScraper:
 
     def test(self):
         ...

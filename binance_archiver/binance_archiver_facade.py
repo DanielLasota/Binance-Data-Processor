@@ -19,7 +19,7 @@ import threading
 import requests
 from queue import Queue
 
-from binance_archiver.logo import logo
+from binance_archiver.logo import binance_archiver_logo
 from .setup_logger import setup_logger
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
@@ -73,7 +73,7 @@ def launch_data_sink(
         raise WebSocketLifeTimeException('Invalid websocket_life_time_seconds')
 
     logger = setup_logger(should_dump_logs=should_dump_logs)
-    logger.info("\n%s", logo)
+    logger.info("\n%s", binance_archiver_logo)
     logger.info("Starting Binance Archiver...")
     logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
 
@@ -124,7 +124,7 @@ def launch_data_listener(
         raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
 
     logger = setup_logger(should_dump_logs=should_dump_logs)
-    logger.info("\n%s", logo)
+    logger.info("\n%s", binance_archiver_logo)
     logger.info("Starting Binance Listener...")
     logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
 

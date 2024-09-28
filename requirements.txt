@@ -11,3 +11,5 @@ fastapi
 uvicorn
 orjson
 boto3
+pandas
+alive-progress
