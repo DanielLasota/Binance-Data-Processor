@@ -697,7 +697,6 @@ class SnapshotManager:
                         f"Error whilst fetching snapshot: {pair} {market}: {e}"
                     )
 
-            print(self.config['snapshot_fetcher_interval_seconds'])
             self._sleep_with_flag_check(self.config['snapshot_fetcher_interval_seconds'])
 
         self.logger.info(f"{market}: snapshot daemon has ended")
