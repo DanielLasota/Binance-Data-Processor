@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: New Command for changing websocket life time seconds">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: New Command for changing file durations seconds">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -219,6 +220,10 @@
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestDataSinkSnapshotStrategy.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestListenerSnapshotStrategy.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestSnapshotManager.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestSnapshotManager.test_given_data_sink_strategy_when_snapshot_received_then_data_saver_methods_called.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestSnapshotManager.test_given_exception_in_get_snapshot_when_snapshot_fetched_then_error_logged_and_no_snapshot_processed.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestSnapshotManager.test_given_listener_strategy_when_snapshot_received_then_snapshot_put_into_global_queue.executor": "Run",
+    "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.TestSnapshotManager.test_given_shutdown_flag_set_when_sleep_with_flag_check_called_then_method_exits_early.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestSnapshotManager.test_snapshot_manager_puts_snapshots_into_global_queue.executor": "Run",
     "Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade.TestStreamService.executor": "Run",
@@ -366,7 +371,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver\core\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for trade_queue_tests.TestTradeQueue">
+  <component name="RunManager" selected="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -377,6 +382,23 @@
       <deployment type="dockerfile">
         <settings />
       </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;binance_archiver.test.archiver_daemon_tests.TestArchiverFacade&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <configuration name="pytest for blackout_supervisor_tests.TestBlackoutSupervisor" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
@@ -393,23 +415,6 @@
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
       <option name="_new_target" value="&quot;blackout_supervisor_tests.TestBlackoutSupervisor&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for blackout_supervisor_tests.TestBlackoutSupervisor.test_given_blackout_supervisor_when_no_error_callback_then_raises_exception" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;blackout_supervisor_tests.TestBlackoutSupervisor.test_given_blackout_supervisor_when_no_error_callback_then_raises_exception&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
@@ -466,11 +471,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
-        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
-        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
+        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" />
         <item itemvalue="Python tests.pytest for blackout_supervisor_tests.TestBlackoutSupervisor" />
-        <item itemvalue="Python tests.pytest for blackout_supervisor_tests.TestBlackoutSupervisor.test_given_blackout_supervisor_when_no_error_callback_then_raises_exception" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
+        <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
+        <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
       </list>
     </recent_temporary>
   </component>
@@ -508,14 +513,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00062" summary="stream_listener.py&#10;stream_listener_tests.py &#10;pairs amount as property update">
-      <option name="closed" value="true" />
-      <created>1725306841168</created>
-      <option name="number" value="00062" />
-      <option name="presentableId" value="LOCAL-00062" />
-      <option name="project" value="LOCAL" />
-      <updated>1725306841168</updated>
     </task>
     <task id="LOCAL-00063" summary="update i dont remember what i did">
       <option name="closed" value="true" />
@@ -901,7 +898,15 @@
       <option name="project" value="LOCAL" />
       <updated>1727605564218</updated>
     </task>
-    <option name="localTasksCounter" value="111" />
+    <task id="LOCAL-00111" summary="feat: New Command for changing file durations seconds">
+      <option name="closed" value="true" />
+      <created>1727609357221</created>
+      <option name="number" value="00111" />
+      <option name="presentableId" value="LOCAL-00111" />
+      <option name="project" value="LOCAL" />
+      <updated>1727609357221</updated>
+    </task>
+    <option name="localTasksCounter" value="112" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -961,7 +966,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: New trade queue switch mechanism &#10;test: added tests into trade_queue_tests.py" />
     <MESSAGE value="build: Dockerfile pythonpath" />
     <MESSAGE value="build: rename binance_archiver subfolder" />
     <MESSAGE value="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update" />
@@ -986,7 +990,8 @@
     <MESSAGE value="refactor: Minor binance_archiver_facade.py refactor" />
     <MESSAGE value="feat: data scraper init commit" />
     <MESSAGE value="feat: New Command for changing websocket life time seconds" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: New Command for changing websocket life time seconds" />
+    <MESSAGE value="feat: New Command for changing file durations seconds" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: New Command for changing file durations seconds" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

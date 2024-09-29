@@ -170,7 +170,7 @@ class ListenerFacade(Subject):
         snapshot_strategy = ListenerSnapshotStrategy(global_queue=self.queue_pool.global_queue)
 
         self.snapshot_manager = SnapshotManager(
-            instruments=self.instruments,
+            config=self.config,
             logger=self.logger,
             snapshot_strategy=snapshot_strategy,
             global_shutdown_flag=self.global_shutdown_flag
@@ -201,8 +201,7 @@ class ListenerFacade(Subject):
         time.sleep(5)
 
         self.snapshot_manager.run_snapshots(
-            dump_path=dump_path,
-            interval=snapshot_fetcher_interval_seconds
+            dump_path=dump_path
         )
 
     def shutdown(self):
@@ -275,7 +274,7 @@ class DataSinkFacade:
         )
 
         self.snapshot_manager = SnapshotManager(
-            instruments=self.instruments,
+            config=self.config,
             logger=self.logger,
             snapshot_strategy=snapshot_strategy,
             global_shutdown_flag=self.global_shutdown_flag
@@ -283,7 +282,6 @@ class DataSinkFacade:
 
     def run(self) -> None:
         dump_path = self.config.get("dump_path", "dump/")
-        snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
 
         self.stream_service.run_streams()
 
@@ -299,8 +297,7 @@ class DataSinkFacade:
         )
 
         self.snapshot_manager.run_snapshots(
-            dump_path=dump_path,
-            interval=snapshot_fetcher_interval_seconds
+            dump_path=dump_path
         )
 
     def shutdown(self):
@@ -624,44 +621,41 @@ class ListenerSnapshotStrategy(SnapshotStrategy):
 class SnapshotManager:
     def __init__(
         self,
-        instruments: dict,
+        config: dict,
         logger: logging.Logger,
         snapshot_strategy: SnapshotStrategy,
         global_shutdown_flag: threading.Event
     ):
-        self.instruments = instruments
+        self.config = config
+        self.instruments = config['instruments']
         self.logger = logger
         self.snapshot_strategy = snapshot_strategy
         self.global_shutdown_flag = global_shutdown_flag
 
     def run_snapshots(
         self,
-        dump_path: str,
-        interval: int
+        dump_path: str
     ):
         for market_str, pairs in self.instruments.items():
             market = Market[market_str.upper()]
             self.start_snapshot_daemon(
                 market=market,
                 pairs=pairs,
-                dump_path=dump_path,
-                interval=interval
+                dump_path=dump_path
             )
 
     def start_snapshot_daemon(
         self,
         market: Market,
         pairs: list[str],
-        dump_path: str,
-        interval: int
+        dump_path: str
     ):
         thread = threading.Thread(
             target=self._snapshot_daemon,
             args=(
                 pairs,
                 market,
-                dump_path,
-                interval
+                dump_path
             ),
             name=f'snapshot_daemon: market: {market}'
         )
@@ -671,8 +665,7 @@ class SnapshotManager:
         self,
         pairs: list[str],
         market: Market,
-        dump_path: str,
-        fetch_interval: int
+        dump_path: str
     ) -> None:
         while not self.global_shutdown_flag.is_set():
             for pair in pairs:
@@ -704,7 +697,8 @@ class SnapshotManager:
                         f"Error whilst fetching snapshot: {pair} {market}: {e}"
                     )
 
-            self._sleep_with_flag_check(fetch_interval)
+            print(self.config['snapshot_fetcher_interval_seconds'])
+            self._sleep_with_flag_check(self.config['snapshot_fetcher_interval_seconds'])
 
         self.logger.info(f"{market}: snapshot daemon has ended")
 

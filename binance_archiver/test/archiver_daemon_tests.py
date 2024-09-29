@@ -872,8 +872,11 @@ class TestArchiverFacade:
         class TestSnapshotManager:
 
             def test_given_listener_strategy_when_snapshot_received_then_snapshot_put_into_global_queue(self):
-                instruments = {
-                    "spot": ["BTCUSDT"]
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
                 }
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
@@ -882,7 +885,7 @@ class TestArchiverFacade:
                 snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
 
                 snapshot_manager = SnapshotManager(
-                    instruments=instruments,
+                    config=config,
                     logger=logger,
                     snapshot_strategy=snapshot_strategy,
                     global_shutdown_flag=global_shutdown_flag
@@ -895,15 +898,14 @@ class TestArchiverFacade:
                         args=(
                             ["BTCUSDT"],
                             Market.SPOT,
-                            "",
-                            1
+                            ""
                         ),
                         name='snapshot_daemon_thread',
                         daemon=True
                     )
                     daemon_thread.start()
 
-                    time.sleep(0.5)
+                    time.sleep(2)
 
                     global_shutdown_flag.set()
 
@@ -918,8 +920,11 @@ class TestArchiverFacade:
                     assert message == json.dumps(expected_snapshot), "Dane snapshotu powinny zgadzać się z oczekiwanymi"
 
             def test_given_data_sink_strategy_when_snapshot_received_then_data_saver_methods_called(self):
-                instruments = {
-                    "spot": ["BTCUSDT"]
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
                 }
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
@@ -933,7 +938,7 @@ class TestArchiverFacade:
                 )
 
                 snapshot_manager = SnapshotManager(
-                    instruments=instruments,
+                    config=config,
                     logger=logger,
                     snapshot_strategy=snapshot_strategy,
                     global_shutdown_flag=global_shutdown_flag
@@ -947,8 +952,7 @@ class TestArchiverFacade:
                             args=(
                                 ["BTCUSDT"],
                                 Market.SPOT,
-                                "dump_path",
-                                1
+                                "dump_path"
                             ),
                             name='snapshot_daemon_thread',
                             daemon=True
@@ -971,8 +975,11 @@ class TestArchiverFacade:
                         data_saver.send_zipped_json_to_blob.assert_called_with(expected_snapshot, file_name)
 
             def test_given_exception_in_get_snapshot_when_snapshot_fetched_then_error_logged_and_no_snapshot_processed(self):
-                instruments = {
-                    "spot": ["BTCUSDT"]
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
                 }
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
@@ -981,7 +988,7 @@ class TestArchiverFacade:
                 snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
 
                 snapshot_manager = SnapshotManager(
-                    instruments=instruments,
+                    config=config,
                     logger=logger,
                     snapshot_strategy=snapshot_strategy,
                     global_shutdown_flag=global_shutdown_flag
@@ -994,8 +1001,7 @@ class TestArchiverFacade:
                             args=(
                                 ["BTCUSDT"],
                                 Market.SPOT,
-                                "",
-                                1
+                                ""
                             ),
                             name='snapshot_daemon_thread',
                             daemon=True
@@ -1012,8 +1018,11 @@ class TestArchiverFacade:
                         assert global_queue.empty(), "Global queue powinna być pusta po wyjątku"
 
             def test_given_shutdown_flag_set_when_daemon_running_then_thread_exits(self):
-                instruments = {
-                    "spot": ["BTCUSDT"]
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
                 }
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
@@ -1022,7 +1031,7 @@ class TestArchiverFacade:
                 snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
 
                 snapshot_manager = SnapshotManager(
-                    instruments=instruments,
+                    config=config,
                     logger=logger,
                     snapshot_strategy=snapshot_strategy,
                     global_shutdown_flag=global_shutdown_flag
@@ -1034,8 +1043,7 @@ class TestArchiverFacade:
                         args=(
                             ["BTCUSDT"],
                             Market.SPOT,
-                            "",
-                            2
+                            ""
                         ),
                         name='snapshot_daemon_thread',
                         daemon=True
@@ -1051,8 +1059,11 @@ class TestArchiverFacade:
                     assert not daemon_thread.is_alive(), "Wątek snapshot_daemon powinien zakończyć działanie po ustawieniu flagi global_shutdown_flag"
 
             def test_given_successful_response_when_get_snapshot_called_then_data_and_timestamps_returned(self):
-                instruments = {
-                    "spot": ["BTCUSDT"]
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
                 }
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
@@ -1060,7 +1071,7 @@ class TestArchiverFacade:
                 snapshot_strategy = MagicMock(spec=SnapshotStrategy)
 
                 snapshot_manager = SnapshotManager(
-                    instruments=instruments,
+                    config=config,
                     logger=logger,
                     snapshot_strategy=snapshot_strategy,
                     global_shutdown_flag=global_shutdown_flag
@@ -1082,8 +1093,11 @@ class TestArchiverFacade:
                         assert receive_timestamp == 2000
 
             def test_given_exception_when_get_snapshot_called_then_none_returned_and_error_logged(self):
-                instruments = {
-                    "spot": ["BTCUSDT"]
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
                 }
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
@@ -1091,7 +1105,7 @@ class TestArchiverFacade:
                 snapshot_strategy = MagicMock(spec=SnapshotStrategy)
 
                 snapshot_manager = SnapshotManager(
-                    instruments=instruments,
+                    config=config,
                     logger=logger,
                     snapshot_strategy=snapshot_strategy,
                     global_shutdown_flag=global_shutdown_flag
@@ -1112,13 +1126,17 @@ class TestArchiverFacade:
                 global_shutdown_flag = threading.Event()
 
                 snapshot_manager = SnapshotManager(
-                    instruments={},
+                    config={
+                        'instruments': {
+                            "spot": ["BTCUSDT"]
+                        },
+                        'websocket_lifetime_seconds': 60
+                    },
                     logger=logger,
                     snapshot_strategy=MagicMock(spec=SnapshotStrategy),
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                # Ustawienie flagi shutdown po krótkim czasie
                 def set_flag():
                     time.sleep(0.5)
                     global_shutdown_flag.set()
