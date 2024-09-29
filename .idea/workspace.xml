@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: New Command for changing snapshot intervals">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="fix: removed print">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/config/production_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/config/production_config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -522,14 +523,6 @@
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
     </task>
-    <task id="LOCAL-00064" summary="update">
-      <option name="closed" value="true" />
-      <created>1725325001243</created>
-      <option name="number" value="00064" />
-      <option name="presentableId" value="LOCAL-00064" />
-      <option name="project" value="LOCAL" />
-      <updated>1725325001243</updated>
-    </task>
     <task id="LOCAL-00065" summary="refactor: Move checking proper id.pairs_amount to StreamId class">
       <option name="closed" value="true" />
       <created>1726139829142</created>
@@ -914,7 +907,15 @@
       <option name="project" value="LOCAL" />
       <updated>1727613258865</updated>
     </task>
-    <option name="localTasksCounter" value="113" />
+    <task id="LOCAL-00113" summary="fix: removed print">
+      <option name="closed" value="true" />
+      <created>1727615917536</created>
+      <option name="number" value="00113" />
+      <option name="presentableId" value="LOCAL-00113" />
+      <option name="project" value="LOCAL" />
+      <updated>1727615917536</updated>
+    </task>
+    <option name="localTasksCounter" value="114" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -974,7 +975,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="build: rename binance_archiver subfolder" />
     <MESSAGE value="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update" />
     <MESSAGE value="build: rename blackout_supervisor.py file" />
     <MESSAGE value="build: package structure refactor to Jean-Paul Calderone's pattern" />
@@ -999,7 +999,8 @@
     <MESSAGE value="feat: New Command for changing websocket life time seconds" />
     <MESSAGE value="feat: New Command for changing file durations seconds" />
     <MESSAGE value="feat: New Command for changing snapshot intervals" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: New Command for changing snapshot intervals" />
+    <MESSAGE value="fix: removed print" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix: removed print" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
