@@ -259,6 +259,7 @@ class DataSinkFacade:
 
         self.data_saver = DataSaver(
             logger=self.logger,
+            config=self.config,
             azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
             azure_container_name=self.azure_container_name,
             backblaze_s3_parameters=self.backblaze_s3_parameters,
@@ -282,8 +283,6 @@ class DataSinkFacade:
 
     def run(self) -> None:
         dump_path = self.config.get("dump_path", "dump/")
-        file_duration_seconds = self.config["file_duration_seconds"]
-        websockets_lifetime_seconds = self.config["websocket_life_time_seconds"]
         snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
 
         self.stream_service.run_streams()
@@ -293,7 +292,7 @@ class DataSinkFacade:
         self.data_saver.run_data_saver(
             queue_pool=self.queue_pool,
             dump_path=dump_path,
-            file_duration_seconds=file_duration_seconds,
+            file_duration_seconds=self.config["file_duration_seconds"],
             save_to_json=self.config["save_to_json"],
             save_to_zip=self.config["save_to_zip"],
             send_zip_to_blob=self.config["send_zip_to_blob"]
@@ -746,7 +745,6 @@ class CommandLineInterface:
         self.logger = logger
         self.stream_service = stream_service
 
-
     def handle_command(self, message):
         command = list(message.items())[0][0]
         arguments = list(message.items())[0][1]
@@ -792,6 +790,9 @@ class CommandLineInterface:
         else:
             self.logger.warning(f"{selected_interval_name} not found in config.")
 
+    def show_me_your_status(self):
+        ...
+
     def show_config(self):
         self.logger.info(self.config)
 
@@ -800,12 +801,14 @@ class DataSaver:
     def __init__(
         self,
         logger: logging.Logger,
+        config: dict,
         azure_blob_parameters_with_key: str | None = None,
         azure_container_name: str | None = None,
         backblaze_s3_parameters: dict | None = None,
         backblaze_bucket_name: str | None = None,
         global_shutdown_flag: threading.Event = threading.Event()
     ):
+        self.config = config
         self.logger = logger
         self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
         self.azure_container_name = azure_container_name
@@ -856,6 +859,8 @@ class DataSaver:
         save_to_zip: bool,
         send_zip_to_blob: bool
     ):
+        file_duration_seconds = self.config['file_duration_seconds']
+
         for (market, stream_type), queue in queue_pool.queue_lookup.items():
             self.start_stream_writer(
                 queue=queue,
@@ -916,7 +921,7 @@ class DataSaver:
                 save_to_zip,
                 send_zip_to_blob,
             )
-            self._sleep_with_flag_check(file_duration_seconds)
+            self._sleep_with_flag_check(self.config['file_duration_seconds'])
 
         self._process_stream_data(
             queue,

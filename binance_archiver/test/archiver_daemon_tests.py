@@ -1373,6 +1373,7 @@ class TestArchiverFacade:
         def test_given_blob_parameters_when_initializing_then_blob_service_client_is_initialized(self):
             data_saver = DataSaver(
                 logger=self.logger,
+                config={},
                 azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
                 azure_container_name=self.container_name,
                 backblaze_s3_parameters=None,
@@ -1386,6 +1387,7 @@ class TestArchiverFacade:
         def test_given_no_blob_parameters_when_initializing_then_blob_service_client_is_none(self):
             data_saver = DataSaver(
                 logger=self.logger,
+                config={},
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
@@ -1396,8 +1398,22 @@ class TestArchiverFacade:
             assert data_saver.azure_blob_service_client is None, "BlobServiceClient should be None when parameters are missing"
 
         def test_given_data_saver_when_run_then_stream_writers_are_started(self):
+            config = {
+              "instruments": {
+                "spot": [
+                  "BTCUSDT"
+                ]
+              },
+              "file_duration_seconds": 60,
+              "snapshot_fetcher_interval_seconds": 60,
+              "websocket_life_time_seconds": 60,
+              "save_to_json": True,
+              "save_to_zip": False,
+              "send_zip_to_blob": False
+            }
             data_saver = DataSaver(
                 logger=self.logger,
+                config=config,
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
@@ -1423,8 +1439,22 @@ class TestArchiverFacade:
             TradeQueue.clear_instances()
 
         def test_given_start_stream_writer_when_called_then_thread_is_started(self):
+            config = {
+              "instruments": {
+                "spot": [
+                  "BTCUSDT"
+                ]
+              },
+              "file_duration_seconds": 60,
+              "snapshot_fetcher_interval_seconds": 60,
+              "websocket_life_time_seconds": 60,
+              "save_to_json": True,
+              "save_to_zip": False,
+              "send_zip_to_blob": False
+            }
             data_saver = DataSaver(
                 logger=self.logger,
+                config={},
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
@@ -1452,8 +1482,22 @@ class TestArchiverFacade:
             DifferenceDepthQueue.clear_instances()
 
         def test_given_stream_writer_when_shutdown_flag_set_then_exits_loop(self):
+            config = {
+              "instruments": {
+                "spot": [
+                  "BTCUSDT"
+                ]
+              },
+              "file_duration_seconds": 60,
+              "snapshot_fetcher_interval_seconds": 60,
+              "websocket_life_time_seconds": 60,
+              "save_to_json": True,
+              "save_to_zip": False,
+              "send_zip_to_blob": False
+            }
             data_saver = DataSaver(
                 logger=self.logger,
+                config=config,
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
@@ -1489,12 +1533,26 @@ class TestArchiverFacade:
                 )
 
                 assert mock_process_stream_data.call_count == 2, "Should process data during and after loop"
-                mock_sleep_with_flag_check.assert_called_once_with(1)
+                mock_sleep_with_flag_check.assert_called_once_with(60)
             DifferenceDepthQueue.clear_instances()
 
         def test_given_process_stream_data_when_queue_is_empty_then_no_action_is_taken(self):
+            config = {
+              "instruments": {
+                "spot": [
+                  "BTCUSDT"
+                ]
+              },
+              "file_duration_seconds": 60,
+              "snapshot_fetcher_interval_seconds": 60,
+              "websocket_life_time_seconds": 60,
+              "save_to_json": True,
+              "save_to_zip": False,
+              "send_zip_to_blob": False
+            }
             data_saver = DataSaver(
                 logger=self.logger,
+                config=config,
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
@@ -1518,8 +1576,22 @@ class TestArchiverFacade:
             DifferenceDepthQueue.clear_instances()
 
         def test_given_process_stream_data_when_queue_has_data_then_data_is_processed(self, tmpdir):
+            config = {
+              "instruments": {
+                "spot": [
+                  "BTCUSDT"
+                ]
+              },
+              "file_duration_seconds": 60,
+              "snapshot_fetcher_interval_seconds": 60,
+              "websocket_life_time_seconds": 60,
+              "save_to_json": True,
+              "save_to_zip": False,
+              "send_zip_to_blob": False
+            }
             data_saver = DataSaver(
                 logger=self.logger,
+                config=config,
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
@@ -1561,8 +1633,23 @@ class TestArchiverFacade:
             DifferenceDepthQueue.clear_instances()
 
         def test_given_get_file_name_when_called_then_correct_format_is_returned(self):
+            config = {
+              "instruments": {
+                "spot": [
+                  "BTCUSDT"
+                ]
+              },
+              "file_duration_seconds": 60,
+              "snapshot_fetcher_interval_seconds": 60,
+              "websocket_life_time_seconds": 60,
+              "save_to_json": True,
+              "save_to_zip": False,
+              "send_zip_to_blob": False
+            }
+
             data_saver = DataSaver(
                 logger=self.logger,
+                config=config,
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
@@ -1586,10 +1673,24 @@ class TestArchiverFacade:
             DifferenceDepthQueue.clear_instances()
 
         def test_data_saver_is_not_initialized_in_listener_mode(self):
+            config = {
+              "instruments": {
+                "spot": [
+                  "BTCUSDT"
+                ]
+              },
+              "file_duration_seconds": 60,
+              "snapshot_fetcher_interval_seconds": 60,
+              "websocket_life_time_seconds": 60,
+              "save_to_json": True,
+              "save_to_zip": False,
+              "send_zip_to_blob": False
+            }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
             data_saver = DataSaver(
                 logger=logger,
+                config=config,
                 azure_blob_parameters_with_key=None,
                 azure_container_name=None,
                 backblaze_s3_parameters=None,
