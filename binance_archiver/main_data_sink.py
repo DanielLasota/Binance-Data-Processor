@@ -11,7 +11,7 @@ from load_config import load_config
 if __name__ == "__main__":
 
     # load_dotenv('C:/Users/defrg/archer.env')
-    # config = load_config('almost_production_config.json')
+    # config = load_config('test_config.json')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),

@@ -102,7 +102,6 @@ class DataScraper:
         print('\033[36m')
 
         print('############')
-        print('')
         print(f'ought to download {amount_of_files_to_be_made} files:')
         for date in dates:
             for market in markets:
@@ -111,7 +110,6 @@ class DataScraper:
                         if market == Market.COIN_M_FUTURES:
                             pair = f'{pair}_perp'
                         print(f'downloading: {self._get_save_file_name(pair=pair, market=market, stream_type=stream_type, date=date)}')
-        print('')
         print('############')
         print('')
 
@@ -120,7 +118,7 @@ class DataScraper:
                 for stream_type in stream_types:
                     for pair in pairs:
                         if market == Market.COIN_M_FUTURES:
-                            pair = f'{pair}_perp'
+                            pair = f'{pair[:-1]}_perp'
                         print(f'downloading pair: {pair} {stream_type} {market} {date}')
                         self._blob_to_csv(date, market, stream_type, pair, dump_path)
 
@@ -370,17 +368,6 @@ class DataScraper:
         return date_list
 
 
-class DataFrameChecker:
-    def __init__(self):
-        ...
-
-    def check_trade_dataframe_procedure(self, df: pd.DataFrame) -> None:
-        ...
-
-    def check_difference_depth_procedure(self, df: pd.DataFrame) -> None:
-        ...
-
-
 class IClientHandler(ABC):
     @abstractmethod
     def list_files_with_prefixes(self, prefixes: List[str]) -> List[str]:
@@ -461,3 +448,97 @@ class AzureClient(IClientHandler):
 
     def read_file(self, file_name) -> None:
         ...
+
+
+class DataFrameChecker:
+    def __init__(self):
+        ...
+
+    def check_trade_dataframe_procedure(self, df: pd.DataFrame) -> None:
+        ...
+
+    def check_difference_depth_procedure(self, df: pd.DataFrame) -> None:
+        ...
+
+'''
+    
+    # TRADES
+
+    ##################
+    ### SPOT Trades Need 10 field to be checked with (+"M" | -"X") fields
+    ###
+    ### FUTURES USD M and FUTURES COIN M Trades Need 10 field to be checked with (+"X" | -"M") fields
+    ##################
+
+    ::["stream"]:
+        is unique value len 1?
+        is unique value == f'{asset}@depth@100ms'?
+
+    ::["data"]["e"] event type
+        is unique value len 1?
+        does unique val == 'depth update'
+
+    ::["data"]["E"] - Event Time
+        czy kazdy następujący po sobie Event Time jest >= od poprzedniego
+        Czy każdy z wpisów jest prawidlowym epochem (?)
+        Czy każdy z wpisów jest z 1 dnia od T00:00:00.000Z do T23:59:59.000Z
+
+    ::["data"]["s"] - symbol of an instrument
+        is unique value len 1?
+        is unique value presumed symbol
+
+    ::["data"]["t"] - trade id
+        czy kazdy następujący po sobie trade id jest > od poprzedniego o 1
+        
+    ::["data"]["p"] - price
+        czy kazda cena jest type float
+        max roznica pomiedzy tickami
+
+    ::["data"]["q"] - quantity
+        czy kazde quantity jest type float
+        
+    ::["data"]["T"] - Trade Time
+        czy kazdy następujący po sobie Event Time jest >= od poprzedniego
+        Czy każdy z wpisów jest prawidlowym epochem (?)
+        Czy każdy z wpisów jest z 1 dnia od T00:00:00.000Z do T23:59:59.000Z
+        max roznica pomiedzy trade time a event time 'E' a 'T'
+        min roznica pomiedzy trate time a event time E a T i podnies alarm gdy < 0
+
+    ::["data"]["m"] - buyer indicator
+        is unique value len 2?
+        
+    ::["data"]["M"] - unknown (SPOT ONLY)
+        poinformuj tylko wtedy, gdy unique value len == 2 i podaj linie gdzie tak sie stalo
+        podnies alarm, jesli M jest w futures coin m
+    
+    ::["data"]["X"] - unknown (FUTURES USD M and FUTURES COIN M ONLY)
+        poinformuj tylko wtedy, gdy 'X' != 'MARKET' w jakimkolwiek miejscu w pliku
+        podnies alarm, jesli X jest w futures usd m
+    
+                2024-06-12T12:47:40.808Z  >=2% price move in one tick, buggy data?? 
+                {
+                  msg: {
+                    e: 'trade',
+                    E: 1718196460656,
+                    T: 1718196460656,
+                    s: 'BCHUSDT',
+                    t: 794874338,
+                    p: '510.20',
+                    q: '0.016',
+                    X: 'INSURANCE_FUND',
+                    m: true
+                  },
+                  prev_msg: {
+                    e: 'trade',
+                    E: 1718196460280,
+                    T: 1718196460280,
+                    s: 'BCHUSDT',
+                    t: 794874337,
+                    p: '462.98',
+                    q: '0.191',
+                    X: 'MARKET',
+                    m: false
+                  }
+                }
+    
+'''

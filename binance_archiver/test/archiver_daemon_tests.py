@@ -822,14 +822,16 @@ class TestArchiverFacade:
     class TestStreamService:
 
         def test_stream_service_initialization_with_global_queue(self):
-            instruments = {
-                "spot": ["BTCUSDT"]
-            }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
             queue_pool = QueuePoolListener()
             stream_service = StreamService(
-                instruments=instruments,
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
+                },
                 logger=logger,
                 queue_pool=queue_pool,
                 global_shutdown_flag=global_shutdown_flag
@@ -840,21 +842,23 @@ class TestArchiverFacade:
             DifferenceDepthQueue.clear_instances()
 
         def test_stream_service_runs_streams_in_listener_mode(self):
-            instruments = {
-                "spot": ["BTCUSDT"]
-            }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
             queue_pool = QueuePoolListener()
             stream_service = StreamService(
-                instruments=instruments,
+                config={
+                    'instruments':{
+                        "spot": ["BTCUSDT"]
+                    },
+                    'websocket_lifetime_seconds':60
+                },
                 logger=logger,
                 queue_pool=queue_pool,
                 global_shutdown_flag=global_shutdown_flag
             )
 
             with patch.object(stream_service, 'start_stream_service') as mock_start_stream_service:
-                stream_service.run_streams(websockets_lifetime_seconds=70)
+                stream_service.run_streams()
                 assert mock_start_stream_service.call_count == 2, "Should start two stream services in LISTENER mode"
             TradeQueue.clear_instances()
             DifferenceDepthQueue.clear_instances()
@@ -1252,21 +1256,23 @@ class TestArchiverFacade:
     class TestCommandLineInterface:
 
         def test_given_modify_subscription_when_adding_asset_then_asset_is_added_to_instruments(self):
-            instruments = {
-                'spot': ['BTCUSDT', 'ETHUSDT'],
-                'usd_m_futures': ['BTCUSDT'],
+            config = {
+                'instruments': {
+                    "spot": ["BTCUSDT"]
+                },
+                'websocket_lifetime_seconds': 60
             }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
             queue_pool = QueuePoolDataSink()
             stream_service = StreamService(
-                instruments=instruments,
+                config=config,
                 logger=logger,
                 queue_pool=queue_pool,
                 global_shutdown_flag=global_shutdown_flag
             )
             cli = CommandLineInterface(
-                instruments=instruments,
+                config=config,
                 logger=logger,
                 stream_service=stream_service
             )
@@ -1274,26 +1280,28 @@ class TestArchiverFacade:
             message = {'modify_subscription': {'type': 'subscribe', 'market': 'spot', 'asset': 'BNBUSDT'}}
             cli.handle_command(message)
 
-            assert 'BNBUSDT' in instruments['spot'], "Asset not added to instruments"
+            assert 'BNBUSDT' in config['instruments']['spot'], "Asset not added to instruments"
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_given_modify_subscription_when_removing_asset_then_asset_is_removed_from_instruments(self):
-            instruments = {
-                'spot': ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'],
-                'usd_m_futures': ['BTCUSDT'],
+            config = {
+                'instruments': {
+                    "spot": ["BTCUSDT"]
+                },
+                'websocket_lifetime_seconds': 60
             }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
             queue_pool = QueuePoolDataSink()
             stream_service = StreamService(
-                instruments=instruments,
+                config=config,
                 logger=logger,
                 queue_pool=queue_pool,
                 global_shutdown_flag=global_shutdown_flag
             )
             cli = CommandLineInterface(
-                instruments=instruments,
+                config=config,
                 logger=logger,
                 stream_service=stream_service
             )
@@ -1301,18 +1309,21 @@ class TestArchiverFacade:
             message = {'modify_subscription': {'type': 'unsubscribe', 'market': 'spot', 'asset': 'BNBUSDT'}}
             cli.handle_command(message)
 
-            assert 'BNBUSDT' not in instruments['spot'], "Asset not removed from instruments"
+            assert 'BNBUSDT' not in config['instruments']['spot'], "Asset not removed from instruments"
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
         def test_handle_command_with_invalid_command_logs_warning(self):
-            instruments = {
-                'spot': ['BTCUSDT', 'ETHUSDT']
+            config = {
+                'instruments': {
+                    "spot": ["BTCUSDT"]
+                },
+                'websocket_lifetime_seconds': 60
             }
             logger = setup_logger()
             stream_service = MagicMock(spec=StreamService)
             cli = CommandLineInterface(
-                instruments=instruments,
+                config=config,
                 logger=logger,
                 stream_service=stream_service
             )
@@ -1323,13 +1334,16 @@ class TestArchiverFacade:
                 mock_warning.assert_called_with('Bad command, try again')
 
         def test_modify_subscription_with_invalid_market_logs_warning(self):
-            instruments = {
-                'spot': ['BTCUSDT', 'ETHUSDT']
+            config = {
+                'instruments': {
+                    "spot": ["BTCUSDT"]
+                },
+                'websocket_lifetime_seconds': 60
             }
             logger = setup_logger()
             stream_service = MagicMock(spec=StreamService)
             cli = CommandLineInterface(
-                instruments=instruments,
+                config=config,
                 logger=logger,
                 stream_service=stream_service
             )

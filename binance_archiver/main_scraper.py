@@ -33,9 +33,9 @@ if __name__ == '__main__':
         backblaze_secret_access_key=backblaze_secret_access_key,
         backblaze_endpoint_url=backblaze_endpoint_url,
         backblaze_bucket_name=backblaze_bucket_name,
-        pairs=["DOTUSDT"],
+        pairs=["BTCUSDT","ETHUSDT"],
         # markets=['SPOT', 'USD_M_FUTURES'],
-        markets=['SPOT'],
+        markets=['SPOT', 'COIN_M'],
         # stream_types=['ORDERBOOK', 'TRANSACTIONS', 'ORDERBOOK_SNAPSHOT'],
         stream_types=['TRADE', 'DIFFERENCE_DEPTH'],
         should_save_raw_jsons=False

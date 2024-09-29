@@ -152,7 +152,7 @@ class ListenerFacade(Subject):
 
         self.queue_pool = QueuePoolListener()
         self.stream_service = StreamService(
-            instruments=self.instruments,
+            config=config,
             logger=self.logger,
             queue_pool=self.queue_pool,
             global_shutdown_flag=self.global_shutdown_flag
@@ -189,10 +189,9 @@ class ListenerFacade(Subject):
     def run(self) -> None:
         dump_path = self.config.get("dump_path", "dump/")
 
-        websockets_lifetime_seconds = self.config["websocket_life_time_seconds"]
         snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
 
-        self.stream_service.run_streams(websockets_lifetime_seconds=websockets_lifetime_seconds)
+        self.stream_service.run_streams()
 
         self.whistleblower.run_whistleblower()
 
@@ -244,14 +243,14 @@ class DataSinkFacade:
 
         self.queue_pool = QueuePoolDataSink()
         self.stream_service = StreamService(
-            instruments=self.instruments,
+            config=self.config,
             logger=self.logger,
             queue_pool=self.queue_pool,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
         self.command_line_interface = CommandLineInterface(
-            instruments=self.instruments,
+            config=self.config,
             logger=self.logger,
             stream_service=self.stream_service
         )
@@ -287,7 +286,7 @@ class DataSinkFacade:
         websockets_lifetime_seconds = self.config["websocket_life_time_seconds"]
         snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
 
-        self.stream_service.run_streams(websockets_lifetime_seconds=websockets_lifetime_seconds)
+        self.stream_service.run_streams()
 
         self.fast_api_manager.run()
 
@@ -409,12 +408,13 @@ class QueuePoolListener:
 class StreamService:
     def __init__(
         self,
-        instruments: dict,
+        config: dict,
         logger: logging.Logger,
         queue_pool: QueuePoolDataSink | QueuePoolListener,
         global_shutdown_flag: threading.Event
     ):
-        self.instruments = instruments
+        self.config = config
+        self.instruments = config['instruments']
         self.logger = logger
         self.queue_pool = queue_pool
         self.global_shutdown_flag = global_shutdown_flag
@@ -423,17 +423,16 @@ class StreamService:
         self.stream_listeners = {}
         self.overlap_lock: threading.Lock = threading.Lock()
 
-    def run_streams(self, websockets_lifetime_seconds: int):
+    def run_streams(self):
         for market_str, pairs in self.instruments.items():
             market = Market[market_str.upper()]
             for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
                 self.start_stream_service(
                     stream_type=stream_type,
-                    market=market,
-                    websockets_lifetime_seconds=websockets_lifetime_seconds
+                    market=market
                 )
 
-    def start_stream_service(self,stream_type: StreamType,market: Market,websockets_lifetime_seconds: int) -> None:
+    def start_stream_service(self,stream_type: StreamType,market: Market) -> None:
         queue = self.queue_pool.get_queue(market, stream_type)
         pairs = self.instruments[market.name.lower()]
 
@@ -443,8 +442,7 @@ class StreamService:
                 queue,
                 pairs,
                 stream_type,
-                market,
-                websockets_lifetime_seconds
+                market
             ),
             name=f'stream_service: market: {market}, stream_type: {stream_type}'
         )
@@ -455,11 +453,10 @@ class StreamService:
         queue: DifferenceDepthQueue | TradeQueue,
         pairs: list[str],
         stream_type: StreamType,
-        market: Market,
-        websockets_lifetime_seconds: int
+        market: Market
     ) -> None:
 
-        def sleep_with_flag_check(duration: int) -> None:
+        def sleep_with_flag_check(duration) -> None:
             interval = 1
             for _ in range(0, duration, interval):
                 if self.global_shutdown_flag.is_set():
@@ -489,7 +486,7 @@ class StreamService:
                 new_stream_listener = None
 
                 while not self.global_shutdown_flag.is_set():
-                    sleep_with_flag_check(websockets_lifetime_seconds)
+                    sleep_with_flag_check(self.config['websocket_life_time_seconds'])
 
                     while self.is_someone_overlapping_right_now_flag.is_set():
                         time.sleep(1)
@@ -740,13 +737,15 @@ class SnapshotManager:
 class CommandLineInterface:
     def __init__(
         self,
-        instruments: dict,
+        config: dict,
         logger: logging.Logger,
         stream_service: StreamService,
     ):
-        self.instruments = instruments
+        self.config = config
+        self.instruments = config['instruments']
         self.logger = logger
         self.stream_service = stream_service
+
 
     def handle_command(self, message):
         command = list(message.items())[0][0]
@@ -758,6 +757,13 @@ class CommandLineInterface:
                 market=arguments['market'],
                 asset=arguments['asset']
             )
+        elif command == 'override_interval':
+            self.modify_config_intervals(
+                selected_interval_name=arguments['selected_interval_name'],
+                new_interval=arguments['new_interval']
+            )
+        elif command == 'show_config':
+            self.show_config()
         else:
             self.logger.warning('Bad command, try again')
 
@@ -773,6 +779,21 @@ class CommandLineInterface:
                 self.instruments[market_lower].remove(asset_upper)
 
         self.stream_service.update_subscriptions(Market[market.upper()], asset_upper, type_)
+
+    def modify_config_intervals(self, selected_interval_name: str, new_interval: int) -> None:
+
+        if not isinstance(new_interval, int):
+            self.logger.error(f'new_interval not an int!')
+            return None
+
+        if selected_interval_name in self.config:
+            self.config[selected_interval_name] = new_interval
+            self.logger.info(f"Updated {selected_interval_name} to {new_interval} seconds.")
+        else:
+            self.logger.warning(f"{selected_interval_name} not found in config.")
+
+    def show_config(self):
+        self.logger.info(self.config)
 
 
 class DataSaver:

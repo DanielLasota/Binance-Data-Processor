@@ -63,8 +63,11 @@ class FastAPIManager:
 
 '''
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d '{"subscribe": ["StreamType.DifferenceDepth", "Market.SPOT", 'xrpusdt']}'
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"key\": \"value\"}"
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{"modify_subscription": {"type": "subscribe", "stream_type": "DifferenceDepth", "market": "SPOT", "asset": "xrpusdt"}}"
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"modify_subscription\": {\"type\": \"subscribe\", \"stream_type\": \"DifferenceDepth\", \"market\": \"SPOT\", \"asset\": \"xrpusdt\"}}"
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"modify_subscription\": {\"type\": \"subscribe\", \"market\": \"SPOT\", \"asset\": \"xrpusdt\"}}"
+
+curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"override_interval\": {\"selected_interval_name\": \"websocket_life_time_seconds\", \"new_interval\": 300"}}"
+
+curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_config\": {}}"
 '''
