@@ -45,7 +45,6 @@ class StreamListener:
         self.thread = threading.Thread(
             target=self.websocket_app.run_forever,
             kwargs={'reconnect': 2},
-            daemon=True,
             name=f'websocket app thread {self.stream_type} {self.market} {self.id.start_timestamp}'
         )
         self.thread.start()

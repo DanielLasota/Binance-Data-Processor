@@ -47,7 +47,6 @@ class FastAPIManager:
 
     def run(self):
         self.server_thread = Thread(target=self.app_init, name='fastapi_manager_thread')
-        self.server_thread.daemon = True
         self.server_thread.start()
 
     def shutdown(self):

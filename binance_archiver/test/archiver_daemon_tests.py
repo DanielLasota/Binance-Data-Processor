@@ -900,8 +900,7 @@ class TestArchiverFacade:
                             Market.SPOT,
                             ""
                         ),
-                        name='snapshot_daemon_thread',
-                        daemon=True
+                        name='snapshot_daemon_thread'
                     )
                     daemon_thread.start()
 
@@ -954,8 +953,7 @@ class TestArchiverFacade:
                                 Market.SPOT,
                                 "dump_path"
                             ),
-                            name='snapshot_daemon_thread',
-                            daemon=True
+                            name='snapshot_daemon_thread'
                         )
                         daemon_thread.start()
 
@@ -1003,8 +1001,7 @@ class TestArchiverFacade:
                                 Market.SPOT,
                                 ""
                             ),
-                            name='snapshot_daemon_thread',
-                            daemon=True
+                            name='snapshot_daemon_thread'
                         )
                         daemon_thread.start()
 
@@ -1045,8 +1042,7 @@ class TestArchiverFacade:
                             Market.SPOT,
                             ""
                         ),
-                        name='snapshot_daemon_thread',
-                        daemon=True
+                        name='snapshot_daemon_thread'
                     )
                     daemon_thread.start()
 

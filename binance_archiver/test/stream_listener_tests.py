@@ -262,8 +262,7 @@ class TestStreamListener:
         trade_queue.currently_accepted_stream_id = trade_stream_listener.id
 
         trade_stream_listener_thread = threading.Thread(
-            target=trade_stream_listener.websocket_app.run_forever,
-            daemon=True
+            target=trade_stream_listener.websocket_app.run_forever
         )
 
         trade_stream_listener_thread.start()
@@ -314,8 +313,7 @@ class TestStreamListener:
         difference_depth_queue.currently_accepted_stream_id = difference_depth_stream_listener.id.id
 
         difference_depth_stream_listener_thread = threading.Thread(
-            target=difference_depth_stream_listener.websocket_app.run_forever,
-            daemon=True
+            target=difference_depth_stream_listener.websocket_app.run_forever
         )
 
         difference_depth_stream_listener_thread.start()
@@ -475,8 +473,7 @@ class TestStreamListener:
             market=Market.SPOT
         )
 
-        trade_stream_listener_thread = threading.Thread(target=trade_stream_listener.websocket_app.run_forever,
-                                                        daemon=True)
+        trade_stream_listener_thread = threading.Thread(target=trade_stream_listener.websocket_app.run_forever)
         trade_stream_listener_thread.start()
 
         time.sleep(5)
@@ -516,8 +513,7 @@ class TestStreamListener:
         )
 
         difference_depth_stream_listener_thread = threading.Thread(
-            target=difference_depth_queue_listener.websocket_app.run_forever,
-            daemon=True)
+            target=difference_depth_queue_listener.websocket_app.run_forever)
         difference_depth_stream_listener_thread.start()
 
         time.sleep(5)
@@ -651,8 +647,7 @@ class TestOther:
 
         trade_stream_listener._blackout_supervisor.notify = mock_notify
 
-        trade_stream_listener_thread = threading.Thread(target=trade_stream_listener.websocket_app.run_forever,
-                                                        daemon=True)
+        trade_stream_listener_thread = threading.Thread(target=trade_stream_listener.websocket_app.run_forever)
         trade_stream_listener_thread.start()
         time.sleep(10)
 

@@ -11,20 +11,20 @@ from load_config import load_config
 if __name__ == "__main__":
 
     # load_dotenv('C:/Users/defrg/archer.env')
-    # config = load_config('test_config.json')
+    # config = load_config('almost_production_config.json')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
         credential=DefaultAzureCredential()
     )
 
-    config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
+    # config_secret_name = os.environ.get('CONFIG_SECRET_NAME')
     backblaze_access_key_id_secret_name = os.environ.get('BACKBLAZE_ACCESS_KEY_ID_BINANCE_PROD')
     backblaze_bucket_name_secret_name = os.environ.get('BACKBLAZE_BUCKET_NAME_BINANCE_PROD')
     backblaze_secret_access_key_secret_name = os.environ.get('BACKBLAZE_SECRET_ACCESS_KEY_BINANCE_PROD')
     backblaze_endpoint_url_secret_name = os.environ.get('BACKBLAZE_ENDPOINT_URL_BINANCE_PROD')
 
-    config = json.loads(client.get_secret(config_secret_name).value)
+    # config = json.loads(client.get_secret(config_secret_name).value)
     backblaze_access_key_id = client.get_secret(backblaze_access_key_id_secret_name).value
     backblaze_secret_access_key = client.get_secret(backblaze_secret_access_key_secret_name).value
     backblaze_endpoint_url = client.get_secret(backblaze_endpoint_url_secret_name).value

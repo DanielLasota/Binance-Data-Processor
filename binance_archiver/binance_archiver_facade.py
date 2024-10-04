@@ -348,7 +348,6 @@ class Whistleblower:
 
     def run_whistleblower(self):
         whistleblower_thread = threading.Thread(target=self.process_global_queue)
-        whistleblower_thread.daemon = True
         whistleblower_thread.start()
 
 
@@ -731,7 +730,7 @@ class CommandLineInterface:
         self,
         config: dict,
         logger: logging.Logger,
-        stream_service: StreamService,
+        stream_service: StreamService
     ):
         self.config = config
         self.instruments = config['instruments']
