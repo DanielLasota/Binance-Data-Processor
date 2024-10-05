@@ -8,7 +8,7 @@ from binance_archiver.scraper import download_data
 
 if __name__ == '__main__':
 
-    load_dotenv('C:/Users/defrg/archer.env')
+    load_dotenv('.env')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
@@ -27,16 +27,14 @@ if __name__ == '__main__':
 
     download_data(
         # dump_path='C:/Users/defrg/binance_data_main/',
-        start_date='28-09-2024',
-        end_date='28-09-2024',
+        start_date='05-10-2024',
+        end_date='05-10-2024',
         backblaze_access_key_id=backblaze_access_key_id,
         backblaze_secret_access_key=backblaze_secret_access_key,
         backblaze_endpoint_url=backblaze_endpoint_url,
         backblaze_bucket_name=backblaze_bucket_name,
-        pairs=["BTCUSDT","ETHUSDT"],
-        # markets=['SPOT', 'USD_M_FUTURES'],
-        markets=['SPOT', 'COIN_M'],
-        # stream_types=['ORDERBOOK', 'TRANSACTIONS', 'ORDERBOOK_SNAPSHOT'],
+        pairs=["SUIUSDT"],
+        markets=['SPOT'],
         stream_types=['TRADE', 'DIFFERENCE_DEPTH'],
         should_save_raw_jsons=False
     )

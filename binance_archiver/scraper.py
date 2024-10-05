@@ -1,7 +1,9 @@
 import io
 import os
 import zipfile
+from dataclasses import dataclass
 from datetime import timedelta, datetime
+from sys import prefix
 
 import boto3
 import orjson
@@ -19,6 +21,12 @@ __all__ = ['download_data']
 
 
 BINANCE_ARCHIVER_LOGO = binance_archiver_logo
+
+@dataclass
+class AssetParameters:
+    market: Market
+    stream_type: StreamType
+    pair: str
 
 
 def download_data(
@@ -46,7 +54,7 @@ def download_data(
         backblaze_bucket_name=backblaze_bucket_name,
         should_save_raw_jsons=should_save_raw_jsons
     )
-    data_scraper.run(start_date=start_date, end_date=end_date, pairs=pairs, markets=markets, stream_types=stream_types,
+    data_scraper.run(markets=markets, stream_types=stream_types, pairs=pairs, start_date=start_date, end_date=end_date,
                      dump_path=dump_path)
 
 
@@ -81,8 +89,15 @@ class DataScraper:
         else:
             raise ValueError('No storage specified...')
 
-    def run(self, start_date: str, end_date: str, markets: list[str], stream_types: list[str], pairs: list[str],
-            dump_path: str | None) -> None:
+    def run(
+            self,
+            markets: list[str],
+            stream_types: list[str],
+            pairs: list[str],
+            start_date: str,
+            end_date: str,
+            dump_path: str | None
+    ) -> None:
 
         if dump_path is None:
             dump_path = os.path.join(os.path.expanduser("~"), 'binance_archival_data').replace('\\', '/')
@@ -90,7 +105,7 @@ class DataScraper:
         if not os.path.exists(dump_path):
             os.makedirs(dump_path)
 
-        dates = self._generate_date_range(start_date, end_date)
+        dates = self._generate_dates_from_range(start_date, end_date)
         markets = [Market[_.upper()] for _ in markets]
         stream_types = [StreamType[_.upper()] for _ in stream_types]
         pairs = [_.lower() for _ in pairs]
@@ -109,7 +124,8 @@ class DataScraper:
                     for pair in pairs:
                         if market == Market.COIN_M_FUTURES:
                             pair = f'{pair}_perp'
-                        print(f'downloading: {self._get_save_file_name(pair=pair, market=market, stream_type=stream_type, date=date)}')
+                        asset_parameters = AssetParameters(market=market, stream_type=stream_type, pair=pair)
+                        print(f'downloading: {self._get_file_name(asset_parameters, date=date)}')
         print('############')
         print('')
 
@@ -120,37 +136,35 @@ class DataScraper:
                         if market == Market.COIN_M_FUTURES:
                             pair = f'{pair[:-1]}_perp'
                         print(f'downloading pair: {pair} {stream_type} {market} {date}')
-                        self._blob_to_csv(date, market, stream_type, pair, dump_path)
+                        asset_parameters = AssetParameters(market=market, stream_type=stream_type, pair=pair)
+                        self._download_as_csv(asset_parameters, date, dump_path)
 
-    def _blob_to_csv(self, date: str, market: Market, stream_type: StreamType, pair: str, dump_path: str) -> None:
+    def _download_as_csv(self, asset_parameters: AssetParameters, date: str, dump_path: str) -> None:
 
-        files_list_to_download = self._get_target_file_list(
-            date=date,
-            market=market,
-            stream_type=stream_type,
-            pair=pair
+        list_of_prefixes_that_should_be_downloaded = self._get_list_of_prefixes_that_should_be_downloaded(
+            asset_parameters=asset_parameters,
+            date=date
         )
 
-        df = self._process_data(stream_type, files_list_to_download)
+        files_list_to_download = self.storage_client.list_files_with_prefixes(list_of_prefixes_that_should_be_downloaded)
 
-        self._df_check_procedure(df=df)
+        stream_type_handler = self._get_stream_type_handler(asset_parameters.stream_type)
 
-        file_name = self._get_save_file_name(pair=pair, market=market, stream_type=stream_type, date=date)
-        df.to_csv(f'{dump_path}/{file_name}', index=False)
+        dataframe = stream_type_handler(files_list_to_download)
 
-    def _process_data(self, stream_type: StreamType, files_list_to_download: list[str]) -> pd.DataFrame:
+        file_name = self._get_file_name(date=date, asset_parameters=asset_parameters)
+        dataframe.to_csv(f'{dump_path}/{file_name}.csv', index=False)
 
-        processor_lookup = {
-            StreamType.DIFFERENCE_DEPTH: self._difference_depth_processor,
+    def _get_stream_type_handler(self, stream_type: StreamType) -> callable:
+        handler_lookup = {
+            StreamType.DIFFERENCE_DEPTH: self._difference_depth_stream_type_handler,
             StreamType.TRADE: self._trade_processor,
             StreamType.DEPTH_SNAPSHOT: self._difference_depth_snapshot_processor
         }
 
-        processor = processor_lookup[stream_type]
+        return handler_lookup[stream_type]
 
-        return processor(files_list_to_download)
-
-    def _difference_depth_processor(self, files_list_to_download: list[str]) -> pd.DataFrame:
+    def _difference_depth_stream_type_handler(self, files_list_to_download: list[str]) -> pd.DataFrame:
 
         with alive_bar(len(files_list_to_download), force_tty=True, spinner='dots_waves') as bar:
             records = []
@@ -254,97 +268,8 @@ class DataScraper:
     def _difference_depth_snapshot_processor(self, files_list_to_download: list[str]) -> pd.DataFrame:
         ...
 
-    def _df_check_procedure(self, df: pd.DataFrame) -> None:
-        ...
-
-    def _get_target_file_list(self, date: str, market: Market, stream_type: StreamType, pair: str) -> list[str]:
-
-        prefixes_list = self._get_prefixes_list_for_target_date(
-            date=date,
-            market=market,
-            stream_type=stream_type,
-            pair=pair
-        )
-
-        return self.storage_client.list_files_with_prefixes(prefixes=prefixes_list)
-
-    def _get_prefixes_list_for_target_date(self, date: str, market: Market, stream_type: StreamType, pair: str) -> list[str]:
-        day_date_before_prefix = self._get_file_name_base_prefix(market=market, stream_type=stream_type,
-                                                                 pair=pair)
-        target_day_date_prefix = self._get_file_name_base_prefix(market=market, stream_type=stream_type,
-                                                                 pair=pair)
-
-        day_date_before = (datetime.strptime(date, '%d-%m-%Y') - timedelta(days=1)).strftime('%d-%m-%Y')
-
-        day_date_before_prefix += f'_{day_date_before}T23-5'
-        target_day_date_prefix += f'_{date}'
-
-        return [day_date_before_prefix, target_day_date_prefix]
-
     @staticmethod
-    def _convert_response_to_json(storage_response: bytes) -> list[dict] | None:
-        try:
-            with zipfile.ZipFile(io.BytesIO(storage_response)) as z:
-                for file_name in z.namelist():
-                    if file_name.endswith('.json'):
-                        with z.open(file_name) as json_file:
-                            json_bytes = json_file.read()
-                            json_content: list[dict] = orjson.loads(json_bytes)
-                            return json_content
-            print("Nie znaleziono plików .json w archiwum.")
-            return None
-        except zipfile.BadZipFile:
-            print("Nieprawidłowy format pliku ZIP.")
-            return None
-        except orjson.JSONDecodeError:
-            print("Błąd podczas dekodowania JSON.")
-            return None
-        except Exception as e:
-            print(f"Wystąpił nieoczekiwany błąd: {e}")
-            return None
-
-    @staticmethod
-    def _get_save_file_name(market: Market, stream_type: StreamType, pair: str, date: str) -> str:
-        pair_lower = pair.lower()
-
-        market_mapping = {
-            Market.SPOT: "spot",
-            Market.USD_M_FUTURES: "futures_usd_m",
-            Market.COIN_M_FUTURES: "futures_coin_m",
-        }
-
-        data_type_mapping = {
-            StreamType.DIFFERENCE_DEPTH: "binance_difference_depth",
-            StreamType.DEPTH_SNAPSHOT: "binance_snapshot",
-            StreamType.TRADE: "binance_trade",
-        }
-
-        market_short_name = market_mapping.get(market, "unknown_market")
-        prefix = data_type_mapping.get(stream_type, "unknown_data_type")
-
-        return f"{prefix}_{market_short_name}_{pair_lower}_{date}.csv"
-
-    @staticmethod
-    def _get_file_name_base_prefix(pair: str, market: Market, stream_type: StreamType) -> str:
-        market_mapping = {
-            Market.SPOT: 'spot',
-            Market.USD_M_FUTURES: 'futures_usd_m',
-            Market.COIN_M_FUTURES: 'futures_coin_m'
-        }
-
-        data_type_mapping = {
-            StreamType.DIFFERENCE_DEPTH: 'binance_difference_depth',
-            StreamType.DEPTH_SNAPSHOT: 'binance_snapshot',
-            StreamType.TRADE: 'binance_trade'
-        }
-
-        market_short_name = market_mapping.get(market, 'unknown_market')
-        prefix = data_type_mapping.get(stream_type, 'unknown_data_type')
-
-        return f'{prefix}_{market_short_name}_{pair}'
-
-    @staticmethod
-    def _generate_date_range(start_date_str: str, end_date_str: str) -> list[str]:
+    def _generate_dates_from_range(start_date_str: str, end_date_str: str) -> list[str]:
         date_format = "%d-%m-%Y"
 
         try:
@@ -366,6 +291,58 @@ class DataScraper:
             date_list.append(date_str)
 
         return date_list
+
+    def _get_list_of_prefixes_that_should_be_downloaded(self, asset_parameters: AssetParameters, date: str) -> list[str]:
+
+        date_before = (datetime.strptime(date, '%d-%m-%Y') - timedelta(days=1)).strftime('%d-%m-%Y')
+
+        day_date_before_prefix = self._get_file_name(asset_parameters=asset_parameters, date=date_before) + 'T23-5'
+        target_day_date_prefix = self._get_file_name(asset_parameters=asset_parameters, date=date)
+
+        prefixes_list = [day_date_before_prefix, target_day_date_prefix]
+
+        return prefixes_list
+
+    @staticmethod
+    def _convert_response_to_json(storage_response: bytes) -> list[dict] | None:
+        try:
+            with zipfile.ZipFile(io.BytesIO(storage_response)) as z:
+                for file_name in z.namelist():
+                    if file_name.endswith('.json'):
+                        with z.open(file_name) as json_file:
+                            json_bytes = json_file.read()
+                            json_content: list[dict] = orjson.loads(json_bytes)
+                            return json_content
+            print("Nie znaleziono plików .json w archiwum.")
+        except zipfile.BadZipFile:
+            print("Nieprawidłowy format pliku ZIP.")
+            return None
+        except orjson.JSONDecodeError:
+            print("Błąd podczas dekodowania JSON.")
+            return None
+        except Exception as e:
+            print(f"Wystąpił nieoczekiwany błąd: {e}")
+            return None
+
+    @staticmethod
+    def _get_file_name(asset_parameters: AssetParameters, date: str) -> str:
+
+        market_mapping = {
+            Market.SPOT: "spot",
+            Market.USD_M_FUTURES: "futures_usd_m",
+            Market.COIN_M_FUTURES: "futures_coin_m",
+        }
+
+        data_type_mapping = {
+            StreamType.DIFFERENCE_DEPTH: "binance_difference_depth",
+            StreamType.DEPTH_SNAPSHOT: "binance_snapshot",
+            StreamType.TRADE: "binance_trade",
+        }
+
+        market_short_name = market_mapping.get(asset_parameters.market, "unknown_market")
+        prefix = data_type_mapping.get(asset_parameters.stream_type, "unknown_data_type")
+
+        return f"{prefix}_{market_short_name}_{asset_parameters.pair}_{date}"
 
 
 class IClientHandler(ABC):
