@@ -3,7 +3,6 @@ import os
 import zipfile
 from dataclasses import dataclass
 from datetime import timedelta, datetime
-from sys import prefix
 
 import boto3
 import orjson
@@ -28,31 +27,42 @@ class AssetParameters:
     stream_type: StreamType
     pair: str
 
+
+@dataclass
+class StorageConnectionParameters:
+    blob_connection_string: str | None = None,
+    container_name: str | None = None,
+    backblaze_access_key_id: str | None = None,
+    backblaze_secret_access_key: str | None = None,
+    backblaze_endpoint_url: str | None = None,
+    backblaze_bucket_name: str | None = None
+
+
 def download_data(
         start_date: str,
         end_date: str,
         dump_path: str | None = None,
         blob_connection_string: str | None = None,
-        container_name: str | None = None,
+        azure_container_name: str | None = None,
         backblaze_access_key_id: str | None = None,
         backblaze_secret_access_key: str | None = None,
         backblaze_endpoint_url: str | None = None,
         backblaze_bucket_name: str | None = None,
         pairs: list[str] | None = None,
         markets: list[str] | None = None,
-        stream_types: list[str] | None = None,
-        should_save_raw_jsons: bool | None = None
+        stream_types: list[str] | None = None
         ) -> None:
 
-    data_scraper = DataScraper(
-        blob_connection_string=blob_connection_string,
-        container_name=container_name,
-        backblaze_access_key_id=backblaze_access_key_id,
-        backblaze_secret_access_key=backblaze_secret_access_key,
-        backblaze_endpoint_url=backblaze_endpoint_url,
-        backblaze_bucket_name=backblaze_bucket_name,
-        should_save_raw_jsons=should_save_raw_jsons
+    storage_connection_parameters = StorageConnectionParameters(
+    blob_connection_string,
+    azure_container_name,
+    backblaze_access_key_id,
+    backblaze_secret_access_key,
+    backblaze_endpoint_url,
+    backblaze_bucket_name
     )
+
+    data_scraper = DataScraper(storage_connection_parameters)
 
     data_scraper.run(
         markets=markets,
@@ -66,32 +76,25 @@ def download_data(
 
 class DataScraper:
 
-    __slots__ = ['storage_client', 'should_save_raw_jsons']
+    __slots__ = ['storage_client']
 
     def __init__(
             self,
-            blob_connection_string: str | None = None,
-            container_name: str | None = None,
-            backblaze_access_key_id: str | None = None,
-            backblaze_secret_access_key: str | None = None,
-            backblaze_endpoint_url: str | None = None,
-            backblaze_bucket_name: str | None = None,
-            should_save_raw_jsons: bool = False
+            storage_connection_parameters
     ) -> None:
 
-        self.should_save_raw_jsons = should_save_raw_jsons
-
-        if blob_connection_string is not None:
+        if storage_connection_parameters.blob_connection_string is not None:
             self.storage_client = AzureClient(
-                blob_connection_string=blob_connection_string,
-                container_name=container_name
+                blob_connection_string=storage_connection_parameters.blob_connection_string,
+                container_name=storage_connection_parameters.container_name
             )
-        elif backblaze_access_key_id is not None:
+        elif storage_connection_parameters.backblaze_access_key_id is not None:
             self.storage_client = BackBlazeS3Client(
-                access_key_id=backblaze_access_key_id,
-                secret_access_key=backblaze_secret_access_key,
-                endpoint_url=backblaze_endpoint_url,
-                bucket_name=backblaze_bucket_name)
+                access_key_id=storage_connection_parameters.backblaze_access_key_id,
+                secret_access_key=storage_connection_parameters.backblaze_secret_access_key,
+                endpoint_url=storage_connection_parameters.backblaze_endpoint_url,
+                bucket_name=storage_connection_parameters.backblaze_bucket_name
+            )
         else:
             raise ValueError('No storage specified...')
 
@@ -129,7 +132,6 @@ class DataScraper:
             for pair in pairs
         ]
         amount_of_files_to_be_made = len(asset_parameters_list) * len(dates)
-
 
         print('\033[36m')
         print(f'ought to download {amount_of_files_to_be_made} files:')
@@ -321,15 +323,15 @@ class DataScraper:
                             json_bytes = json_file.read()
                             json_content: list[dict] = orjson.loads(json_bytes)
                             return json_content
-            print("Nie znaleziono plików .json w archiwum.")
+            print("file .json not found in archive")
         except zipfile.BadZipFile:
-            print("Nieprawidłowy format pliku ZIP.")
+            print("bad zip file")
             return None
         except orjson.JSONDecodeError:
-            print("Błąd podczas dekodowania JSON.")
+            print("error during json decode")
             return None
         except Exception as e:
-            print(f"Wystąpił nieoczekiwany błąd: {e}")
+            print(f"Unexpected error: {e}")
             return None
 
     @staticmethod

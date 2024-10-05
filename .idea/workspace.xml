@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: scraper.py refactor and optimize">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: scraper.py refactor">
       <change beforePath="$PROJECT_DIR$/binance_archiver/main_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_scraper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/scraper.py" afterDir="false" />
     </list>
@@ -524,14 +523,6 @@
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
     </task>
-    <task id="LOCAL-00067" summary="chore: Relocate main.py">
-      <option name="closed" value="true" />
-      <created>1726140212216</created>
-      <option name="number" value="00067" />
-      <option name="presentableId" value="LOCAL-00067" />
-      <option name="project" value="LOCAL" />
-      <updated>1726140212216</updated>
-    </task>
     <task id="LOCAL-00068" summary="chore: Change setup.py">
       <option name="closed" value="true" />
       <created>1726140316762</created>
@@ -916,7 +907,15 @@
       <option name="project" value="LOCAL" />
       <updated>1728119623068</updated>
     </task>
-    <option name="localTasksCounter" value="116" />
+    <task id="LOCAL-00116" summary="refactor: scraper.py refactor">
+      <option name="closed" value="true" />
+      <created>1728121320410</created>
+      <option name="number" value="00116" />
+      <option name="presentableId" value="LOCAL-00116" />
+      <option name="project" value="LOCAL" />
+      <updated>1728121320411</updated>
+    </task>
+    <option name="localTasksCounter" value="117" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -976,7 +975,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="build: package structure refactor to Jean-Paul Calderone's pattern" />
     <MESSAGE value="refactor: All archiver_daemon.py code refactored into the Facade pattern. &#10;test: archiver_daemon_tests.py refactored into new archiver_daemon.py Facade pattern" />
     <MESSAGE value="feat: Working mode launch_data_listener add" />
     <MESSAGE value="refactor: Split ArchiverFacade into ListenerFacade and DataSinkFacade&#10;test: split" />
@@ -1001,7 +999,8 @@
     <MESSAGE value="fix: removed print" />
     <MESSAGE value="feat: final update of minor things, launching" />
     <MESSAGE value="refactor: scraper.py refactor and optimize" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: scraper.py refactor and optimize" />
+    <MESSAGE value="refactor: scraper.py refactor" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: scraper.py refactor" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

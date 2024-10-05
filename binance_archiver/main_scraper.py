@@ -35,6 +35,5 @@ if __name__ == '__main__':
         backblaze_bucket_name=backblaze_bucket_name,
         pairs=["BTCUSDT"],
         markets=['COIN_M_FUTURES'],
-        stream_types=['TRADE', 'DIFFERENCE_DEPTH'],
-        should_save_raw_jsons=False
+        stream_types=['TRADE', 'DIFFERENCE_DEPTH']
     )
