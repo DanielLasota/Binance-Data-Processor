@@ -33,8 +33,8 @@ if __name__ == '__main__':
         backblaze_secret_access_key=backblaze_secret_access_key,
         backblaze_endpoint_url=backblaze_endpoint_url,
         backblaze_bucket_name=backblaze_bucket_name,
-        pairs=["SUIUSDT"],
-        markets=['SPOT'],
+        pairs=["BTCUSDT"],
+        markets=['COIN_M_FUTURES'],
         stream_types=['TRADE', 'DIFFERENCE_DEPTH'],
         should_save_raw_jsons=False
     )

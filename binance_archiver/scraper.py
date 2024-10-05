@@ -28,7 +28,6 @@ class AssetParameters:
     stream_type: StreamType
     pair: str
 
-
 def download_data(
         start_date: str,
         end_date: str,
@@ -54,8 +53,15 @@ def download_data(
         backblaze_bucket_name=backblaze_bucket_name,
         should_save_raw_jsons=should_save_raw_jsons
     )
-    data_scraper.run(markets=markets, stream_types=stream_types, pairs=pairs, start_date=start_date, end_date=end_date,
-                     dump_path=dump_path)
+
+    data_scraper.run(
+        markets=markets,
+        stream_types=stream_types,
+        pairs=pairs,
+        start_date=start_date,
+        end_date=end_date,
+        dump_path=dump_path
+    )
 
 
 class DataScraper:
@@ -99,45 +105,46 @@ class DataScraper:
             dump_path: str | None
     ) -> None:
 
+        print(BINANCE_ARCHIVER_LOGO)
+
         if dump_path is None:
             dump_path = os.path.join(os.path.expanduser("~"), 'binance_archival_data').replace('\\', '/')
 
         if not os.path.exists(dump_path):
             os.makedirs(dump_path)
 
-        dates = self._generate_dates_from_range(start_date, end_date)
         markets = [Market[_.upper()] for _ in markets]
         stream_types = [StreamType[_.upper()] for _ in stream_types]
         pairs = [_.lower() for _ in pairs]
+        dates = self._generate_dates_from_range(start_date, end_date)
 
-        amount_of_files_to_be_made = len(pairs) * len(markets) * len(stream_types) * len(dates)
+        asset_parameters_list = [
+            AssetParameters(
+                market=market,
+                stream_type=stream_type,
+                pair=(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)
+            )
+            for market in markets
+            for stream_type in stream_types
+            for pair in pairs
+        ]
+        amount_of_files_to_be_made = len(asset_parameters_list) * len(dates)
 
-        print(BINANCE_ARCHIVER_LOGO)
 
         print('\033[36m')
-
-        print('############')
         print(f'ought to download {amount_of_files_to_be_made} files:')
-        for date in dates:
-            for market in markets:
-                for stream_type in stream_types:
-                    for pair in pairs:
-                        if market == Market.COIN_M_FUTURES:
-                            pair = f'{pair}_perp'
-                        asset_parameters = AssetParameters(market=market, stream_type=stream_type, pair=pair)
-                        print(f'downloading: {self._get_file_name(asset_parameters, date=date)}')
-        print('############')
         print('')
 
         for date in dates:
-            for market in markets:
-                for stream_type in stream_types:
-                    for pair in pairs:
-                        if market == Market.COIN_M_FUTURES:
-                            pair = f'{pair[:-1]}_perp'
-                        print(f'downloading pair: {pair} {stream_type} {market} {date}')
-                        asset_parameters = AssetParameters(market=market, stream_type=stream_type, pair=pair)
-                        self._download_as_csv(asset_parameters, date, dump_path)
+            for asset_parameters in asset_parameters_list:
+                print(
+                    f'Downloading pair: '
+                    f'{asset_parameters.pair} '
+                    f'{asset_parameters.stream_type} '
+                    f'{asset_parameters.market} '
+                    f'{date}'
+                )
+                self._download_as_csv(asset_parameters, date, dump_path)
 
     def _download_as_csv(self, asset_parameters: AssetParameters, date: str, dump_path: str) -> None:
 
@@ -152,7 +159,7 @@ class DataScraper:
 
         dataframe = stream_type_handler(files_list_to_download)
 
-        file_name = self._get_file_name(date=date, asset_parameters=asset_parameters)
+        file_name = self._get_file_name(asset_parameters=asset_parameters, date=date)
         dataframe.to_csv(f'{dump_path}/{file_name}.csv', index=False)
 
     def _get_stream_type_handler(self, stream_type: StreamType) -> callable:
@@ -292,12 +299,13 @@ class DataScraper:
 
         return date_list
 
-    def _get_list_of_prefixes_that_should_be_downloaded(self, asset_parameters: AssetParameters, date: str) -> list[str]:
+    @staticmethod
+    def _get_list_of_prefixes_that_should_be_downloaded(asset_parameters: AssetParameters, date: str) -> list[str]:
 
         date_before = (datetime.strptime(date, '%d-%m-%Y') - timedelta(days=1)).strftime('%d-%m-%Y')
 
-        day_date_before_prefix = self._get_file_name(asset_parameters=asset_parameters, date=date_before) + 'T23-5'
-        target_day_date_prefix = self._get_file_name(asset_parameters=asset_parameters, date=date)
+        day_date_before_prefix = DataScraper._get_file_name(asset_parameters=asset_parameters, date=date_before) + 'T23-5'
+        target_day_date_prefix = DataScraper._get_file_name(asset_parameters=asset_parameters, date=date)
 
         prefixes_list = [day_date_before_prefix, target_day_date_prefix]
 
@@ -340,9 +348,9 @@ class DataScraper:
         }
 
         market_short_name = market_mapping.get(asset_parameters.market, "unknown_market")
-        prefix = data_type_mapping.get(asset_parameters.stream_type, "unknown_data_type")
+        file_name_prefix = data_type_mapping.get(asset_parameters.stream_type, "unknown_data_type")
 
-        return f"{prefix}_{market_short_name}_{asset_parameters.pair}_{date}"
+        return f"{file_name_prefix}_{market_short_name}_{asset_parameters.pair}_{date}"
 
 
 class IClientHandler(ABC):
