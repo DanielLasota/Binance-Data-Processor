@@ -19,7 +19,8 @@ setup(
         'orjson',
         'boto3',
         'pandas',
-        'alive-progress'
+        'alive-progress',
+        'numpy'
     ],
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",

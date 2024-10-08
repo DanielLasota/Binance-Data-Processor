@@ -1,3 +1,4 @@
+from __future__ import annotations
 import io
 import os
 import zipfile
@@ -5,6 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta, datetime
 
 import boto3
+import numpy as np
 import orjson
 from alive_progress import alive_bar
 import pandas as pd
@@ -16,10 +18,16 @@ from typing import List
 
 from binance_archiver.logo import binance_archiver_logo
 
-__all__ = ['download_data']
-
 
 BINANCE_ARCHIVER_LOGO = binance_archiver_logo
+
+
+__all__ = [
+    'download_data',
+    'conduct_whole_directory_of_csvs_data_quality_analysis',
+    'conduct_csv_files_data_quality_analysis'
+]
+
 
 @dataclass
 class AssetParameters:
@@ -30,11 +38,11 @@ class AssetParameters:
 
 @dataclass
 class StorageConnectionParameters:
-    blob_connection_string: str | None = None,
-    container_name: str | None = None,
-    backblaze_access_key_id: str | None = None,
-    backblaze_secret_access_key: str | None = None,
-    backblaze_endpoint_url: str | None = None,
+    blob_connection_string: str | None = None
+    container_name: str | None = None
+    backblaze_access_key_id: str | None = None
+    backblaze_secret_access_key: str | None = None
+    backblaze_endpoint_url: str | None = None
     backblaze_bucket_name: str | None = None
 
 
@@ -167,8 +175,8 @@ class DataScraper:
     def _get_stream_type_handler(self, stream_type: StreamType) -> callable:
         handler_lookup = {
             StreamType.DIFFERENCE_DEPTH: self._difference_depth_stream_type_handler,
-            StreamType.TRADE: self._trade_processor,
-            StreamType.DEPTH_SNAPSHOT: self._difference_depth_snapshot_processor
+            StreamType.TRADE: self._trade_stream_type_handler,
+            StreamType.DEPTH_SNAPSHOT: self._difference_depth_snapshot_stream_type_handler
         }
 
         return handler_lookup[stream_type]
@@ -226,7 +234,7 @@ class DataScraper:
 
         return pd.DataFrame(data=records, columns=columns)
 
-    def _trade_processor(self, files_list_to_download: list[str]) -> pd.DataFrame:
+    def _trade_stream_type_handler(self, files_list_to_download: list[str]) -> pd.DataFrame:
         with alive_bar(len(files_list_to_download), force_tty=True, spinner='dots_waves') as bar:
 
             records = []
@@ -274,7 +282,7 @@ class DataScraper:
 
         return pd.DataFrame(data=records, columns=columns)
 
-    def _difference_depth_snapshot_processor(self, files_list_to_download: list[str]) -> pd.DataFrame:
+    def _difference_depth_snapshot_stream_type_handler(self, files_list_to_download: list[str]) -> pd.DataFrame:
         ...
 
     @staticmethod
@@ -437,19 +445,144 @@ class AzureClient(IClientHandler):
         ...
 
 
-class DataFrameChecker:
+def conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory: str) -> None:
+    data_checker = DataChecker()
+    data_checker.conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory)
+
+
+def conduct_csv_files_data_quality_analysis(csv_paths: list[str]) -> None:
+    data_checker = DataChecker()
+    data_checker.conduct_csv_files_data_quality_analysis(csv_paths)
+
+
+class DataChecker:
+
     def __init__(self):
         ...
 
-    def check_trade_dataframe_procedure(self, df: pd.DataFrame) -> None:
+    def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
         ...
 
-    def check_difference_depth_procedure(self, df: pd.DataFrame) -> None:
+    def conduct_csv_files_data_quality_analysis(self, csv_paths: list[str]):
+        for csv_path in csv_paths:
+            csv_name = csv_path.split('/')[-1]
+            asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
+            dataframe = pd.read_csv(csv_path)
+            self.conduct_dataframe_quality_analysis(dataframe=dataframe, asset_parameters=asset_parameters)
+
+    @staticmethod
+    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
+        _csv_name = csv_name.replace('.csv', '')
+
+        market_mapping = {
+            'spot': Market.SPOT,
+            'futures_usd_m': Market.USD_M_FUTURES,
+            'futures_coin_m': Market.COIN_M_FUTURES,
+        }
+
+        stream_type_mapping = {
+            'difference_depth': StreamType.DIFFERENCE_DEPTH,
+            'trade': StreamType.TRADE,
+            'binance_snapshot': StreamType.DEPTH_SNAPSHOT,
+        }
+
+        market = next((value for key, value in market_mapping.items() if key in _csv_name), None)
+        if market is None:
+            raise ValueError(f"Unknown market in CSV name: {_csv_name}")
+
+        stream_type = next((value for key, value in stream_type_mapping.items() if key in _csv_name), None)
+        if stream_type is None:
+            raise ValueError(f"Unknown stream type in CSV name: {_csv_name}")
+
+        pair = _csv_name.split('_')[-2]
+
+        return AssetParameters(
+            market=market,
+            stream_type=stream_type,
+            pair=pair
+        )
+
+    def conduct_dataframe_quality_analysis(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> None:
+        stream_type_handlers = {
+            StreamType.DIFFERENCE_DEPTH : self._analyse_difference_depth_dataframe,
+            StreamType.TRADE : self._analyse_trade_dataframe,
+            StreamType.DEPTH_SNAPSHOT : self._analyse_difference_depth_snapshot
+        }
+        handler = stream_type_handlers.get(asset_parameters.stream_type)
+        handler(dataframe)
+
+    @staticmethod
+    def _analyse_difference_depth_dataframe(df: pd.DataFrame) -> None:
+        print(df)
+
+    def _analyse_trade_dataframe(self, df: pd.DataFrame) -> None:
         ...
+
+    def _analyse_difference_depth_snapshot(self, df: pd.DataFrame) -> None:
+        ...
+
+
+class IndividualColumnChecker:
+
+    @staticmethod
+    def is_there_only_one_unique_value_in_series(series: pd.Series) -> bool:
+        return len(series.unique()) == 1
+
+    @staticmethod
+    def is_whole_series_made_of_only_one_expected_value(series: pd.Series, expected_value: any) -> bool:
+        return series.unique()[0] == expected_value and len(series.unique()) == 1
+
+    @staticmethod
+    def is_each_series_entry_greater_or_equal_to_previous_one(series: pd.Series) -> bool:
+        return series.diff().min() == 0
 
 '''
+    # DIFFERENCE DEPTH CHECK
+
+    ::["stream"]:
+        is unique value len 1?
+        is unique value == f'{asset}@depth@100ms'?
+
+    ::["data"]["e"] event type
+        is unique value len 1?
+        does unique val == 'depth update'
+
+    ::["data"]["E"] - Event Time
+        czy kazdy następujący po sobie Event Time jest >= od poprzedniego
+        czy kazdy następujący po sobie Event Time jest wiekszy od poprzedniego o 100 +- 1 ms
+        Czy każdy z wpisów jest prawidlowym epochem (?)
+        Czy każdy z wpisów jest z 1 dnia od T00:00:00.000Z do T23:59:59.000Z
+
+    ::["data"]["T"] - transaction time, !!! FUTURES COIN M AND FUTURES USD M ONLY !!!
+        is each transaction_time greater than previous entry?
+        is each transaction_time smaller or equal to current's entry event_time?
+
+    ::["data"]["s"] - symbol of an instrument
+        is unique value len 1?
+        is unique value presumed symbol
+
+    ::["data"]["U"] - first update id
+        is each 'first_update_id' bigger than 'first_update_id' from previous entry
+        is each 'first_update_id' bigger by 1 than previous entry 'last_update_id'
+        is each first_update_id smaller or equal than same entry 'last_update_id'
+
+    ::["data"]["u"] - last update id
+        is each 'last_update_id' bigger than 'last_update_id' from previous entry
+        is each 'first_update_id' bigger by 1 than previous entry 'last_update_id'
+        is each first_update_id greater or equal than same entry 'last_update_id'
+        
+    ::["data"]["pu"] - final update in last event, FUTURES_COIN_M and FUTURES_USD_M only
+        is each current entry final update bigger than that one from previous entry
+        is each current entry final update in last event equal to that one from previous entry
+        
+    ::["data"]["ps"] - pair, FUTURES_COIN_M only
+        is unique value len 1?
+        is unique value presumed symbol
     
-    # TRADES
+'''
+
+'''
+    # TRADES CHECK
 
     ##################
     ### SPOT Trades Need 10 field to be checked with (+"M" | -"X") fields
@@ -476,14 +609,14 @@ class DataFrameChecker:
 
     ::["data"]["t"] - trade id
         czy kazdy następujący po sobie trade id jest > od poprzedniego o 1
-        
+
     ::["data"]["p"] - price
         czy kazda cena jest type float
         max roznica pomiedzy tickami
 
     ::["data"]["q"] - quantity
         czy kazde quantity jest type float
-        
+
     ::["data"]["T"] - Trade Time
         czy kazdy następujący po sobie Event Time jest >= od poprzedniego
         Czy każdy z wpisów jest prawidlowym epochem (?)
@@ -493,15 +626,15 @@ class DataFrameChecker:
 
     ::["data"]["m"] - buyer indicator
         is unique value len 2?
-        
+
     ::["data"]["M"] - unknown (SPOT ONLY)
         poinformuj tylko wtedy, gdy unique value len == 2 i podaj linie gdzie tak sie stalo
         podnies alarm, jesli M jest w futures coin m
-    
+
     ::["data"]["X"] - unknown (FUTURES USD M and FUTURES COIN M ONLY)
         poinformuj tylko wtedy, gdy 'X' != 'MARKET' w jakimkolwiek miejscu w pliku
         podnies alarm, jesli X jest w futures usd m
-    
+
                 2024-06-12T12:47:40.808Z  >=2% price move in one tick, buggy data?? 
                 {
                   msg: {
@@ -527,5 +660,5 @@ class DataFrameChecker:
                     m: false
                   }
                 }
-    
+
 '''
