@@ -54,12 +54,12 @@ class TestStreamListener:
             market = Market[market_str.upper()]
             pairs = instruments[market_str]
 
-            queue = queue_pool.get_queue(market, StreamType.DIFFERENCE_DEPTH)
+            queue = queue_pool.get_queue(market, StreamType.DIFFERENCE_DEPTH_STREAM)
             difference_depth_stream_listener = StreamListener(
                 logger=logger,
                 queue=queue,
                 pairs=pairs,
-                stream_type=StreamType.DIFFERENCE_DEPTH,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
                 market=market
             )
 
@@ -71,12 +71,12 @@ class TestStreamListener:
             assert difference_depth_stream_listener.websocket_app.on_message.__name__ == "_on_difference_depth_message", \
                 "on_message should be assigned to _on_difference_depth_message when stream_type is DIFFERENCE_DEPTH"
 
-            queue = queue_pool.get_queue(market, StreamType.TRADE)
+            queue = queue_pool.get_queue(market, StreamType.TRADE_STREAM)
             trade_stream_listener = StreamListener(
                 logger=logger,
                 queue=queue,
                 pairs=pairs,
-                stream_type=StreamType.TRADE,
+                stream_type=StreamType.TRADE_STREAM,
                 market=market
             )
 
@@ -114,12 +114,12 @@ class TestStreamListener:
         queue_pool = QueuePoolDataSink()
 
         with pytest.raises(WrongListInstanceException) as excinfo:
-            queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH)
+            queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM)
             stream_listener = StreamListener(
                 logger=logger,
                 queue=queue,
                 pairs=instruments['spot'][0],  # Incorrect type as intended to be should be a list
-                stream_type=StreamType.DIFFERENCE_DEPTH,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
                 market=Market.SPOT
             )
 
@@ -149,12 +149,12 @@ class TestStreamListener:
 
         with pytest.raises(PairsLengthException) as excinfo:
             pairs = instruments['spot']
-            queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH)
+            queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM)
             stream_listener = StreamListener(
                 logger=logger,
                 queue=queue,
                 pairs=pairs,
-                stream_type=StreamType.DIFFERENCE_DEPTH,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
                 market=Market.SPOT
             )
 
@@ -170,7 +170,7 @@ class TestStreamListener:
             logger=setup_logger(),
             queue=queue,
             pairs=pairs,
-            stream_type=StreamType.TRADE,
+            stream_type=StreamType.TRADE_STREAM,
             market=Market.SPOT
         )
 
@@ -191,7 +191,7 @@ class TestStreamListener:
             logger=setup_logger(),
             queue=queue,
             pairs=pairs,
-            stream_type=StreamType.TRADE,
+            stream_type=StreamType.TRADE_STREAM,
             market=Market.SPOT
         )
 
@@ -218,7 +218,7 @@ class TestStreamListener:
             logger=logger,
             queue=queue,
             pairs=pairs,
-            stream_type=StreamType.TRADE,
+            stream_type=StreamType.TRADE_STREAM,
             market=Market.SPOT)
 
         error_message = "Test error"
@@ -255,7 +255,7 @@ class TestStreamListener:
             logger=logger,
             queue=trade_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.TRADE,
+            stream_type=StreamType.TRADE_STREAM,
             market=Market.SPOT
         )
 
@@ -306,7 +306,7 @@ class TestStreamListener:
             logger=logger,
             queue=difference_depth_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.DIFFERENCE_DEPTH,
+            stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
             market=Market.SPOT
         )
 
@@ -359,7 +359,7 @@ class TestStreamListener:
             logger=logger,
             queue=trade_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.TRADE,
+            stream_type=StreamType.TRADE_STREAM,
             market=Market.SPOT
         )
 
@@ -378,7 +378,7 @@ class TestStreamListener:
             if thread is not threading.current_thread()
         ]
 
-        presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE} {Market.SPOT}'
+        presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE_STREAM} {Market.SPOT}'
 
         assert trade_stream_listener._blackout_supervisor is not None, ("Supervisor should be instantiated within "
                                                                         "StreamListener")
@@ -419,7 +419,7 @@ class TestStreamListener:
             logger=setup_logger(),
             queue=difference_depth_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.DIFFERENCE_DEPTH,
+            stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
             market=Market.SPOT
         )
 
@@ -437,7 +437,7 @@ class TestStreamListener:
             if thread is not threading.current_thread()
         ]
 
-        presumed_thread_name = f'stream_listener blackout supervisor {StreamType.DIFFERENCE_DEPTH} {Market.SPOT}'
+        presumed_thread_name = f'stream_listener blackout supervisor {StreamType.DIFFERENCE_DEPTH_STREAM} {Market.SPOT}'
 
         assert difference_depth_queue_listener._blackout_supervisor is not None, "Supervisor should be instantiated within StreamListener"
         assert isinstance(difference_depth_queue_listener._blackout_supervisor, BlackoutSupervisor)
@@ -469,7 +469,7 @@ class TestStreamListener:
         trade_stream_listener = StreamListener(
             queue=trade_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.TRADE,
+            stream_type=StreamType.TRADE_STREAM,
             market=Market.SPOT
         )
 
@@ -508,7 +508,7 @@ class TestStreamListener:
         difference_depth_queue_listener = StreamListener(
             queue=difference_depth_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.DIFFERENCE_DEPTH,
+            stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
             market=Market.SPOT
         )
 
@@ -550,7 +550,7 @@ class TestStreamListener:
         trade_stream_listener = StreamListener(
             queue=trade_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.TRADE,
+            stream_type=StreamType.TRADE_STREAM,
             market=Market.SPOT
         )
 
@@ -587,7 +587,7 @@ class TestStreamListener:
         difference_depth_queue_listener = StreamListener(
             queue=difference_depth_queue,
             pairs=config['instruments']['spot'],
-            stream_type=StreamType.DIFFERENCE_DEPTH,
+            stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
             market=Market.SPOT
         )
 

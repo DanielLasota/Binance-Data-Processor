@@ -91,14 +91,14 @@ class StreamListener:
 
         message = None
 
-        if self.stream_type == StreamType.TRADE:
+        if self.stream_type == StreamType.TRADE_STREAM:
             message = {
                 "method": method,
                 "params": [f"{pair}@trade"],
                 "id": 1
             }
 
-        elif self.stream_type == StreamType.DIFFERENCE_DEPTH:
+        elif self.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
             message = {
                 "method": method,
                 "params": [f"{pair}@depth@100ms"],
@@ -128,8 +128,8 @@ class StreamListener:
         )
 
         stream_url_methods = {
-            StreamType.DIFFERENCE_DEPTH: URLFactory.get_orderbook_stream_url,
-            StreamType.TRADE: URLFactory.get_trade_stream_url
+            StreamType.DIFFERENCE_DEPTH_STREAM: URLFactory.get_orderbook_stream_url,
+            StreamType.TRADE_STREAM: URLFactory.get_trade_stream_url
         }
 
         url_method = stream_url_methods.get(stream_type, None)
@@ -189,7 +189,7 @@ class StreamListener:
             url=url,
             on_message=(
                 _on_trade_message
-                if stream_type == StreamType.TRADE
+                if stream_type == StreamType.TRADE_STREAM
                 else _on_difference_depth_message
             ),
             on_error=_on_error,

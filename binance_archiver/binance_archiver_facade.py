@@ -365,12 +365,12 @@ class QueuePoolDataSink:
         self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES)
 
         self.queue_lookup = {
-            (Market.SPOT, StreamType.DIFFERENCE_DEPTH): self.spot_orderbook_stream_message_queue,
-            (Market.SPOT, StreamType.TRADE): self.spot_trade_stream_message_queue,
-            (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.usd_m_futures_orderbook_stream_message_queue,
-            (Market.USD_M_FUTURES, StreamType.TRADE): self.usd_m_futures_trade_stream_message_queue,
-            (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.coin_m_orderbook_stream_message_queue,
-            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_trade_stream_message_queue,
+            (Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM): self.spot_orderbook_stream_message_queue,
+            (Market.SPOT, StreamType.TRADE_STREAM): self.spot_trade_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): self.usd_m_futures_orderbook_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.TRADE_STREAM): self.usd_m_futures_trade_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): self.coin_m_orderbook_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.TRADE_STREAM): self.coin_m_trade_stream_message_queue,
         }
 
     def get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
@@ -389,12 +389,12 @@ class QueuePoolListener:
         self.coin_m_trade_stream_message_queue = TradeQueue(market=Market.COIN_M_FUTURES, global_queue=self.global_queue)
 
         self.queue_lookup = {
-            (Market.SPOT, StreamType.DIFFERENCE_DEPTH): self.spot_orderbook_stream_message_queue,
-            (Market.SPOT, StreamType.TRADE): self.spot_trade_stream_message_queue,
-            (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.usd_m_futures_orderbook_stream_message_queue,
-            (Market.USD_M_FUTURES, StreamType.TRADE): self.usd_m_futures_trade_stream_message_queue,
-            (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): self.coin_m_orderbook_stream_message_queue,
-            (Market.COIN_M_FUTURES, StreamType.TRADE): self.coin_m_trade_stream_message_queue,
+            (Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM): self.spot_orderbook_stream_message_queue,
+            (Market.SPOT, StreamType.TRADE_STREAM): self.spot_trade_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): self.usd_m_futures_orderbook_stream_message_queue,
+            (Market.USD_M_FUTURES, StreamType.TRADE_STREAM): self.usd_m_futures_trade_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): self.coin_m_orderbook_stream_message_queue,
+            (Market.COIN_M_FUTURES, StreamType.TRADE_STREAM): self.coin_m_trade_stream_message_queue,
         }
 
     def get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
@@ -422,7 +422,7 @@ class StreamService:
     def run_streams(self):
         for market_str, pairs in self.instruments.items():
             market = Market[market_str.upper()]
-            for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
+            for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
                 self.start_stream_service(
                     stream_type=stream_type,
                     market=market
@@ -473,9 +473,9 @@ class StreamService:
                 )
                 self.stream_listeners[(market, stream_type, 'old')] = old_stream_listener
 
-                if stream_type is StreamType.DIFFERENCE_DEPTH:
+                if stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
                     queue.currently_accepted_stream_id = old_stream_listener.id.id
-                elif stream_type is StreamType.TRADE:
+                elif stream_type is StreamType.TRADE_STREAM:
                     queue.currently_accepted_stream_id = old_stream_listener.id
 
                 old_stream_listener.start_websocket_app()
@@ -553,7 +553,7 @@ class StreamService:
                 time.sleep(6)
 
     def update_subscriptions(self, market: Market, asset_upper: str, action: str):
-        for stream_type in [StreamType.DIFFERENCE_DEPTH, StreamType.TRADE]:
+        for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
             for status in ['old', 'new']:
                 stream_listener: StreamListener = self.stream_listeners.get((market, stream_type, status))
                 if stream_listener:
@@ -1053,9 +1053,9 @@ class DataSaver:
         }
 
         data_type_mapping = {
-            StreamType.DIFFERENCE_DEPTH: "binance_difference_depth",
+            StreamType.DIFFERENCE_DEPTH_STREAM: "binance_difference_depth",
             StreamType.DEPTH_SNAPSHOT: "binance_snapshot",
-            StreamType.TRADE: "binance_trade",
+            StreamType.TRADE_STREAM: "binance_trade",
         }
 
         market_short_name = market_mapping.get(market, "unknown_market")

@@ -168,10 +168,10 @@ class TestArchiverFacade:
             thread_names = [thread.name for thread in daemon_threads]
 
             for market in ["SPOT", "USD_M_FUTURES", "COIN_M_FUTURES"]:
-                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names
-                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names
-                assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names
-                assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH_STREAM}' in thread_names
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.TRADE_STREAM}' in thread_names
+                assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH_STREAM}' in thread_names
+                assert f'stream_writer: market: {Market[market]}, stream_type: {StreamType.TRADE_STREAM}' in thread_names
                 assert f'snapshot_daemon: market: {Market[market]}' in thread_names
 
             assert len(daemon_threads) == total_expected_threads
@@ -392,8 +392,8 @@ class TestArchiverFacade:
             thread_names = [thread.name for thread in daemon_threads]
 
             for market in ["SPOT", "USD_M_FUTURES", "COIN_M_FUTURES"]:
-                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH}' in thread_names
-                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.TRADE}' in thread_names
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.DIFFERENCE_DEPTH_STREAM}' in thread_names
+                assert f'stream_service: market: {Market[market]}, stream_type: {StreamType.TRADE_STREAM}' in thread_names
                 assert f'snapshot_daemon: market: {Market[market]}' in thread_names
 
             assert len(daemon_threads) == total_expected_threads
@@ -635,12 +635,12 @@ class TestArchiverFacade:
             queue_pool = QueuePoolDataSink()
 
             expected_keys = [
-                (Market.SPOT, StreamType.DIFFERENCE_DEPTH),
-                (Market.SPOT, StreamType.TRADE),
-                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH),
-                (Market.USD_M_FUTURES, StreamType.TRADE),
-                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH),
-                (Market.COIN_M_FUTURES, StreamType.TRADE)
+                (Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM),
+                (Market.SPOT, StreamType.TRADE_STREAM),
+                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM),
+                (Market.USD_M_FUTURES, StreamType.TRADE_STREAM),
+                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM),
+                (Market.COIN_M_FUTURES, StreamType.TRADE_STREAM)
             ]
 
             assert set(queue_pool.queue_lookup.keys()) == set(
@@ -668,12 +668,12 @@ class TestArchiverFacade:
             queue_pool = QueuePoolDataSink()
 
             expected_queues = {
-                (Market.SPOT, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
-                (Market.SPOT, StreamType.TRADE): TradeQueue,
-                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
-                (Market.USD_M_FUTURES, StreamType.TRADE): TradeQueue,
-                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
-                (Market.COIN_M_FUTURES, StreamType.TRADE): TradeQueue
+                (Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM): DifferenceDepthQueue,
+                (Market.SPOT, StreamType.TRADE_STREAM): TradeQueue,
+                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): DifferenceDepthQueue,
+                (Market.USD_M_FUTURES, StreamType.TRADE_STREAM): TradeQueue,
+                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): DifferenceDepthQueue,
+                (Market.COIN_M_FUTURES, StreamType.TRADE_STREAM): TradeQueue
             }
 
             for (market, stream_type), expected_queue_type in expected_queues.items():
@@ -731,12 +731,12 @@ class TestArchiverFacade:
             queue_pool = QueuePoolListener()
 
             expected_keys = [
-                (Market.SPOT, StreamType.DIFFERENCE_DEPTH),
-                (Market.SPOT, StreamType.TRADE),
-                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH),
-                (Market.USD_M_FUTURES, StreamType.TRADE),
-                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH),
-                (Market.COIN_M_FUTURES, StreamType.TRADE)
+                (Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM),
+                (Market.SPOT, StreamType.TRADE_STREAM),
+                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM),
+                (Market.USD_M_FUTURES, StreamType.TRADE_STREAM),
+                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM),
+                (Market.COIN_M_FUTURES, StreamType.TRADE_STREAM)
             ]
 
             assert set(queue_pool.queue_lookup.keys()) == set(
@@ -764,12 +764,12 @@ class TestArchiverFacade:
             queue_pool = QueuePoolListener()
 
             expected_queues = {
-                (Market.SPOT, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
-                (Market.SPOT, StreamType.TRADE): TradeQueue,
-                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
-                (Market.USD_M_FUTURES, StreamType.TRADE): TradeQueue,
-                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH): DifferenceDepthQueue,
-                (Market.COIN_M_FUTURES, StreamType.TRADE): TradeQueue
+                (Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM): DifferenceDepthQueue,
+                (Market.SPOT, StreamType.TRADE_STREAM): TradeQueue,
+                (Market.USD_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): DifferenceDepthQueue,
+                (Market.USD_M_FUTURES, StreamType.TRADE_STREAM): TradeQueue,
+                (Market.COIN_M_FUTURES, StreamType.DIFFERENCE_DEPTH_STREAM): DifferenceDepthQueue,
+                (Market.COIN_M_FUTURES, StreamType.TRADE_STREAM): TradeQueue
             }
 
             for (market, stream_type), expected_queue_type in expected_queues.items():
@@ -1483,7 +1483,7 @@ class TestArchiverFacade:
                     market=Market.SPOT,
                     file_duration_seconds=60,
                     dump_path='dump/',
-                    stream_type=StreamType.DIFFERENCE_DEPTH,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
                     save_to_json=True,
                     save_to_zip=False,
                     send_zip_to_blob=False
@@ -1540,7 +1540,7 @@ class TestArchiverFacade:
                     market=Market.SPOT,
                     file_duration_seconds=1,
                     dump_path='dump/',
-                    stream_type=StreamType.DIFFERENCE_DEPTH,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
                     save_to_json=True,
                     save_to_zip=False,
                     send_zip_to_blob=False
@@ -1580,7 +1580,7 @@ class TestArchiverFacade:
                     queue=queue,
                     market=Market.SPOT,
                     dump_path='dump/',
-                    stream_type=StreamType.DIFFERENCE_DEPTH,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
                     save_to_json=True,
                     save_to_zip=False,
                     send_zip_to_blob=False
@@ -1635,7 +1635,7 @@ class TestArchiverFacade:
                     queue=queue,
                     market=Market.SPOT,
                     dump_path=str(dump_path),
-                    stream_type=StreamType.DIFFERENCE_DEPTH,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
                     save_to_json=True,
                     save_to_zip=True,
                     send_zip_to_blob=True
@@ -1673,7 +1673,7 @@ class TestArchiverFacade:
 
             pair = "BTCUSDT"
             market = Market.SPOT
-            stream_type = StreamType.DIFFERENCE_DEPTH
+            stream_type = StreamType.DIFFERENCE_DEPTH_STREAM
 
             with patch('binance_archiver.binance_archiver_facade'
                        '.TimeUtils.get_utc_formatted_timestamp_for_file_name',

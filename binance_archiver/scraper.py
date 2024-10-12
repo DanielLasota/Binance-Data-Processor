@@ -174,8 +174,8 @@ class DataScraper:
 
     def _get_stream_type_handler(self, stream_type: StreamType) -> callable:
         handler_lookup = {
-            StreamType.DIFFERENCE_DEPTH: self._difference_depth_stream_type_handler,
-            StreamType.TRADE: self._trade_stream_type_handler,
+            StreamType.DIFFERENCE_DEPTH_STREAM: self._difference_depth_stream_type_handler,
+            StreamType.TRADE_STREAM: self._trade_stream_type_handler,
             StreamType.DEPTH_SNAPSHOT: self._difference_depth_snapshot_stream_type_handler
         }
 
@@ -352,9 +352,9 @@ class DataScraper:
         }
 
         data_type_mapping = {
-            StreamType.DIFFERENCE_DEPTH: "binance_difference_depth",
+            StreamType.DIFFERENCE_DEPTH_STREAM: "binance_difference_depth",
             StreamType.DEPTH_SNAPSHOT: "binance_snapshot",
-            StreamType.TRADE: "binance_trade",
+            StreamType.TRADE_STREAM: "binance_trade",
         }
 
         market_short_name = market_mapping.get(asset_parameters.market, "unknown_market")
@@ -481,8 +481,8 @@ class DataChecker:
         }
 
         stream_type_mapping = {
-            'difference_depth': StreamType.DIFFERENCE_DEPTH,
-            'trade': StreamType.TRADE,
+            'difference_depth': StreamType.DIFFERENCE_DEPTH_STREAM,
+            'trade': StreamType.TRADE_STREAM,
             'binance_snapshot': StreamType.DEPTH_SNAPSHOT,
         }
 
@@ -504,8 +504,8 @@ class DataChecker:
 
     def conduct_dataframe_quality_analysis(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> None:
         stream_type_handlers = {
-            StreamType.DIFFERENCE_DEPTH : self._analyse_difference_depth_dataframe,
-            StreamType.TRADE : self._analyse_trade_dataframe,
+            StreamType.DIFFERENCE_DEPTH_STREAM : self._analyse_difference_depth_dataframe,
+            StreamType.TRADE_STREAM : self._analyse_trade_dataframe,
             StreamType.DEPTH_SNAPSHOT : self._analyse_difference_depth_snapshot
         }
         handler = stream_type_handlers.get(asset_parameters.stream_type)
