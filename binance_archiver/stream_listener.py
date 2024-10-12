@@ -122,7 +122,7 @@ class StreamListener:
             stream_type=stream_type,
             market=market,
             check_interval_in_seconds=5,
-            max_interval_without_messages_in_seconds=10,
+            max_interval_without_messages_in_seconds=20 if market is Market.COIN_M_FUTURES else 15,
             on_error_callback=lambda: self.restart_websocket_app(),
             logger=self.logger
         )
@@ -174,8 +174,10 @@ class StreamListener:
             )
             self._blackout_supervisor.shutdown_supervisor()
 
-        def _on_ping(ws, message):
-            ws.send("", ABNF.OPCODE_PONG)
+        def _on_ping(ws, message: str, *args, **kwargs):
+            self.logger.debug(f'{market} {stream_type} ping has been received: {message}, args: {args}, kwargs: {kwargs}')
+
+            ws.send(message, ABNF.OPCODE_PONG)
 
         def _on_open(ws):
             self.logger.info(f"_on_open : {market} {stream_type} {self.id.start_timestamp}: WebSocket connection opened")

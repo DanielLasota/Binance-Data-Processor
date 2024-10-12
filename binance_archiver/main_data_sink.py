@@ -1,8 +1,8 @@
+import json
 import os
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
-import json
 
 from binance_archiver import launch_data_sink
 from load_config import load_config
@@ -10,7 +10,9 @@ from load_config import load_config
 
 if __name__ == "__main__":
 
-    # load_dotenv('C:/Users/defrg/archer.env')
+    # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
+    # load_dotenv(env_path)
+    #
     # config = load_config('almost_production_config.json')
 
     client = SecretClient(
@@ -38,5 +40,6 @@ if __name__ == "__main__":
         backblaze_access_key_id=backblaze_access_key_id,
         backblaze_secret_access_key=backblaze_secret_access_key,
         backblaze_endpoint_url=backblaze_endpoint_url,
-        backblaze_bucket_name=backblaze_bucket_name
+        backblaze_bucket_name=backblaze_bucket_name,
+        should_dump_logs=True
     )

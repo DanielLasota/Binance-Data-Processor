@@ -45,6 +45,7 @@ def launch_data_sink(
         backblaze_bucket_name: str | None = None,
         should_dump_logs: bool = False
 ) -> DataSinkFacade:
+
     valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
     instruments = config.get("instruments")
 
