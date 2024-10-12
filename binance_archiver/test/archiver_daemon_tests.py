@@ -1680,9 +1680,10 @@ class TestArchiverFacade:
                        return_value='01-01-2022T00-00-00Z'):
                 file_name = data_saver.get_file_name(pair, market, stream_type)
 
-                expected_prefix = "binance_difference_depth"
+                expected_prefix = "difference_depth_stream"
                 expected_market_name = "spot"
-                expected_file_name = f"{expected_prefix}_{expected_market_name}_{pair.lower()}_01-01-2022T00-00-00Z.json"
+                expected_file_name = (f"binance_{expected_prefix}_{expected_market_name}_{pair.lower()}"
+                                      f"_01-01-2022T00-00-00Z")
                 assert file_name == expected_file_name, "File name should be correctly formatted"
             DifferenceDepthQueue.clear_instances()
 

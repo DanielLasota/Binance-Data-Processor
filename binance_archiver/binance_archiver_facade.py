@@ -976,7 +976,7 @@ class DataSaver:
 
     def save_to_json(self, data, file_path) -> None:
         try:
-            with open(file_path, "w") as f:
+            with open(f'{file_path}.json', "w") as f:
                 json.dump(data, f)
             self.logger.debug(f"Saved to JSON: {file_path}")
         except IOError as e:
@@ -1042,26 +1042,9 @@ class DataSaver:
             self.logger.error(f"Error whilst uploading ZIP to BackBlaze B2: {e}")
 
     @staticmethod
-    def get_file_name(pair: str, market: 'Market', stream_type: 'StreamType') -> str:
-        pair_lower = pair.lower()
+    def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:
         formatted_now_timestamp = TimeUtils.get_utc_formatted_timestamp_for_file_name()
-
-        market_mapping = {
-            Market.SPOT: "spot",
-            Market.USD_M_FUTURES: "futures_usd_m",
-            Market.COIN_M_FUTURES: "futures_coin_m",
-        }
-
-        data_type_mapping = {
-            StreamType.DIFFERENCE_DEPTH_STREAM: "binance_difference_depth",
-            StreamType.DEPTH_SNAPSHOT: "binance_snapshot",
-            StreamType.TRADE_STREAM: "binance_trade",
-        }
-
-        market_short_name = market_mapping.get(market, "unknown_market")
-        prefix = data_type_mapping.get(stream_type, "unknown_data_type")
-
-        return f"{prefix}_{market_short_name}_{pair_lower}_{formatted_now_timestamp}.json"
+        return f"binance_{stream_type.name.lower()}_{market.name.lower()}_{pair.lower()}_{formatted_now_timestamp}"
 
 
 class TimeUtils:
