@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: stream_type_enum.py refactor prior to official docs">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: get_file_name refactor">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/archiver_daemon_tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/stream_listener.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stream_listener.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -387,29 +386,7 @@
       <recent name="C:\Users\daniellasota\PycharmProjects\Binance-Archiver\Binance-Archiver" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade">
-    <configuration name="main_data_sink" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main_data_sink.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python tests.pytest for trade_queue_tests.TestTradeQueue">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -422,20 +399,20 @@
       </deployment>
       <method v="2" />
     </configuration>
-    <configuration name="pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;binance_archiver.test.archiver_daemon_tests.TestArchiverFacade&quot;" />
+      <option name="_new_target" value="&quot;difference_depth_queue_tests.TestDifferenceDepthQueue&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
@@ -453,6 +430,23 @@
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
       <option name="_new_target" value="&quot;scraper_tests.TestIndividualColumnChecker&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for scraper_tests.TestScraper" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;scraper_tests.TestScraper&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
@@ -492,11 +486,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.pytest for binance_archiver.test.archiver_daemon_tests.TestArchiverFacade" />
-        <item itemvalue="Python.main_data_sink" />
         <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
+        <item itemvalue="Python tests.pytest for scraper_tests.TestScraper" />
         <item itemvalue="Python tests.pytest for scraper_tests.TestIndividualColumnChecker" />
+        <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
       </list>
     </recent_temporary>
   </component>
@@ -534,14 +528,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00071" summary="feat: New queue dynamic change algorithm&#10;test: Adjust tests to new queue dynamic change algorithm">
-      <option name="closed" value="true" />
-      <created>1726270262946</created>
-      <option name="number" value="00071" />
-      <option name="presentableId" value="LOCAL-00071" />
-      <option name="project" value="LOCAL" />
-      <updated>1726270262946</updated>
     </task>
     <task id="LOCAL-00072" summary="feat: New queue dynamic change algorithm&#10;test: Adjust tests to new queue dynamic change algorithm">
       <option name="closed" value="true" />
@@ -927,7 +913,15 @@
       <option name="project" value="LOCAL" />
       <updated>1728770671434</updated>
     </task>
-    <option name="localTasksCounter" value="120" />
+    <task id="LOCAL-00120" summary="refactor: get_file_name refactor">
+      <option name="closed" value="true" />
+      <created>1728774606522</created>
+      <option name="number" value="00120" />
+      <option name="presentableId" value="LOCAL-00120" />
+      <option name="project" value="LOCAL" />
+      <updated>1728774606522</updated>
+    </task>
+    <option name="localTasksCounter" value="121" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -987,7 +981,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="chore: Move Enums, configs into separate folders" />
     <MESSAGE value="chore: Reformat SnapshotManager into Strategy Pattern, enum folder rename coz of conflicts&#10;test: tests update" />
     <MESSAGE value="chore: rename main file" />
     <MESSAGE value="refactor: QueuePool split into QueuePoolListener and QueuePoolDataSink" />
@@ -1012,7 +1005,8 @@
     <MESSAGE value="refactor: scraper.py connection params refactor" />
     <MESSAGE value="refactor: scraper.py single column check methods with tests" />
     <MESSAGE value="refactor: stream_type_enum.py refactor prior to official docs" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: stream_type_enum.py refactor prior to official docs" />
+    <MESSAGE value="refactor: get_file_name refactor" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: get_file_name refactor" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

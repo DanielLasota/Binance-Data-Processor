@@ -162,25 +162,25 @@ class StreamListener:
             self._blackout_supervisor.notify()
 
         def _on_error(ws, error):
-            self.logger.error(f"_on_error: {market} {stream_type} {self.id.start_timestamp}: {error}")
-
-            self.logger.error("Traceback (most recent call last):")
-            self.logger.error(traceback.format_exc())
+            self.logger.error(f"_error: {market} {stream_type} {self.id.start_timestamp}: {error} "
+                              f"_error: Traceback (most recent call last): {traceback.format_exc()}")
 
         def _on_close(ws, close_status_code, close_msg):
             self.logger.info(
-                f"_on_close: {market} {stream_type} {self.id.start_timestamp}: WebSocket connection closed, "
-                f"{close_msg} (code: {close_status_code})"
+                f"on_close: {market} {stream_type} {self.id.start_timestamp}"
+                f": WebSocket connection closed, {close_msg} (code: {close_status_code})"
             )
             self._blackout_supervisor.shutdown_supervisor()
 
         def _on_ping(ws, message: str, *args, **kwargs):
-            self.logger.debug(f'{market} {stream_type} ping has been received: {message}, args: {args}, kwargs: {kwargs}')
+            self.logger.debug(f'_on_ping: {market} {stream_type} ping has been received'
+                              f': {message}, args: {args}, kwargs: {kwargs}')
 
             ws.send(message, ABNF.OPCODE_PONG)
 
         def _on_open(ws):
-            self.logger.info(f"_on_open : {market} {stream_type} {self.id.start_timestamp}: WebSocket connection opened")
+            self.logger.info(f"_on_open: {market} {stream_type} {self.id.start_timestamp}"
+                             f": WebSocket connection opened")
 
         def _on_reconnect(ws):
             self.logger.info(f'_on_reconnect: {market} {stream_type} {self.id.start_timestamp}')
