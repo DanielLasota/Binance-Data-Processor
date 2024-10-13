@@ -29,14 +29,14 @@ __all__ = [
 ]
 
 
-@dataclass
+@dataclass(slots=True)
 class AssetParameters:
     market: Market
     stream_type: StreamType
     pair: str
 
 
-@dataclass
+@dataclass(slots=True)
 class StorageConnectionParameters:
     blob_connection_string: str | None = None
     container_name: str | None = None
@@ -364,6 +364,8 @@ class DataScraper:
 
 
 class IClientHandler(ABC):
+    __slots__ = ()
+
     @abstractmethod
     def list_files_with_prefixes(self, prefixes: List[str]) -> List[str]:
         pass
@@ -428,8 +430,7 @@ class BackBlazeS3Client(IClientHandler):
 
 
 class AzureClient(IClientHandler):
-
-    __slots__ = []
+    __slots__ = ()
 
     def __init__(
             self,
@@ -456,6 +457,7 @@ def conduct_csv_files_data_quality_analysis(csv_paths: list[str]) -> None:
 
 
 class DataChecker:
+    __slots__ = ()
 
     def __init__(self):
         ...
@@ -523,6 +525,7 @@ class DataChecker:
 
 
 class IndividualColumnChecker:
+    __slots__ = ()
 
     @staticmethod
     def is_there_only_one_unique_value_in_series(series: pd.Series) -> bool:

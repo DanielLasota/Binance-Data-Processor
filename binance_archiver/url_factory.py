@@ -2,6 +2,7 @@ from binance_archiver.enum_.market_enum import Market
 
 
 class URLFactory:
+    __slots__ = ()
 
     @staticmethod
     def get_snapshot_url(

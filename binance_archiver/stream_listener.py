@@ -17,7 +17,6 @@ from binance_archiver.url_factory import URLFactory
 
 
 class StreamListener:
-
     __slots__ = [
         'logger',
         'queue',

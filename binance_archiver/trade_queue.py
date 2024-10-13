@@ -9,7 +9,6 @@ from binance_archiver.stream_id import StreamId
 
 
 class TradeQueue:
-
     __slots__ = [
         'lock',
         '_market',

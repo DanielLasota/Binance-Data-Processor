@@ -32,7 +32,10 @@ from .difference_depth_queue import DifferenceDepthQueue
 from .url_factory import URLFactory
 
 
-__all__ = ['launch_data_listener', 'launch_data_sink']
+__all__ = [
+    'launch_data_listener',
+    'launch_data_sink'
+]
 
 
 def launch_data_sink(
@@ -140,6 +143,19 @@ def launch_data_listener(
 
 
 class ListenerFacade(Subject):
+
+    __slots__ = [
+        'config',
+        'logger',
+        'instruments',
+        'global_shutdown_flag',
+        'queue_pool',
+        'stream_service',
+        '_observers',
+        'whistleblower',
+        'snapshot_manager'
+    ]
+
     def __init__(
             self,
             config: dict,
@@ -223,6 +239,24 @@ class ListenerFacade(Subject):
 
 
 class DataSinkFacade:
+
+    __slots__ = [
+        'config',
+        'logger',
+        'azure_blob_parameters_with_key',
+        'azure_container_name',
+        'backblaze_s3_parameters',
+        'backblaze_bucket_name',
+        'instruments',
+        'global_shutdown_flag',
+        'queue_pool',
+        'stream_service',
+        'command_line_interface',
+        'fast_api_manager',
+        'data_saver',
+        'snapshot_manager'
+    ]
+
     def __init__(
             self,
             config: dict,
@@ -321,6 +355,14 @@ class DataSinkFacade:
 
 
 class Whistleblower:
+
+    __slots__ = [
+        'logger',
+        'observers',
+        'global_queue',
+        'global_shutdown_flag'
+    ]
+
     def __init__(
             self,
             logger: logging.Logger,
@@ -353,6 +395,17 @@ class Whistleblower:
 
 
 class QueuePoolDataSink:
+
+    __slots__ = [
+        'spot_orderbook_stream_message_queue',
+        'spot_trade_stream_message_queue',
+        'usd_m_futures_orderbook_stream_message_queue',
+        'usd_m_futures_trade_stream_message_queue',
+        'coin_m_orderbook_stream_message_queue',
+        'coin_m_trade_stream_message_queue',
+        'queue_lookup'
+    ]
+
     def __init__(self):
 
         self.spot_orderbook_stream_message_queue = DifferenceDepthQueue(market=Market.SPOT)
@@ -378,6 +431,18 @@ class QueuePoolDataSink:
 
 
 class QueuePoolListener:
+
+    __slots__ = [
+        'global_queue',
+        'spot_orderbook_stream_message_queue',
+        'spot_trade_stream_message_queue',
+        'usd_m_futures_orderbook_stream_message_queue',
+        'usd_m_futures_trade_stream_message_queue',
+        'coin_m_orderbook_stream_message_queue',
+        'coin_m_trade_stream_message_queue',
+        'queue_lookup'
+    ]
+
     def __init__(self):
         self.global_queue = Queue()
 
@@ -402,6 +467,19 @@ class QueuePoolListener:
 
 
 class StreamService:
+
+
+    __slots__ = [
+        'config',
+        'instruments',
+        'logger',
+        'queue_pool',
+        'global_shutdown_flag',
+        'is_someone_overlapping_right_now_flag',
+        'stream_listeners',
+        'overlap_lock'
+    ]
+
     def __init__(
         self,
         config: dict,
@@ -561,6 +639,9 @@ class StreamService:
 
 
 class SnapshotStrategy(ABC):
+
+    __slots__ = ()
+
     @abstractmethod
     def handle_snapshot(
         self,
@@ -574,6 +655,14 @@ class SnapshotStrategy(ABC):
 
 
 class DataSinkSnapshotStrategy(SnapshotStrategy):
+
+    __slots__ = [
+        'data_saver',
+        'save_to_json',
+        'save_to_zip',
+        'send_zip_to_blob'
+    ]
+
     def __init__(
         self,
         data_saver: DataSaver,
@@ -604,6 +693,8 @@ class DataSinkSnapshotStrategy(SnapshotStrategy):
 
 
 class ListenerSnapshotStrategy(SnapshotStrategy):
+    __slots__ = ['global_queue']
+
     def __init__(self, global_queue: Queue):
         self.global_queue = global_queue
 
@@ -619,6 +710,15 @@ class ListenerSnapshotStrategy(SnapshotStrategy):
 
 
 class SnapshotManager:
+
+    __slots__ = [
+        'config',
+        'instruments',
+        'logger',
+        'snapshot_strategy',
+        'global_shutdown_flag'
+    ]
+
     def __init__(
         self,
         config: dict,
@@ -727,6 +827,13 @@ class SnapshotManager:
 
 
 class CommandLineInterface:
+    __slots__ = [
+        'config',
+        'instruments',
+        'logger',
+        'stream_service'
+    ]
+
     def __init__(
         self,
         config: dict,
@@ -791,6 +898,21 @@ class CommandLineInterface:
 
 
 class DataSaver:
+
+    __slots__ = [
+        'config',
+        'logger',
+        'azure_blob_parameters_with_key',
+        'azure_container_name',
+        'backblaze_s3_parameters',
+        'backblaze_bucket_name',
+        'global_shutdown_flag',
+        'azure_blob_service_client',
+        'azure_container_client',
+        's3_client'
+    ]
+
+
     def __init__(
         self,
         logger: logging.Logger,
@@ -1048,6 +1170,8 @@ class DataSaver:
 
 
 class TimeUtils:
+    __slots__ = ()
+
     @staticmethod
     def get_utc_formatted_timestamp_for_file_name() -> str:
         return datetime.utcnow().strftime("%d-%m-%YT%H-%M-%SZ")

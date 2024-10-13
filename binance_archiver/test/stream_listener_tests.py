@@ -394,7 +394,6 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified(self):
-        logger = setup_logger()
 
         from unittest.mock import patch
 

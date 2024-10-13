@@ -6,6 +6,13 @@ import requests
 
 
 class FastAPIManager:
+    __slots__ = [
+        'app',
+        'server_thread',
+        'notify_cli',
+        'server'
+    ]
+
     def __init__(self):
         self.app = FastAPI()
         self.setup_routes()

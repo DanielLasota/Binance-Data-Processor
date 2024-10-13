@@ -857,7 +857,7 @@ class TestArchiverFacade:
                 global_shutdown_flag=global_shutdown_flag
             )
 
-            with patch.object(stream_service, 'start_stream_service') as mock_start_stream_service:
+            with patch.object(StreamService, 'start_stream_service') as mock_start_stream_service:
                 stream_service.run_streams()
                 assert mock_start_stream_service.call_count == 2, "Should start two stream services in LISTENER mode"
             TradeQueue.clear_instances()
@@ -891,7 +891,7 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                with patch.object(snapshot_manager, '_get_snapshot',
+                with patch.object(SnapshotManager, '_get_snapshot',
                                   return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
                     daemon_thread = threading.Thread(
                         target=snapshot_manager._snapshot_daemon,
@@ -943,7 +943,7 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                with patch.object(snapshot_manager, '_get_snapshot',
+                with patch.object(SnapshotManager, '_get_snapshot',
                                   return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
                     with patch.object(DataSaver, 'get_file_name', return_value='file_name.json'):
                         daemon_thread = threading.Thread(
@@ -992,7 +992,7 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                with patch.object(snapshot_manager, '_get_snapshot', side_effect=Exception("Test exception")):
+                with patch.object(SnapshotManager, '_get_snapshot', side_effect=Exception("Test exception")):
                     with patch.object(logger, 'error') as mock_logger_error:
                         daemon_thread = threading.Thread(
                             target=snapshot_manager._snapshot_daemon,
@@ -1034,7 +1034,7 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                with patch.object(snapshot_manager, '_get_snapshot') as mock_get_snapshot:
+                with patch.object(SnapshotManager, '_get_snapshot') as mock_get_snapshot:
                     daemon_thread = threading.Thread(
                         target=snapshot_manager._snapshot_daemon,
                         args=(
@@ -1436,7 +1436,7 @@ class TestArchiverFacade:
             )
 
             queue_pool = QueuePoolDataSink()
-            with patch.object(data_saver, 'start_stream_writer') as mock_start_stream_writer:
+            with patch.object(DataSaver, 'start_stream_writer') as mock_start_stream_writer:
                 data_saver.run_data_saver(
                     queue_pool=queue_pool,
                     dump_path='dump/',
@@ -1528,8 +1528,8 @@ class TestArchiverFacade:
                 timestamp_of_receive=1234567890
             )
 
-            with patch.object(data_saver, '_process_stream_data') as mock_process_stream_data, \
-                    patch.object(data_saver, '_sleep_with_flag_check') as mock_sleep_with_flag_check:
+            with patch.object(DataSaver, '_process_stream_data') as mock_process_stream_data, \
+                    patch.object(DataSaver, '_sleep_with_flag_check') as mock_sleep_with_flag_check:
                 def side_effect(duration):
                     self.global_shutdown_flag.set()
 
@@ -1575,7 +1575,7 @@ class TestArchiverFacade:
             )
 
             queue = DifferenceDepthQueue(market=Market.SPOT)
-            with patch.object(data_saver, 'save_to_json') as mock_save_to_json:
+            with patch.object(DataSaver, 'save_to_json') as mock_save_to_json:
                 data_saver._process_stream_data(
                     queue=queue,
                     market=Market.SPOT,
@@ -1628,9 +1628,9 @@ class TestArchiverFacade:
 
             dump_path = tmpdir.mkdir("dump")
 
-            with patch.object(data_saver, 'save_to_json') as mock_save_to_json, \
-                    patch.object(data_saver, 'save_to_zip') as mock_save_to_zip, \
-                    patch.object(data_saver, 'send_zipped_json_to_blob') as mock_send_zip:
+            with patch.object(DataSaver, 'save_to_json') as mock_save_to_json, \
+                    patch.object(DataSaver, 'save_to_zip') as mock_save_to_zip, \
+                    patch.object(DataSaver, 'send_zipped_json_to_blob') as mock_send_zip:
                 data_saver._process_stream_data(
                     queue=queue,
                     market=Market.SPOT,
