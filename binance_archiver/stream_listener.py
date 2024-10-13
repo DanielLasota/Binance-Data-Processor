@@ -17,6 +17,19 @@ from binance_archiver.url_factory import URLFactory
 
 
 class StreamListener:
+
+    __slots__ = [
+        'logger',
+        'queue',
+        'pairs',
+        'stream_type',
+        'market',
+        'id',
+        'websocket_app',
+        'thread',
+        '_blackout_supervisor'
+    ]
+
     def __init__(
         self,
         logger: logging.Logger,
@@ -25,18 +38,6 @@ class StreamListener:
         stream_type: StreamType,
         market: Market
     ):
-
-        __slots__ = [
-            'logger',
-            'queue',
-            'pairs',
-            'stream_type',
-            'market',
-            'id',
-            'websocket_app',
-            'thread',
-            '_blackout_supervisor'
-        ]
 
         if not isinstance(pairs, list):
             raise WrongListInstanceException('pairs argument is not a list')

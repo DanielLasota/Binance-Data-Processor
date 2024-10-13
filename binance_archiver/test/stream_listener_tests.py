@@ -365,12 +365,14 @@ class TestStreamListener:
 
         trade_queue.currently_accepted_stream_id = trade_stream_listener.id
 
-        with patch.object(trade_stream_listener, 'restart_websocket_app') as mock_restart, \
-                patch.object(trade_stream_listener._blackout_supervisor, 'notify') as mock_notify:
+        with patch.object(StreamListener, 'restart_websocket_app') as mock_restart, \
+                patch.object(BlackoutSupervisor, 'notify') as mock_notify:
             trade_stream_listener.start_websocket_app()
 
             time.sleep(10)
+
             mock_notify.assert_called()
+
             mock_restart.assert_not_called()
 
         active_threads = [
@@ -380,18 +382,15 @@ class TestStreamListener:
 
         presumed_thread_name = f'stream_listener blackout supervisor {StreamType.TRADE_STREAM} {Market.SPOT}'
 
-        assert trade_stream_listener._blackout_supervisor is not None, ("Supervisor should be instantiated within "
-                                                                        "StreamListener")
+        assert trade_stream_listener._blackout_supervisor is not None, (
+            "Supervisor should be instantiated within StreamListener"
+        )
         assert isinstance(trade_stream_listener._blackout_supervisor, BlackoutSupervisor)
-
         for name_ in active_threads:
             print(name_)
-
         assert presumed_thread_name in active_threads
         assert len(active_threads) == 2
-
         trade_stream_listener.websocket_app.close()
-
         TradeQueue.clear_instances()
 
     def test_given_difference_depth_stream_listener_when_init_then_supervisor_starts_correctly_and_is_being_notified(self):
@@ -423,8 +422,8 @@ class TestStreamListener:
             market=Market.SPOT
         )
 
-        with patch.object(difference_depth_queue_listener, 'restart_websocket_app') as mock_restart, \
-                patch.object(difference_depth_queue_listener._blackout_supervisor, 'notify') as mock_notify:
+        with patch.object(StreamListener, 'restart_websocket_app') as mock_restart, \
+                patch.object(BlackoutSupervisor, 'notify') as mock_notify:
             difference_depth_queue_listener.start_websocket_app()
 
             time.sleep(10)

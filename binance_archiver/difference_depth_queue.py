@@ -11,6 +11,17 @@ from binance_archiver.stream_id import StreamId
 
 
 class DifferenceDepthQueue:
+
+    __slots__ = [
+        '_market',
+        'lock',
+        'currently_accepted_stream_id',
+        'no_longer_accepted_stream_id',
+        'did_websockets_switch_successfully',
+        '_two_last_throws',
+        'queue'
+    ]
+
     _instances = []
     _lock = threading.Lock()
     _instances_amount_limit = 3

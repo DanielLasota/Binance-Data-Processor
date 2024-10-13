@@ -10,10 +10,10 @@ from load_config import load_config
 
 if __name__ == "__main__":
 
-    env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
-    load_dotenv(env_path)
+    # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
+    # load_dotenv(env_path)
 
-    config = load_config('almost_production_config.json')
+    # config = load_config('almost_production_config.json')
 
 
     client = SecretClient(
