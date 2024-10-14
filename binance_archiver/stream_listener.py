@@ -180,7 +180,7 @@ class StreamListener:
 
         def _on_close(ws, close_status_code, close_msg):
             self.logger.info(
-                f"on_close: {market} {stream_type} {self.id.start_timestamp}"
+                f"_on_close: {market} {stream_type} {self.id.start_timestamp}"
                 f": WebSocket connection closed, {close_msg} (code: {close_status_code})"
             )
             self._blackout_supervisor.shutdown_supervisor()

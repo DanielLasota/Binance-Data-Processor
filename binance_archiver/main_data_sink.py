@@ -10,11 +10,10 @@ from load_config import load_config
 
 if __name__ == "__main__":
 
-    env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
-    load_dotenv(env_path)
-
-    config = load_config('almost_production_config.json')
-
+    # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
+    # load_dotenv(env_path)
+    #
+    # config = load_config('almost_production_config.json')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
@@ -32,9 +31,6 @@ if __name__ == "__main__":
     backblaze_secret_access_key = client.get_secret(backblaze_secret_access_key_secret_name).value
     backblaze_endpoint_url = client.get_secret(backblaze_endpoint_url_secret_name).value
     backblaze_bucket_name = client.get_secret(backblaze_bucket_name_secret_name).value
-
-    if config['send_zip_to_blob'] is True:
-        raise Exception('send_zip_to_blob is true, returning')
 
     data_sink = launch_data_sink(
         config,
