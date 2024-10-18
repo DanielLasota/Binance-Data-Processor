@@ -956,7 +956,7 @@ class DataSaver:
                     aws_secret_access_key=self.backblaze_s3_parameters.get('secret_access_key'),
                     endpoint_url=self.backblaze_s3_parameters.get('endpoint_url'),
                     region_name='us-east-1',
-                    config=Config(signature_version='s3v4')
+                    config=Config(signature_version='s3v4', retries={'max_attempts': 100,'mode': 'adaptive'})
                 )
                 self.logger.debug(f"Connected to Backblaze S3 bucket: {self.backblaze_bucket_name}")
             except Exception as e:
@@ -1137,7 +1137,7 @@ class DataSaver:
             blob_client.upload_blob(zip_buffer, overwrite=True)
             self.logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container: {self.azure_container_name}")
         except Exception as e:
-            self.logger.error(f"Błąd podczas przesyłania pliku ZIP do Azure Blob: {e}")
+            self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
     def send_zipped_json_to_backblaze(self, data, file_name: str):
         try:
@@ -1161,7 +1161,7 @@ class DataSaver:
 
             self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: {self.backblaze_bucket_name}")
         except Exception as e:
-            self.logger.error(f"Error whilst uploading ZIP to BackBlaze B2: {e}")
+            self.logger.error(f"Error whilst uploading ZIP to BackBlaze B2: {file_name} {e}")
 
     @staticmethod
     def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:

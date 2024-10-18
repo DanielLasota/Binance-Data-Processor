@@ -168,12 +168,11 @@ def recv(sock: socket.socket, bufsize: int) -> bytes:
 
     # temporary_logger.info('_socket test')
 
-    if not bytes_:
+    if bytes_ == b'':
         print(f'print: received empty bytes_: {bytes_}')
 
-        temporary_logger.info(f'Connection to remote host was lost.'
-                               f'Received empty bytes_: >>> {bytes_} <<< but no worries! Im continuing my work')
-
+        temporary_logger.info(f'Received empty bytes_: >>> {bytes_} <<< but no worries! Im continuing my work')
+        return b''
         # raise WebSocketConnectionClosedException("Connection to remote host was lost.")
     else:
         return bytes_
