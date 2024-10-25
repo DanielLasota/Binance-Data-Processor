@@ -22,7 +22,7 @@ def setup_logger(should_dump_logs: bool | None = False) -> logging.Logger:
     if should_dump_logs is True:
 
         file_handler = RotatingFileHandler(
-            filename=f"logs/archiver.log",
+            filename="archiver.log",
             maxBytes=5 * 1024 * 1024,
             backupCount=3,
             encoding='utf-8'

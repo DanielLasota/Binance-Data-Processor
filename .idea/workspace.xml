@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: upload retry add">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: docker socket override removal">
+      <change beforePath="$PROJECT_DIR$/.idea/Binance Archiver.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Binance Archiver.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/setup_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/setup_logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -380,7 +382,7 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.customizations&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
     &quot;two.files.diff.last.used.file&quot;: &quot;C:/Users/daniellasota/PycharmProjects/Binance-Archiver/venv/Lib/site-packages/websocket/_socket.py&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
@@ -541,14 +543,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00077" summary="fix: Subscription feature fix">
-      <option name="closed" value="true" />
-      <created>1726398017385</created>
-      <option name="number" value="00077" />
-      <option name="presentableId" value="LOCAL-00077" />
-      <option name="project" value="LOCAL" />
-      <updated>1726398017385</updated>
     </task>
     <task id="LOCAL-00078" summary="fix: Fixed subscription feature - added @100 postfix">
       <option name="closed" value="true" />
@@ -934,7 +928,15 @@
       <option name="project" value="LOCAL" />
       <updated>1729295312238</updated>
     </task>
-    <option name="localTasksCounter" value="126" />
+    <task id="LOCAL-00126" summary="feat: docker socket override removal">
+      <option name="closed" value="true" />
+      <created>1729891727039</created>
+      <option name="number" value="00126" />
+      <option name="presentableId" value="LOCAL-00126" />
+      <option name="project" value="LOCAL" />
+      <updated>1729891727040</updated>
+    </task>
+    <option name="localTasksCounter" value="127" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -994,7 +996,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: New production_config.json.json" />
     <MESSAGE value="feat: New production_config.json.json, minor changes" />
     <MESSAGE value="perf: difference_depth_queue.py json to orjson refactor + minor if refactors" />
     <MESSAGE value="build: Requirements update, build update" />
@@ -1019,7 +1020,8 @@
     <MESSAGE value="feat: trade_queue.py and difference_depth_queue.py __slots__ update" />
     <MESSAGE value="feat: websocket override complete" />
     <MESSAGE value="feat: upload retry add" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: upload retry add" />
+    <MESSAGE value="feat: docker socket override removal" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: docker socket override removal" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
