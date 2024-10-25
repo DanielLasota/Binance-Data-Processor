@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /app/logs
 
-RUN cp binance_archiver/libraries_override/websocket/_socket.py /usr/local/lib/python3.11/site-packages/websocket/_socket.py
+#RUN cp binance_archiver/libraries_override/websocket/_socket.py /usr/local/lib/python3.11/site-packages/websocket/_socket.py
 
 VOLUME [ "/app/data", "/app/logs" ]
 
