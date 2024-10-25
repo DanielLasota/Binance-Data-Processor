@@ -10,3 +10,4 @@ orjson
 numpy
 alive-progress
 pandas
+pytest

@@ -104,7 +104,9 @@ def launch_data_sink(
         backblaze_bucket_name=backblaze_bucket_name
     )
 
-    archiver_facade.run()
+    archiver_facade_thread = threading.Thread(target=archiver_facade.run)
+    archiver_facade_thread.start()
+
     return archiver_facade
 
 def launch_data_listener(
@@ -331,9 +333,10 @@ class DataSinkFacade:
             send_zip_to_blob=self.config["send_zip_to_blob"]
         )
 
-        self.snapshot_manager.run_snapshots(
-            dump_path=dump_path
-        )
+        self.snapshot_manager.run_snapshots(dump_path=dump_path)
+
+        while not self.global_shutdown_flag.is_set():
+            time.sleep(4)
 
     def shutdown(self):
         self.logger.info("Shutting down archiver")
