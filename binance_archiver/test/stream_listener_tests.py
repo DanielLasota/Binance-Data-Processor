@@ -5,7 +5,7 @@ import threading
 import pytest
 import websocket
 
-from binance_archiver.binance_archiver_facade import QueuePoolDataSink, QueuePoolListener
+from binance_archiver.queue_pool import QueuePoolListener, QueuePoolDataSink
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.setup_logger import setup_logger

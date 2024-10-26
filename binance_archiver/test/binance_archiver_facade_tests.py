@@ -20,19 +20,15 @@ from ..binance_archiver_facade import (
     launch_data_sink,
     launch_data_listener,
     DataSinkFacade,
-    ListenerFacade,
-    StreamService,
-    DataSaver,
-    CommandLineInterface,
-    QueuePoolDataSink,
-    QueuePoolListener,
-    TimeUtils,
-    Whistleblower,
-    SnapshotManager,
-    ListenerSnapshotStrategy,
-    DataSinkSnapshotStrategy,
-    SnapshotStrategy
+    ListenerFacade
 )
+from ..snapshot_manager import SnapshotStrategy, DataSinkSnapshotStrategy, ListenerSnapshotStrategy, SnapshotManager
+from ..listener_observer_updater import ListenerObserverUpdater
+from ..data_saver_sender import DataSaverSender
+from ..queue_pool import QueuePoolListener, QueuePoolDataSink
+from ..stream_service import StreamService
+from ..commandline_interface import CommandLineInterface
+from ..time_utils import TimeUtils
 from ..fastapi_manager import FastAPIManager
 
 from ..setup_logger import setup_logger
@@ -202,7 +198,7 @@ class TestArchiverFacade:
             assert isinstance(data_sink_facade.stream_service, StreamService)
             assert isinstance(data_sink_facade.command_line_interface, CommandLineInterface)
             assert isinstance(data_sink_facade.fast_api_manager, FastAPIManager)
-            assert isinstance(data_sink_facade.data_saver, DataSaver)
+            assert isinstance(data_sink_facade.data_saver, DataSaverSender)
             assert isinstance(data_sink_facade.snapshot_manager, SnapshotManager)
 
             data_sink_facade.shutdown()
@@ -419,7 +415,7 @@ class TestArchiverFacade:
             )
 
             assert archiver_facade._observers == observers
-            assert isinstance(archiver_facade.whistleblower, Whistleblower)
+            assert isinstance(archiver_facade.whistleblower, ListenerObserverUpdater)
             assert archiver_facade.whistleblower.observers == observers
 
             archiver_facade.shutdown()
@@ -588,7 +584,7 @@ class TestArchiverFacade:
             observers = [MagicMock(spec=Observer)]
             global_queue = Queue()
             global_shutdown_flag = threading.Event()
-            whistleblower = Whistleblower(
+            whistleblower = ListenerObserverUpdater(
                 logger=setup_logger(),
                 observers=observers,
                 global_queue=global_queue,
@@ -613,7 +609,7 @@ class TestArchiverFacade:
             observers = [MagicMock(spec=Observer)]
             global_queue = Queue()
             global_shutdown_flag = threading.Event()
-            whistleblower = Whistleblower(
+            whistleblower = ListenerObserverUpdater(
                 logger=setup_logger(),
                 observers=observers,
                 global_queue=global_queue,
@@ -928,7 +924,7 @@ class TestArchiverFacade:
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
 
-                data_saver = MagicMock(spec=DataSaver)
+                data_saver = MagicMock(spec=DataSaverSender)
                 snapshot_strategy = DataSinkSnapshotStrategy(
                     data_saver=data_saver,
                     save_to_json=True,
@@ -945,7 +941,7 @@ class TestArchiverFacade:
 
                 with patch.object(SnapshotManager, '_get_snapshot',
                                   return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
-                    with patch.object(DataSaver, 'get_file_name', return_value='file_name.json'):
+                    with patch.object(DataSaverSender, 'get_file_name', return_value='file_name.json'):
                         daemon_thread = threading.Thread(
                             target=snapshot_manager._snapshot_daemon,
                             args=(
@@ -1167,7 +1163,7 @@ class TestArchiverFacade:
         class TestDataSinkSnapshotStrategy:
 
             def test_given_all_save_options_true_when_handle_snapshot_called_then_all_methods_called(self):
-                data_saver = MagicMock(spec=DataSaver)
+                data_saver = MagicMock(spec=DataSaverSender)
                 snapshot_strategy = DataSinkSnapshotStrategy(
                     data_saver=data_saver,
                     save_to_json=True,
@@ -1192,7 +1188,7 @@ class TestArchiverFacade:
                 data_saver.send_zipped_json_to_blob.assert_called_with(snapshot, file_name)
 
             def test_given_save_to_json_false_when_handle_snapshot_called_then_save_to_json_not_called(self):
-                data_saver = MagicMock(spec=DataSaver)
+                data_saver = MagicMock(spec=DataSaverSender)
                 snapshot_strategy = DataSinkSnapshotStrategy(
                     data_saver=data_saver,
                     save_to_json=False,
@@ -1217,7 +1213,7 @@ class TestArchiverFacade:
                 data_saver.send_zipped_json_to_blob.assert_called_once()
 
             def test_given_save_to_zip_false_when_handle_snapshot_called_then_save_to_zip_not_called(self):
-                data_saver = MagicMock(spec=DataSaver)
+                data_saver = MagicMock(spec=DataSaverSender)
                 snapshot_strategy = DataSinkSnapshotStrategy(
                     data_saver=data_saver,
                     save_to_json=True,
@@ -1242,7 +1238,7 @@ class TestArchiverFacade:
                 data_saver.send_zipped_json_to_blob.assert_called_once()
 
             def test_given_send_zip_to_blob_false_when_handle_snapshot_called_then_send_zip_to_blob_not_called(self):
-                data_saver = MagicMock(spec=DataSaver)
+                data_saver = MagicMock(spec=DataSaverSender)
                 snapshot_strategy = DataSinkSnapshotStrategy(
                     data_saver=data_saver,
                     save_to_json=True,
@@ -1385,7 +1381,7 @@ class TestArchiverFacade:
             self.backblaze_bucket_name = 'test_bucket'
 
         def test_given_blob_parameters_when_initializing_then_blob_service_client_is_initialized(self):
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config={},
                 azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
@@ -1399,7 +1395,7 @@ class TestArchiverFacade:
             assert data_saver.azure_container_name == self.container_name, "Container name should be set"
 
         def test_given_no_blob_parameters_when_initializing_then_blob_service_client_is_none(self):
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config={},
                 azure_blob_parameters_with_key=None,
@@ -1425,7 +1421,7 @@ class TestArchiverFacade:
               "save_to_zip": False,
               "send_zip_to_blob": False
             }
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config=config,
                 azure_blob_parameters_with_key=None,
@@ -1436,7 +1432,7 @@ class TestArchiverFacade:
             )
 
             queue_pool = QueuePoolDataSink()
-            with patch.object(DataSaver, 'start_stream_writer') as mock_start_stream_writer:
+            with patch.object(DataSaverSender, 'start_stream_writer') as mock_start_stream_writer:
                 data_saver.run_data_saver(
                     queue_pool=queue_pool,
                     dump_path='dump/',
@@ -1466,7 +1462,7 @@ class TestArchiverFacade:
               "save_to_zip": False,
               "send_zip_to_blob": False
             }
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config={},
                 azure_blob_parameters_with_key=None,
@@ -1509,7 +1505,7 @@ class TestArchiverFacade:
               "save_to_zip": False,
               "send_zip_to_blob": False
             }
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config=config,
                 azure_blob_parameters_with_key=None,
@@ -1528,8 +1524,8 @@ class TestArchiverFacade:
                 timestamp_of_receive=1234567890
             )
 
-            with patch.object(DataSaver, '_process_stream_data') as mock_process_stream_data, \
-                    patch.object(DataSaver, '_sleep_with_flag_check') as mock_sleep_with_flag_check:
+            with patch.object(DataSaverSender, '_process_stream_data') as mock_process_stream_data, \
+                    patch.object(DataSaverSender, '_sleep_with_flag_check') as mock_sleep_with_flag_check:
                 def side_effect(duration):
                     self.global_shutdown_flag.set()
 
@@ -1564,7 +1560,7 @@ class TestArchiverFacade:
               "save_to_zip": False,
               "send_zip_to_blob": False
             }
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config=config,
                 azure_blob_parameters_with_key=None,
@@ -1575,7 +1571,7 @@ class TestArchiverFacade:
             )
 
             queue = DifferenceDepthQueue(market=Market.SPOT)
-            with patch.object(DataSaver, 'save_to_json') as mock_save_to_json:
+            with patch.object(DataSaverSender, 'save_to_json') as mock_save_to_json:
                 data_saver._process_stream_data(
                     queue=queue,
                     market=Market.SPOT,
@@ -1603,7 +1599,7 @@ class TestArchiverFacade:
               "save_to_zip": False,
               "send_zip_to_blob": False
             }
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config=config,
                 azure_blob_parameters_with_key=None,
@@ -1628,9 +1624,9 @@ class TestArchiverFacade:
 
             dump_path = tmpdir.mkdir("dump")
 
-            with patch.object(DataSaver, 'save_to_json') as mock_save_to_json, \
-                    patch.object(DataSaver, 'save_to_zip') as mock_save_to_zip, \
-                    patch.object(DataSaver, 'send_zipped_json_to_blob') as mock_send_zip:
+            with patch.object(DataSaverSender, 'save_to_json') as mock_save_to_json, \
+                    patch.object(DataSaverSender, 'save_to_zip') as mock_save_to_zip, \
+                    patch.object(DataSaverSender, 'send_zipped_json_to_blob') as mock_send_zip:
                 data_saver._process_stream_data(
                     queue=queue,
                     market=Market.SPOT,
@@ -1661,7 +1657,7 @@ class TestArchiverFacade:
               "send_zip_to_blob": False
             }
 
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=self.logger,
                 config=config,
                 azure_blob_parameters_with_key=None,
@@ -1675,7 +1671,7 @@ class TestArchiverFacade:
             market = Market.SPOT
             stream_type = StreamType.DIFFERENCE_DEPTH_STREAM
 
-            with patch('binance_archiver.binance_archiver_facade'
+            with patch('binance_archiver.time_utils'
                        '.TimeUtils.get_utc_formatted_timestamp_for_file_name',
                        return_value='01-01-2022T00-00-00Z'):
                 file_name = data_saver.get_file_name(pair, market, stream_type)
@@ -1703,7 +1699,7 @@ class TestArchiverFacade:
             }
             logger = setup_logger()
             global_shutdown_flag = threading.Event()
-            data_saver = DataSaver(
+            data_saver = DataSaverSender(
                 logger=logger,
                 config=config,
                 azure_blob_parameters_with_key=None,
