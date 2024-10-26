@@ -13,7 +13,7 @@ import requests
 from binance_archiver.data_saver_sender import DataSaverSender
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
-from binance_archiver.time_utils import TimeUtils
+from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.url_factory import URLFactory
 
 
@@ -191,9 +191,9 @@ class SnapshotManager:
         url = URLFactory.get_snapshot_url(market=market, pair=pair)
 
         try:
-            request_timestamp = TimeUtils.get_utc_timestamp_epoch_milliseconds()
+            request_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
             response = requests.get(url, timeout=5)
-            receive_timestamp = TimeUtils.get_utc_timestamp_epoch_milliseconds()
+            receive_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
             response.raise_for_status()
             data = response.json()
 

@@ -16,19 +16,19 @@ from ..exceptions import (
     WebSocketLifeTimeException
 )
 
-from ..binance_archiver_facade import (
-    launch_data_sink,
+from ..listener_facade import (
     launch_data_listener,
-    DataSinkFacade,
     ListenerFacade
 )
+from ..data_sink_facade import DataSinkFacade
+from .. import launch_data_sink
 from ..snapshot_manager import SnapshotStrategy, DataSinkSnapshotStrategy, ListenerSnapshotStrategy, SnapshotManager
 from ..listener_observer_updater import ListenerObserverUpdater
 from ..data_saver_sender import DataSaverSender
 from ..queue_pool import QueuePoolListener, QueuePoolDataSink
 from ..stream_service import StreamService
 from ..commandline_interface import CommandLineInterface
-from ..time_utils import TimeUtils
+from ..timestamps_generator import TimestampsGenerator
 from ..fastapi_manager import FastAPIManager
 
 from ..setup_logger import setup_logger
@@ -1076,7 +1076,7 @@ class TestArchiverFacade:
                     mock_response.json.return_value = response_data
                     mock_get.return_value = mock_response
 
-                    with patch.object(TimeUtils, 'get_utc_timestamp_epoch_milliseconds', side_effect=[1000, 2000]):
+                    with patch.object(TimestampsGenerator, 'get_utc_timestamp_epoch_milliseconds', side_effect=[1000, 2000]):
                         data, request_timestamp, receive_timestamp = snapshot_manager._get_snapshot("BTCUSDT",
                                                                                                     Market.SPOT)
 
@@ -1671,8 +1671,8 @@ class TestArchiverFacade:
             market = Market.SPOT
             stream_type = StreamType.DIFFERENCE_DEPTH_STREAM
 
-            with patch('binance_archiver.time_utils'
-                       '.TimeUtils.get_utc_formatted_timestamp_for_file_name',
+            with patch('binance_archiver.timestamps_generator'
+                       '.TimestampsGenerator.get_utc_formatted_timestamp_for_file_name',
                        return_value='01-01-2022T00-00-00Z'):
                 file_name = data_saver.get_file_name(pair, market, stream_type)
 
@@ -1713,17 +1713,17 @@ class TestArchiverFacade:
             assert data_saver.s3_client is None, "Backblaze S3 Client should be None in LISTENER mode"
 
 
-    class TestTimeUtils:
+    class TestTimestampsGenerator:
 
         def test_given_time_utils_when_getting_utc_formatted_timestamp_then_format_is_correct(self):
-            timestamp = TimeUtils.get_utc_formatted_timestamp_for_file_name()
+            timestamp = TimestampsGenerator.get_utc_formatted_timestamp_for_file_name()
             pattern = re.compile(r'\d{2}-\d{2}-\d{4}T\d{2}-\d{2}-\d{2}Z')
             assert re.match(r'\d{2}-\d{2}-\d{4}T\d{2}-\d{2}-\d{2}Z', timestamp), \
                 "Timestamp should match the format '%d-%m-%YT%H-%M-%SZ'"
             assert pattern.match(timestamp), f"Timestamp {timestamp} does not match the expected format %d-%m-%YT%H-%M-%SZ"
 
         def test_given_time_utils_when_getting_utc_timestamp_epoch_milliseconds_then_timestamp_is_accurate(self):
-            timestamp_milliseconds_method = TimeUtils.get_utc_timestamp_epoch_milliseconds()
+            timestamp_milliseconds_method = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
             timestamp_milliseconds_now = round(datetime.now(timezone.utc).timestamp() * 1000)
 
             assert isinstance(timestamp_milliseconds_now, int), "Timestamp should be an integer"
@@ -1731,15 +1731,15 @@ class TestArchiverFacade:
                     "The timestamp in milliseconds is not accurate or not in UTC.")
 
         def test_given_time_utils_when_getting_utc_timestamp_epoch_seconds_then_timestamp_is_accurate(self):
-            timestamp_seconds_method = TimeUtils.get_utc_timestamp_epoch_seconds()
+            timestamp_seconds_method = TimestampsGenerator.get_utc_timestamp_epoch_seconds()
             timestamp_seconds_now = round(datetime.now(timezone.utc).timestamp())
 
             assert (abs(timestamp_seconds_method - timestamp_seconds_now) < 2,
                     "The timestamp in seconds is not accurate or not in UTC.")
 
         def test_given_get_actual_epoch_timestamp_when_called_then_timestamps_are_in_utc(self):
-            timestamp_seconds_method = TimeUtils.get_utc_timestamp_epoch_seconds()
-            timestamp_milliseconds_method = TimeUtils.get_utc_timestamp_epoch_milliseconds()
+            timestamp_seconds_method = TimestampsGenerator.get_utc_timestamp_epoch_seconds()
+            timestamp_milliseconds_method = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
 
             datetime_seconds = datetime.fromtimestamp(timestamp_seconds_method, tz=timezone.utc)
             datetime_milliseconds = datetime.fromtimestamp(timestamp_milliseconds_method / 1000, tz=timezone.utc)
@@ -1748,7 +1748,7 @@ class TestArchiverFacade:
             assert datetime_milliseconds.tzinfo == timezone.utc, "The timestamp in milliseconds is not in UTC."
 
         def test_get_utc_timestamp_epoch_seconds_returns_int(self):
-            timestamp = TimeUtils.get_utc_timestamp_epoch_seconds()
+            timestamp = TimestampsGenerator.get_utc_timestamp_epoch_seconds()
             assert isinstance(timestamp, int), "Timestamp should be an integer"
 
 

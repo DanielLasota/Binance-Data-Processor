@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 
-class TimeUtils:
+class TimestampsGenerator:
     __slots__ = ()
 
     @staticmethod

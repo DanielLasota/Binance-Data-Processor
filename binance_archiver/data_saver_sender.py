@@ -17,7 +17,7 @@ from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.queue_pool import QueuePoolListener, QueuePoolDataSink
-from binance_archiver.time_utils import TimeUtils
+from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.trade_queue import TradeQueue
 
 
@@ -289,5 +289,5 @@ class DataSaverSender:
 
     @staticmethod
     def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:
-        formatted_now_timestamp = TimeUtils.get_utc_formatted_timestamp_for_file_name()
+        formatted_now_timestamp = TimestampsGenerator.get_utc_formatted_timestamp_for_file_name()
         return f"binance_{stream_type.name.lower()}_{market.name.lower()}_{pair.lower()}_{formatted_now_timestamp}"
