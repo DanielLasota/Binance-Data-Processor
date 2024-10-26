@@ -4,21 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: classess split">
-      <change afterPath="$PROJECT_DIR$/binance_archiver/data_sink_facade.py" afterDir="false" />
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: DataSaverSender rename to DataWriterSender">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/binance_archiver_facade.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/listener_facade.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/config/almost_production_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stock_data_sink_configs/almost_production_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/config/production_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stock_data_sink_configs/production_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/config/test_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stock_data_sink_configs/test_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/data_saver_sender.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/data_saver_sender.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/is_running_in_docker.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/libraries_override/websocket/_socket.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/load_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/load_config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/snapshot_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/snapshot_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/binance_archiver_facade_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/binance_archiver_facade_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/time_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/timestamps_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -379,7 +367,7 @@
     "Python.main (1).executor": "Run",
     "Python.main.executor": "Run",
     "Python.main_data_quality_analytic.executor": "Run",
-    "Python.main_data_sink.executor": "Run",
+    "Python.main_data_sink.executor": "Debug",
     "Python.main_listener.executor": "Run",
     "Python.main_scraper.executor": "Run",
     "Python.test_app.executor": "Run",
@@ -407,7 +395,51 @@
       <recent name="C:\Users\defrg\PycharmProjects\Binance-Archiver\binance_archiver\config" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue">
+  <component name="RunManager" selected="Python.main_data_sink">
+    <configuration name="main_data_sink" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main_data_sink.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main_listener" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main_listener.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -418,23 +450,6 @@
       <deployment type="dockerfile">
         <settings />
       </deployment>
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for blackout_supervisor_tests.TestBlackoutSupervisor" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;blackout_supervisor_tests.TestBlackoutSupervisor&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <configuration name="pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
@@ -488,30 +503,13 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for trade_queue_tests.TestTradeQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;trade_queue_tests.TestTradeQueue&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main_data_sink" />
+        <item itemvalue="Python.main_listener" />
         <item itemvalue="Python tests.pytest for difference_depth_queue_tests.TestDifferenceDepthQueue" />
         <item itemvalue="Python tests.pytest for scraper_tests.TestIndividualColumnChecker" />
         <item itemvalue="Python tests.pytest for stream_listener_tests.TestStreamListener" />
-        <item itemvalue="Python tests.pytest for blackout_supervisor_tests.TestBlackoutSupervisor" />
-        <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
       </list>
     </recent_temporary>
   </component>
@@ -549,38 +547,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00081" summary="fix: setup_logger.py arguments fixes">
-      <option name="closed" value="true" />
-      <created>1726527269297</created>
-      <option name="number" value="00081" />
-      <option name="presentableId" value="LOCAL-00081" />
-      <option name="project" value="LOCAL" />
-      <updated>1726527269297</updated>
-    </task>
-    <task id="LOCAL-00082" summary="feat: New trade queue switch mechanism &#10;test: added tests into trade_queue_tests.py">
-      <option name="closed" value="true" />
-      <created>1726706082356</created>
-      <option name="number" value="00082" />
-      <option name="presentableId" value="LOCAL-00082" />
-      <option name="project" value="LOCAL" />
-      <updated>1726706082357</updated>
-    </task>
-    <task id="LOCAL-00083" summary="build: Dockerfile pythonpath">
-      <option name="closed" value="true" />
-      <created>1726709332559</created>
-      <option name="number" value="00083" />
-      <option name="presentableId" value="LOCAL-00083" />
-      <option name="project" value="LOCAL" />
-      <updated>1726709332560</updated>
-    </task>
-    <task id="LOCAL-00084" summary="build: rename binance_archiver subfolder">
-      <option name="closed" value="true" />
-      <created>1726733071896</created>
-      <option name="number" value="00084" />
-      <option name="presentableId" value="LOCAL-00084" />
-      <option name="project" value="LOCAL" />
-      <updated>1726733071897</updated>
     </task>
     <task id="LOCAL-00085" summary="build: rename binance_archiver subfolder&#10;test: stream_listener_tests.py fixes after trade queue switch mechanism update">
       <option name="closed" value="true" />
@@ -942,7 +908,39 @@
       <option name="project" value="LOCAL" />
       <updated>1729903393787</updated>
     </task>
-    <option name="localTasksCounter" value="130" />
+    <task id="LOCAL-00130" summary="refactor: classess split second round">
+      <option name="closed" value="true" />
+      <created>1729905389256</created>
+      <option name="number" value="00130" />
+      <option name="presentableId" value="LOCAL-00130" />
+      <option name="project" value="LOCAL" />
+      <updated>1729905389256</updated>
+    </task>
+    <task id="LOCAL-00131" summary="refactor: classess split second round">
+      <option name="closed" value="true" />
+      <created>1729905427428</created>
+      <option name="number" value="00131" />
+      <option name="presentableId" value="LOCAL-00131" />
+      <option name="project" value="LOCAL" />
+      <updated>1729905427428</updated>
+    </task>
+    <task id="LOCAL-00132" summary="refactor: DataSaverSender rename to DataWriterSender">
+      <option name="closed" value="true" />
+      <created>1729935115438</created>
+      <option name="number" value="00132" />
+      <option name="presentableId" value="LOCAL-00132" />
+      <option name="project" value="LOCAL" />
+      <updated>1729935115438</updated>
+    </task>
+    <task id="LOCAL-00133" summary="refactor: DataSaverSender rename to DataWriterSender">
+      <option name="closed" value="true" />
+      <created>1729935133701</created>
+      <option name="number" value="00133" />
+      <option name="presentableId" value="LOCAL-00133" />
+      <option name="project" value="LOCAL" />
+      <updated>1729935133701</updated>
+    </task>
+    <option name="localTasksCounter" value="134" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1002,8 +1000,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: BackBlaze handle add" />
-    <MESSAGE value="chore: configs update" />
     <MESSAGE value="chore: minor updates" />
     <MESSAGE value="refactor: Minor binance_archiver_facade.py refactor" />
     <MESSAGE value="feat: data scraper init commit" />
@@ -1027,11 +1023,14 @@
     <MESSAGE value="feat: requirements.txt update" />
     <MESSAGE value="fix: unexpected data_sink stop because of threads management fix" />
     <MESSAGE value="refactor: classess split" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: classess split" />
+    <MESSAGE value="refactor: classess split second round" />
+    <MESSAGE value="refactor: DataSaverSender rename to DataWriterSender" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: DataSaverSender rename to DataWriterSender" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
       <configuration name="PythonConfigurationType">
+        <watch expression="message_list" />
         <watch expression="message_list" />
       </configuration>
     </watches-manager>

@@ -3,6 +3,7 @@ import os
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
+import time
 
 from binance_archiver import launch_data_sink
 from load_config import load_config
@@ -12,7 +13,7 @@ if __name__ == "__main__":
 
     # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
     # load_dotenv(env_path)
-    #
+
     # config = load_config('almost_production_config.json')
 
     client = SecretClient(
@@ -40,3 +41,9 @@ if __name__ == "__main__":
         backblaze_bucket_name=backblaze_bucket_name,
         should_dump_logs=True
     )
+
+    while not data_sink.global_shutdown_flag.is_set():
+        time.sleep(8)
+
+    data_sink.logger.info(f'data_sink.global_shutdown_flag.is_set() {data_sink.global_shutdown_flag.is_set()}')
+    data_sink.logger.info('the program has ended, exiting')

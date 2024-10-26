@@ -8,7 +8,6 @@ import threading
 import time
 import zipfile
 from collections import defaultdict
-
 import boto3
 from azure.storage.blob import BlobServiceClient
 from botocore.config import Config
@@ -21,7 +20,7 @@ from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.trade_queue import TradeQueue
 
 
-class DataSaverSender:
+class DataWriterSender:
 
     __slots__ = [
         'config',

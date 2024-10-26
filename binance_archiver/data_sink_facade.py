@@ -7,7 +7,7 @@ import threading
 import time
 
 from binance_archiver.commandline_interface import CommandLineInterface
-from binance_archiver.data_saver_sender import DataSaverSender
+from binance_archiver.data_saver_sender import DataWriterSender
 
 from binance_archiver.exceptions import BadConfigException, BadStorageProviderParameters, WebSocketLifeTimeException
 from binance_archiver.fastapi_manager import FastAPIManager
@@ -87,8 +87,7 @@ def launch_data_sink(
         backblaze_bucket_name=backblaze_bucket_name
     )
 
-    archiver_facade_thread = threading.Thread(target=archiver_facade.run)
-    archiver_facade_thread.start()
+    archiver_facade.run()
 
     return archiver_facade
 
@@ -108,7 +107,7 @@ class DataSinkFacade:
         'stream_service',
         'command_line_interface',
         'fast_api_manager',
-        'data_saver',
+        'data_writer_sender',
         'snapshot_manager'
     ]
 
@@ -146,7 +145,7 @@ class DataSinkFacade:
         self.fast_api_manager = FastAPIManager()
         self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
 
-        self.data_saver = DataSaverSender(
+        self.data_writer_sender = DataWriterSender(
             logger=self.logger,
             config=self.config,
             azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
@@ -157,7 +156,7 @@ class DataSinkFacade:
         )
 
         snapshot_strategy = DataSinkSnapshotStrategy(
-            data_saver=self.data_saver,
+            data_saver=self.data_writer_sender,
             save_to_json=self.config["save_to_json"],
             save_to_zip=self.config["save_to_zip"],
             send_zip_to_blob=self.config["send_zip_to_blob"]
@@ -177,7 +176,7 @@ class DataSinkFacade:
 
         self.fast_api_manager.run()
 
-        self.data_saver.run_data_saver(
+        self.data_writer_sender.run_data_saver(
             queue_pool=self.queue_pool,
             dump_path=dump_path,
             file_duration_seconds=self.config["file_duration_seconds"],
@@ -187,9 +186,6 @@ class DataSinkFacade:
         )
 
         self.snapshot_manager.run_snapshots(dump_path=dump_path)
-
-        while not self.global_shutdown_flag.is_set():
-            time.sleep(4)
 
     def shutdown(self):
         self.logger.info("Shutting down archiver")
