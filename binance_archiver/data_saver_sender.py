@@ -217,7 +217,7 @@ class DataWriterSender:
                     self.save_to_zip(data, file_name, file_path)
 
                 if send_zip_to_blob:
-                    self.send_zipped_json_to_blob(data, file_name)
+                    self.send_zipped_json_to_cloud_storage(data, file_name)
 
     def save_to_json(self, data, file_path) -> None:
         try:
@@ -238,7 +238,7 @@ class DataWriterSender:
         except IOError as e:
             self.logger.error(f"IO Error whilst saving to zip: {zip_file_path}: {e}")
 
-    def send_zipped_json_to_blob(self, data, file_name: str):
+    def send_zipped_json_to_cloud_storage(self, data, file_name: str):
         if self.s3_client and self.backblaze_bucket_name:
             self.send_zipped_json_to_backblaze(data, file_name)
         elif self.azure_blob_service_client and self.azure_container_client:

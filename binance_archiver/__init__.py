@@ -2,7 +2,7 @@ from binance_archiver.listener_facade import launch_data_listener
 from binance_archiver.data_sink_facade import launch_data_sink
 
 from binance_archiver.scraper import (
-    download_data,
+    download_csv_data,
     conduct_csv_files_data_quality_analysis,
     conduct_whole_directory_of_csvs_data_quality_analysis
 )
@@ -10,7 +10,7 @@ from binance_archiver.scraper import (
 __all__ = [
     'launch_data_sink',
     'launch_data_listener',
-    'download_data',
+    'download_csv_data',
     'conduct_whole_directory_of_csvs_data_quality_analysis',
     'conduct_csv_files_data_quality_analysis'
 ]

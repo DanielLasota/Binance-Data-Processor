@@ -1,16 +1,14 @@
 from __future__ import annotations
+
 import io
 import os
 import zipfile
 from dataclasses import dataclass
 from datetime import timedelta, datetime
-
 import boto3
-import numpy as np
 import orjson
 from alive_progress import alive_bar
 import pandas as pd
-
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from abc import ABC, abstractmethod
@@ -23,7 +21,7 @@ BINANCE_ARCHIVER_LOGO = binance_archiver_logo
 
 
 __all__ = [
-    'download_data',
+    'download_csv_data',
     'conduct_whole_directory_of_csvs_data_quality_analysis',
     'conduct_csv_files_data_quality_analysis'
 ]
@@ -46,7 +44,7 @@ class StorageConnectionParameters:
     backblaze_bucket_name: str | None = None
 
 
-def download_data(
+def download_csv_data(
         start_date: str,
         end_date: str,
         dump_path: str | None = None,
@@ -84,12 +82,17 @@ def download_data(
 
 class DataScraper:
 
-    __slots__ = ['storage_client']
+    __slots__ = [
+        'storage_client',
+        'data_quality_checker'
+    ]
 
     def __init__(
             self,
             storage_connection_parameters
     ) -> None:
+
+        self.data_quality_checker = DataQualityChecker()
 
         if storage_connection_parameters.blob_connection_string is not None:
             self.storage_client = AzureClient(
@@ -116,7 +119,7 @@ class DataScraper:
             dump_path: str | None
     ) -> None:
 
-        print(BINANCE_ARCHIVER_LOGO)
+        print(f'\033[35m{BINANCE_ARCHIVER_LOGO}')
 
         if dump_path is None:
             dump_path = os.path.join(os.path.expanduser("~"), 'binance_archival_data').replace('\\', '/')
@@ -141,9 +144,7 @@ class DataScraper:
         ]
         amount_of_files_to_be_made = len(asset_parameters_list) * len(dates)
 
-        print('\033[36m')
-        print(f'ought to download {amount_of_files_to_be_made} files:')
-        print('')
+        print(f'\033[36mought to download {amount_of_files_to_be_made} files to: {dump_path}: \n\n\n')
 
         for date in dates:
             for asset_parameters in asset_parameters_list:
@@ -154,9 +155,16 @@ class DataScraper:
                     f'{asset_parameters.market} '
                     f'{date}'
                 )
-                self._download_as_csv(asset_parameters, date, dump_path)
 
-    def _download_as_csv(self, asset_parameters: AssetParameters, date: str, dump_path: str) -> None:
+                dataframe = self._download_files_as_one_df(asset_parameters, date)
+                # dataframe_quality_report = self.data_quality_checker.get_dataframe_quality_report(dataframe, asset_parameters)
+                file_name = self._get_file_name(asset_parameters=asset_parameters, date=date)
+                dataframe.to_csv(f'{dump_path}/{file_name}.csv', index=False)
+
+                # print(dataframe_quality_report)
+                print()
+
+    def _download_files_as_one_df(self, asset_parameters: AssetParameters, date: str) -> pd.DataFrame:
 
         list_of_prefixes_that_should_be_downloaded = self._get_list_of_prefixes_that_should_be_downloaded(
             asset_parameters=asset_parameters,
@@ -169,8 +177,8 @@ class DataScraper:
 
         dataframe = stream_type_handler(files_list_to_download)
 
-        file_name = self._get_file_name(asset_parameters=asset_parameters, date=date)
-        dataframe.to_csv(f'{dump_path}/{file_name}.csv', index=False)
+        return dataframe
+
 
     def _get_stream_type_handler(self, stream_type: StreamType) -> callable:
         handler_lookup = {
@@ -344,23 +352,7 @@ class DataScraper:
 
     @staticmethod
     def _get_file_name(asset_parameters: AssetParameters, date: str) -> str:
-
-        market_mapping = {
-            Market.SPOT: "spot",
-            Market.USD_M_FUTURES: "futures_usd_m",
-            Market.COIN_M_FUTURES: "futures_coin_m",
-        }
-
-        data_type_mapping = {
-            StreamType.DIFFERENCE_DEPTH_STREAM: "binance_difference_depth",
-            StreamType.DEPTH_SNAPSHOT: "binance_snapshot",
-            StreamType.TRADE_STREAM: "binance_trade",
-        }
-
-        market_short_name = market_mapping.get(asset_parameters.market, "unknown_market")
-        file_name_prefix = data_type_mapping.get(asset_parameters.stream_type, "unknown_data_type")
-
-        return f"{file_name_prefix}_{market_short_name}_{asset_parameters.pair}_{date}"
+        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pair.lower()}_{date}"
 
 
 class IClientHandler(ABC):
@@ -447,16 +439,16 @@ class AzureClient(IClientHandler):
 
 
 def conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory: str) -> None:
-    data_checker = DataChecker()
+    data_checker = DataQualityChecker()
     data_checker.conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory)
 
 
 def conduct_csv_files_data_quality_analysis(csv_paths: list[str]) -> None:
-    data_checker = DataChecker()
+    data_checker = DataQualityChecker()
     data_checker.conduct_csv_files_data_quality_analysis(csv_paths)
 
 
-class DataChecker:
+class DataQualityChecker:
     __slots__ = ()
 
     def __init__(self):
@@ -470,7 +462,7 @@ class DataChecker:
             csv_name = csv_path.split('/')[-1]
             asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
             dataframe = pd.read_csv(csv_path)
-            self.conduct_dataframe_quality_analysis(dataframe=dataframe, asset_parameters=asset_parameters)
+            self.get_dataframe_quality_report(dataframe=dataframe, asset_parameters=asset_parameters)
 
     @staticmethod
     def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
@@ -504,23 +496,28 @@ class DataChecker:
             pair=pair
         )
 
-    def conduct_dataframe_quality_analysis(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> None:
+    def get_dataframe_quality_report(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> str:
         stream_type_handlers = {
-            StreamType.DIFFERENCE_DEPTH_STREAM : self._analyse_difference_depth_dataframe,
-            StreamType.TRADE_STREAM : self._analyse_trade_dataframe,
-            StreamType.DEPTH_SNAPSHOT : self._analyse_difference_depth_snapshot
+            StreamType.DIFFERENCE_DEPTH_STREAM: self._analyse_difference_depth_dataframe,
+            StreamType.TRADE_STREAM: self._analyse_trade_dataframe,
+            StreamType.DEPTH_SNAPSHOT: self._analyse_difference_depth_snapshot
         }
         handler = stream_type_handlers.get(asset_parameters.stream_type)
         handler(dataframe)
+        return '----x\n----r\n----w'
 
     @staticmethod
     def _analyse_difference_depth_dataframe(df: pd.DataFrame) -> None:
-        print(df)
+        is_there_only_one_unique_value_in_series = IndividualColumnChecker.is_there_only_one_unique_value_in_series(df[''])
+        is_whole_series_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(df[''])
+        is_each_series_entry_greater_or_equal_to_previous_one = IndividualColumnChecker.is_each_series_entry_greater_or_equal_to_previous_one(df[''])
 
-    def _analyse_trade_dataframe(self, df: pd.DataFrame) -> None:
+    @staticmethod
+    def _analyse_trade_dataframe(df: pd.DataFrame) -> None:
         ...
 
-    def _analyse_difference_depth_snapshot(self, df: pd.DataFrame) -> None:
+    @staticmethod
+    def _analyse_difference_depth_snapshot(df: pd.DataFrame) -> None:
         ...
 
 
@@ -539,6 +536,10 @@ class IndividualColumnChecker:
     def is_each_series_entry_greater_or_equal_to_previous_one(series: pd.Series) -> bool:
         return series.diff().min() == 0
 
+    @staticmethod
+    def get_event_time_column_statistics(series: pd.Series) -> str:
+        ...
+
 '''
     # DIFFERENCE DEPTH CHECK
 
@@ -552,8 +553,14 @@ class IndividualColumnChecker:
 
     ::["data"]["E"] - Event Time
         czy kazdy następujący po sobie Event Time jest >= od poprzedniego
+        
         czy kazdy następujący po sobie Event Time jest wiekszy od poprzedniego o 100 +- 1 ms
-        Czy każdy z wpisów jest prawidlowym epochem (?)
+            !!!ABANDONNED:
+            EventTime,IsAsk,Price,Quantity,TimestampOfReceive,FirstUpdate,FinalUpdate
+            1729948672083,1,2478.1,0.0077,1729948672090,37975418207,37975418480
+            1729948672136,0,2467.54,19.1307,1729948672141,37975418481,37975418671
+        
+        Czy każdy z wpisów jest prawidlowym epochem w milisekundach
         Czy każdy z wpisów jest z 1 dnia od T00:00:00.000Z do T23:59:59.000Z
 
     ::["data"]["T"] - transaction time, !!! FUTURES COIN M AND FUTURES USD M ONLY !!!

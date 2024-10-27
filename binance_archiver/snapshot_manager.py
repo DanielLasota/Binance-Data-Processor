@@ -68,7 +68,7 @@ class DataSinkSnapshotStrategy(SnapshotStrategy):
         if self.save_to_zip:
             self.data_saver.save_to_zip(snapshot, file_name, file_path)
         if self.send_zip_to_blob:
-            self.data_saver.send_zipped_json_to_blob(snapshot, file_name)
+            self.data_saver.send_zipped_json_to_cloud_storage(snapshot, file_name)
 
 
 class ListenerSnapshotStrategy(SnapshotStrategy):

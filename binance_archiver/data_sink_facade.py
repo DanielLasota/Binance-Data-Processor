@@ -4,11 +4,9 @@ import logging
 import os
 import pprint
 import threading
-import time
 
 from binance_archiver.commandline_interface import CommandLineInterface
 from binance_archiver.data_saver_sender import DataWriterSender
-
 from binance_archiver.exceptions import BadConfigException, BadStorageProviderParameters, WebSocketLifeTimeException
 from binance_archiver.fastapi_manager import FastAPIManager
 from binance_archiver.logo import binance_archiver_logo

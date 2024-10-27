@@ -1364,7 +1364,7 @@ class TestArchiverFacade:
                     cli.handle_command(message)
 
 
-    class TestDataSaver:
+    class TestDataSaverSender:
 
         def setup_method(self):
             self.logger = setup_logger()

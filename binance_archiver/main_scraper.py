@@ -3,12 +3,13 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 
-from binance_archiver.scraper import download_data
+from binance_archiver.scraper import download_csv_data
 
 
 if __name__ == '__main__':
 
-    load_dotenv('.env')
+    env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
+    load_dotenv(env_path)
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
@@ -25,15 +26,15 @@ if __name__ == '__main__':
     backblaze_endpoint_url = client.get_secret(backblaze_endpoint_url_secret_name).value
     backblaze_bucket_name = client.get_secret(backblaze_bucket_name_secret_name).value
 
-    download_data(
+    download_csv_data(
         # dump_path='C:/Users/defrg/binance_data_main/',
-        start_date='05-10-2024',
-        end_date='05-10-2024',
+        start_date='26-10-2024',
+        end_date='26-10-2024',
         backblaze_access_key_id=backblaze_access_key_id,
         backblaze_secret_access_key=backblaze_secret_access_key,
         backblaze_endpoint_url=backblaze_endpoint_url,
         backblaze_bucket_name=backblaze_bucket_name,
-        pairs=["BTCUSDT"],
-        markets=['COIN_M_FUTURES'],
-        stream_types=['TRADE', 'DIFFERENCE_DEPTH']
+        pairs=["ethusdt"],
+        markets=['SPOT'],
+        stream_types=['DIFFERENCE_DEPTH_STREAM']
     )
