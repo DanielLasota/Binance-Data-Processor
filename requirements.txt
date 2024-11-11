@@ -11,3 +11,6 @@ numpy
 alive-progress
 pandas
 pytest
+objgraph
+pympler
+requests

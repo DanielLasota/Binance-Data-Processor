@@ -6,7 +6,7 @@ import pprint
 import threading
 
 from binance_archiver.commandline_interface import CommandLineInterface
-from binance_archiver.data_saver_sender import DataWriterSender
+from binance_archiver.data_saver_sender import StreamDataPreSender
 from binance_archiver.exceptions import BadConfigException, BadStorageProviderParameters, WebSocketLifeTimeException
 from binance_archiver.fastapi_manager import FastAPIManager
 from binance_archiver.logo import binance_archiver_logo
@@ -143,7 +143,7 @@ class DataSinkFacade:
         self.fast_api_manager = FastAPIManager()
         self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
 
-        self.data_writer_sender = DataWriterSender(
+        self.data_writer_sender = StreamDataPreSender(
             logger=self.logger,
             config=self.config,
             azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,

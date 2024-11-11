@@ -10,7 +10,7 @@ from queue import Queue
 
 import requests
 
-from binance_archiver.data_saver_sender import DataWriterSender
+from binance_archiver.data_saver_sender import StreamDataPreSender
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.timestamps_generator import TimestampsGenerator
@@ -24,7 +24,7 @@ class SnapshotStrategy(ABC):
     @abstractmethod
     def handle_snapshot(
         self,
-        snapshot: dict,
+        json_content: str,
         pair: str,
         market: Market,
         dump_path: str,
@@ -44,7 +44,7 @@ class DataSinkSnapshotStrategy(SnapshotStrategy):
 
     def __init__(
         self,
-        data_saver: DataWriterSender,
+        data_saver: StreamDataPreSender,
         save_to_json: bool,
         save_to_zip: bool,
         send_zip_to_blob: bool
@@ -56,7 +56,7 @@ class DataSinkSnapshotStrategy(SnapshotStrategy):
 
     def handle_snapshot(
         self,
-        snapshot: dict,
+        json_content: str,
         pair: str,
         market: Market,
         dump_path: str,
@@ -64,11 +64,11 @@ class DataSinkSnapshotStrategy(SnapshotStrategy):
     ):
         file_path = os.path.join(dump_path, file_name)
         if self.save_to_json:
-            self.data_saver.save_to_json(snapshot, file_path)
+            self.data_saver.save_to_json(json_content, file_path)
         if self.save_to_zip:
-            self.data_saver.save_to_zip(snapshot, file_name, file_path)
+            self.data_saver.save_to_zip(json_content, file_name, file_path)
         if self.send_zip_to_blob:
-            self.data_saver.send_zipped_json_to_cloud_storage(snapshot, file_name)
+            self.data_saver.send_zipped_json_to_cloud_storage(json_content, file_name)
 
 
 class ListenerSnapshotStrategy(SnapshotStrategy):
@@ -79,13 +79,13 @@ class ListenerSnapshotStrategy(SnapshotStrategy):
 
     def handle_snapshot(
         self,
-        snapshot: dict,
+        json_content: dict,
         pair: str,
         market: Market,
         dump_path: str,
         file_name: str
     ):
-        self.global_queue.put(json.dumps(snapshot))
+        self.global_queue.put(json_content)
 
 
 class SnapshotManager:
@@ -149,22 +149,16 @@ class SnapshotManager:
         while not self.global_shutdown_flag.is_set():
             for pair in pairs:
                 try:
-                    snapshot, request_timestamp, receive_timestamp = self._get_snapshot(pair, market)
+                    message = self._request_snapshot_with_timestamps(pair, market)
 
-                    if snapshot is None:
-                        continue
-
-                    snapshot["_rq"] = request_timestamp
-                    snapshot["_rc"] = receive_timestamp
-
-                    file_name = DataWriterSender.get_file_name(
+                    file_name = StreamDataPreSender.get_file_name(
                         pair=pair,
                         market=market,
                         stream_type=StreamType.DEPTH_SNAPSHOT
                     )
 
                     self.snapshot_strategy.handle_snapshot(
-                        snapshot=snapshot,
+                        json_content=message,
                         pair=pair,
                         market=market,
                         dump_path=dump_path,
@@ -187,7 +181,8 @@ class SnapshotManager:
                 break
             time.sleep(interval)
 
-    def _get_snapshot(self, pair: str, market: Market) -> tuple[dict[str, any] | None, int | None, int | None]:
+    @staticmethod
+    def _request_snapshot_with_timestamps(pair: str, market: Market) -> str:
         url = URLFactory.get_snapshot_url(market=market, pair=pair)
 
         try:
@@ -195,11 +190,14 @@ class SnapshotManager:
             response = requests.get(url, timeout=5)
             receive_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
             response.raise_for_status()
-            data = response.json()
 
-            return data, request_timestamp, receive_timestamp
+            message = (response.text[:-1]
+                       + f',"_rq":{request_timestamp}'
+                         f',"_rc":{receive_timestamp}'
+                         f'}}'
+                       )
+
+            return message
 
         except Exception as e:
-            self.logger.error(f"Error whilst fetching snapshot: {e}")
-
-            return None, None, None
+            raise Exception(f"Error whilst fetching snapshot: {e}")

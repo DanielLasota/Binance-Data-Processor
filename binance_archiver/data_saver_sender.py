@@ -11,6 +11,7 @@ from collections import defaultdict
 import boto3
 from azure.storage.blob import BlobServiceClient
 from botocore.config import Config
+import re
 
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
@@ -20,7 +21,7 @@ from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.trade_queue import TradeQueue
 
 
-class DataWriterSender:
+class StreamDataPreSender:
 
     __slots__ = [
         'config',
@@ -32,7 +33,8 @@ class DataWriterSender:
         'global_shutdown_flag',
         'azure_blob_service_client',
         'azure_container_client',
-        's3_client'
+        's3_client',
+        '_stream_message_pair_pattern'
     ]
 
 
@@ -53,6 +55,7 @@ class DataWriterSender:
         self.backblaze_s3_parameters = backblaze_s3_parameters
         self.backblaze_bucket_name = backblaze_bucket_name
         self.global_shutdown_flag = global_shutdown_flag
+        self._stream_message_pair_pattern = re.compile(r'"stream":"(\w+)@')
 
         if self.azure_blob_parameters_with_key and self.azure_container_name:
             try:
@@ -195,34 +198,32 @@ class DataWriterSender:
             stream_data = defaultdict(list)
 
             while not queue.empty():
-                message, timestamp_of_receive = queue.get_nowait()
-                message = json.loads(message)
+                message = queue.get_nowait()
 
-                stream = message.get("stream")
-                if not stream:
-                    continue
+                match = self._stream_message_pair_pattern.search(message)
+                pair_found_in_message = match.group(1)
 
-                message["_E"] = timestamp_of_receive
-                stream_data[stream].append(message)
+                stream_data[pair_found_in_message].append(message)
 
-            for stream, data in stream_data.items():
-                _pair = stream.split("@")[0]
-                file_name = self.get_file_name(_pair, market, stream_type)
+            for pair, data in stream_data.items():
+                file_name = self.get_file_name(pair, market, stream_type)
                 file_path = os.path.join(dump_path, file_name)
 
+                json_content = '[' + ','.join(data) + ']'
+
                 if save_to_json:
-                    self.save_to_json(data, file_path)
+                    self.save_to_json(data=json_content, file_path=file_path)
 
                 if save_to_zip:
-                    self.save_to_zip(data, file_name, file_path)
+                    self.save_to_zip(data=json_content, file_name=file_name, file_path=file_path)
 
                 if send_zip_to_blob:
-                    self.send_zipped_json_to_cloud_storage(data, file_name)
+                    self.send_zipped_json_to_cloud_storage(data=json_content, file_name=file_name)
 
     def save_to_json(self, data, file_path) -> None:
         try:
             with open(f'{file_path}.json', "w") as f:
-                json.dump(data, f)
+                f.write(data)
             self.logger.debug(f"Saved to JSON: {file_path}")
         except IOError as e:
             self.logger.error(f"IO Error whilst saving to file {file_path}: {e}")
@@ -231,9 +232,8 @@ class DataWriterSender:
         zip_file_path = f"{file_path}.zip"
         try:
             with zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-                json_data = json.dumps(data)
                 json_filename = f"{file_name}.json"
-                zipf.writestr(json_filename, json_data)
+                zipf.writestr(json_filename, data)
             self.logger.debug(f"Saved to ZIP: {zip_file_path}")
         except IOError as e:
             self.logger.error(f"IO Error whilst saving to zip: {zip_file_path}: {e}")
