@@ -4,20 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: scraper and individual columns checker improvements">
-      <change afterPath="$PROJECT_DIR$/binance_archiver/requests.http" afterDir="false" />
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/commandline_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/commandline_interface.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/data_saver_sender.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/data_saver_sender.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/data_sink_facade.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/data_sink_facade.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/difference_depth_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/fastapi_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/fastapi_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_quality_analytic.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_quality_analytic.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/snapshot_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/snapshot_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/binance_archiver_facade_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/binance_archiver_facade_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/trade_queue.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/trade_queue.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_scraper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/scraper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/test/fastapi_manager_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/fastapi_manager_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -398,7 +392,7 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
     &quot;two.files.diff.last.used.file&quot;: &quot;C:/Users/daniellasota/PycharmProjects/Binance-Archiver/venv/Lib/site-packages/websocket/_socket.py&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
@@ -412,7 +406,29 @@
       <recent name="C:\Users\defrg\PycharmProjects\Binance-Archiver\binance_archiver\config" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main_scraper">
+  <component name="RunManager" selected="Python.main_data_sink">
+    <configuration name="main_data_quality_analytic" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main_data_quality_analytic.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main_data_sink" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -486,23 +502,6 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for scraper_tests.TestIndividualColumnChecker" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;scraper_tests.TestIndividualColumnChecker&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
     <configuration name="pytest for trade_queue_tests.TestTradeQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
@@ -522,11 +521,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main_scraper" />
         <item itemvalue="Python.main_data_sink" />
+        <item itemvalue="Python.main_data_quality_analytic" />
+        <item itemvalue="Python.main_scraper" />
         <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
         <item itemvalue="Python tests.pytest for binance_archiver.test.binance_archiver_facade_tests.TestArchiverFacade" />
-        <item itemvalue="Python tests.pytest for scraper_tests.TestIndividualColumnChecker" />
       </list>
     </recent_temporary>
   </component>
@@ -564,14 +563,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00087" summary="build: package structure refactor to Jean-Paul Calderone's pattern">
-      <option name="closed" value="true" />
-      <created>1726900240087</created>
-      <option name="number" value="00087" />
-      <option name="presentableId" value="LOCAL-00087" />
-      <option name="project" value="LOCAL" />
-      <updated>1726900240088</updated>
     </task>
     <task id="LOCAL-00088" summary="refactor: All archiver_daemon.py code refactored into the Facade pattern. &#10;test: archiver_daemon_tests.py refactored into new archiver_daemon.py Facade pattern">
       <option name="closed" value="true" />
@@ -957,7 +948,15 @@
       <option name="project" value="LOCAL" />
       <updated>1729998266897</updated>
     </task>
-    <option name="localTasksCounter" value="136" />
+    <task id="LOCAL-00136" summary="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler">
+      <option name="closed" value="true" />
+      <created>1731286243055</created>
+      <option name="number" value="00136" />
+      <option name="presentableId" value="LOCAL-00136" />
+      <option name="project" value="LOCAL" />
+      <updated>1731286243055</updated>
+    </task>
+    <option name="localTasksCounter" value="137" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1017,7 +1016,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="refactor: Minor binance_archiver_facade.py refactor" />
     <MESSAGE value="feat: data scraper init commit" />
     <MESSAGE value="feat: New Command for changing websocket life time seconds" />
     <MESSAGE value="feat: New Command for changing file durations seconds" />
@@ -1042,7 +1040,8 @@
     <MESSAGE value="refactor: classess split second round" />
     <MESSAGE value="refactor: DataSaverSender rename to DataWriterSender" />
     <MESSAGE value="feat: scraper and individual columns checker improvements" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: scraper and individual columns checker improvements" />
+    <MESSAGE value="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

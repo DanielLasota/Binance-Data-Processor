@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import json
 import logging
 import os
 import threading
@@ -239,10 +238,13 @@ class StreamDataPreSender:
             self.logger.error(f"IO Error whilst saving to zip: {zip_file_path}: {e}")
 
     def send_zipped_json_to_cloud_storage(self, data, file_name: str):
+
         if self.s3_client and self.backblaze_bucket_name:
             self.send_zipped_json_to_backblaze(data, file_name)
+
         elif self.azure_blob_service_client and self.azure_container_client:
             self.send_zipped_json_to_azure(data, file_name)
+
         else:
             self.logger.error("No storage client Configured")
 
@@ -250,9 +252,8 @@ class StreamDataPreSender:
         try:
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-                json_data = json.dumps(data)
                 json_filename = f"{file_name}.json"
-                zipf.writestr(json_filename, json_data)
+                zipf.writestr(json_filename, data)
 
             zip_buffer.seek(0)
 
@@ -266,9 +267,9 @@ class StreamDataPreSender:
         try:
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-                json_data = json.dumps(data)
+
                 json_filename = f"{file_name}.json"
-                zipf.writestr(json_filename, json_data)
+                zipf.writestr(json_filename, data)
 
             zip_buffer.seek(0)
 

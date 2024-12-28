@@ -60,12 +60,12 @@ def download_csv_data(
         ) -> None:
 
     storage_connection_parameters = StorageConnectionParameters(
-    blob_connection_string,
-    azure_container_name,
-    backblaze_access_key_id,
-    backblaze_secret_access_key,
-    backblaze_endpoint_url,
-    backblaze_bucket_name
+        blob_connection_string,
+        azure_container_name,
+        backblaze_access_key_id,
+        backblaze_secret_access_key,
+        backblaze_endpoint_url,
+        backblaze_bucket_name
     )
 
     data_scraper = DataScraper(storage_connection_parameters)
@@ -337,8 +337,9 @@ class DataScraper:
                     if file_name.endswith('.json'):
                         with z.open(file_name) as json_file:
                             json_bytes = json_file.read()
-                            json_content: list[dict] = orjson.loads(json_bytes)
+                            json_content = orjson.loads(json_bytes)
                             return json_content
+
             print("file .json not found in archive")
         except zipfile.BadZipFile:
             print("bad zip file")
