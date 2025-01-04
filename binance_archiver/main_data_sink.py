@@ -7,7 +7,7 @@ import time
 # import tracemalloc
 
 from binance_archiver import launch_data_sink
-from binance_archiver.load_config import load_config
+# from binance_archiver.load_config import load_config
 
 
 if __name__ == "__main__":
