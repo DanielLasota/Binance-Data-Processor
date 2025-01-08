@@ -4,14 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: boot ready">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/data_saver_sender.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/data_saver_sender.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_quality_analytic.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_quality_analytic.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/main_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_scraper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/binance_archiver/scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/scraper.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/test/fastapi_manager_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/test/fastapi_manager_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,7 +52,7 @@
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/DanielLasota/Binance-Archiver.git&quot;,
-    &quot;accountId&quot;: &quot;ff3a6d08-efbb-4a1e-8d94-b7a43e882e20&quot;
+    &quot;accountId&quot;: &quot;cad7280d-26bd-4f6b-b1c3-ac91d2fea0f1&quot;
   }
 }</component>
   <component name="HighlightingSettingsPerFile">
@@ -384,6 +380,7 @@
     &quot;Python.test_app.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;feature/add-azure-n-backblaze-scraper&quot;,
     &quot;last.edited.regexp&quot;: &quot;\&quot;E\&quot;:123,&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/daniellasota/PycharmProjects/Binance-Archiver/venv/Lib/site-packages/websocket/_socket.py&quot;,
@@ -392,7 +389,7 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;,
     &quot;two.files.diff.last.used.file&quot;: &quot;C:/Users/daniellasota/PycharmProjects/Binance-Archiver/venv/Lib/site-packages/websocket/_socket.py&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
@@ -406,27 +403,17 @@
       <recent name="C:\Users\defrg\PycharmProjects\Binance-Archiver\binance_archiver\config" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main_data_sink">
-    <configuration name="main_data_quality_analytic" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/binance_archiver/main_data_quality_analytic.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
+  <component name="RunManager" selected="Python.main_scraper">
+    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
+      <deployment type="docker-compose.yml">
+        <settings />
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
+      <deployment type="dockerfile">
+        <settings />
+      </deployment>
       <method v="2" />
     </configuration>
     <configuration name="main_data_sink" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
@@ -473,36 +460,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
-      <deployment type="docker-compose.yml">
-        <settings />
-      </deployment>
-      <method v="2" />
-    </configuration>
-    <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
-      <deployment type="dockerfile">
-        <settings />
-      </deployment>
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for binance_archiver.test.binance_archiver_facade_tests.TestArchiverFacade" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="Binance Archiver" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_parameters" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;binance_archiver.test.binance_archiver_facade_tests.TestArchiverFacade&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="pytest for trade_queue_tests.TestTradeQueue" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for scraper_tests.TestIndividualColumnChecker" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Binance Archiver" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -515,24 +473,58 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;trade_queue_tests.TestTradeQueue&quot;" />
+      <option name="_new_target" value="&quot;scraper_tests.TestIndividualColumnChecker&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for scraper_tests.TestIndividualColumnChecker.test_given_only_one_unique_value_in_pandas_series_when_is_there_only_one_unique_value_in_series_check_then_true_is_being_returned" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;scraper_tests.TestIndividualColumnChecker.test_given_only_one_unique_value_in_pandas_series_when_is_there_only_one_unique_value_in_series_check_then_true_is_being_returned&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for scraper_tests.TestScraper" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="Binance Archiver" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/binance_archiver/test" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;scraper_tests.TestScraper&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main_data_sink" />
-        <item itemvalue="Python.main_data_quality_analytic" />
         <item itemvalue="Python.main_scraper" />
-        <item itemvalue="Python tests.pytest for trade_queue_tests.TestTradeQueue" />
-        <item itemvalue="Python tests.pytest for binance_archiver.test.binance_archiver_facade_tests.TestArchiverFacade" />
+        <item itemvalue="Python tests.pytest for scraper_tests.TestIndividualColumnChecker" />
+        <item itemvalue="Python tests.pytest for scraper_tests.TestIndividualColumnChecker.test_given_only_one_unique_value_in_pandas_series_when_is_there_only_one_unique_value_in_series_check_then_true_is_being_returned" />
+        <item itemvalue="Python tests.pytest for scraper_tests.TestScraper" />
+        <item itemvalue="Python.main_data_sink" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-0e3be3396995-c546a90a8094-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-242.23339.19" />
+        <option value="bundled-python-sdk-495700d161d3-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.22562.220" />
       </set>
     </attachedChunks>
   </component>
@@ -563,22 +555,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00088" summary="refactor: All archiver_daemon.py code refactored into the Facade pattern. &#10;test: archiver_daemon_tests.py refactored into new archiver_daemon.py Facade pattern">
-      <option name="closed" value="true" />
-      <created>1726925042723</created>
-      <option name="number" value="00088" />
-      <option name="presentableId" value="LOCAL-00088" />
-      <option name="project" value="LOCAL" />
-      <updated>1726925042723</updated>
-    </task>
-    <task id="LOCAL-00089" summary="feat: Working mode launch_data_listener add">
-      <option name="closed" value="true" />
-      <created>1727181902452</created>
-      <option name="number" value="00089" />
-      <option name="presentableId" value="LOCAL-00089" />
-      <option name="project" value="LOCAL" />
-      <updated>1727181902453</updated>
     </task>
     <task id="LOCAL-00090" summary="refactor: Split ArchiverFacade into ListenerFacade and DataSinkFacade&#10;test: split">
       <option name="closed" value="true" />
@@ -956,7 +932,23 @@
       <option name="project" value="LOCAL" />
       <updated>1731286243055</updated>
     </task>
-    <option name="localTasksCounter" value="137" />
+    <task id="LOCAL-00137" summary="feat: boot ready">
+      <option name="closed" value="true" />
+      <created>1736007367004</created>
+      <option name="number" value="00137" />
+      <option name="presentableId" value="LOCAL-00137" />
+      <option name="project" value="LOCAL" />
+      <updated>1736007367004</updated>
+    </task>
+    <task id="LOCAL-00138" summary="feat: boot ready">
+      <option name="closed" value="true" />
+      <created>1736007878916</created>
+      <option name="number" value="00138" />
+      <option name="presentableId" value="LOCAL-00138" />
+      <option name="project" value="LOCAL" />
+      <updated>1736007878916</updated>
+    </task>
+    <option name="localTasksCounter" value="139" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1016,7 +1008,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: data scraper init commit" />
     <MESSAGE value="feat: New Command for changing websocket life time seconds" />
     <MESSAGE value="feat: New Command for changing file durations seconds" />
     <MESSAGE value="feat: New Command for changing snapshot intervals" />
@@ -1041,7 +1032,8 @@
     <MESSAGE value="refactor: DataSaverSender rename to DataWriterSender" />
     <MESSAGE value="feat: scraper and individual columns checker improvements" />
     <MESSAGE value="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler" />
+    <MESSAGE value="feat: boot ready" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: boot ready" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

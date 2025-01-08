@@ -8,8 +8,9 @@ from binance_archiver.scraper import download_csv_data
 
 if __name__ == '__main__':
 
-    env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
-    load_dotenv(env_path)
+    # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
+    # load_dotenv(env_path)
+    load_dotenv('binance-archiver.env')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
@@ -28,13 +29,13 @@ if __name__ == '__main__':
 
     download_csv_data(
         # dump_path='C:/Users/defrg/binance_data_main/',
-        start_date='16-11-2024',
-        end_date='16-11-2024',
+        start_date='05-01-2025',
+        end_date='05-01-2025',
         backblaze_access_key_id=backblaze_access_key_id,
         backblaze_secret_access_key=backblaze_secret_access_key,
         backblaze_endpoint_url=backblaze_endpoint_url,
         backblaze_bucket_name=backblaze_bucket_name,
-        pairs=["ethusdt"],
+        pairs=["trxusdt"],
         markets=['SPOT', 'USD_M_FUTURES', 'COIN_M_FUTURES'],
         stream_types=['DIFFERENCE_DEPTH_STREAM', 'TRADE_STREAM']
     )

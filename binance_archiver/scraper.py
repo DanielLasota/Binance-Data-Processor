@@ -164,6 +164,8 @@ class DataScraper:
                 # print(dataframe_quality_report)
                 print()
 
+        print(f'\nFinished: {dump_path}')
+
     def _download_files_as_one_df(self, asset_parameters: AssetParameters, date: str) -> pd.DataFrame:
 
         list_of_prefixes_that_should_be_downloaded = self._get_list_of_prefixes_that_should_be_downloaded(
@@ -175,10 +177,9 @@ class DataScraper:
 
         stream_type_handler = self._get_stream_type_handler(asset_parameters.stream_type)
 
-        dataframe = stream_type_handler(files_list_to_download)
+        dataframe = stream_type_handler(files_list_to_download, asset_parameters.market)
 
         return dataframe
-
 
     def _get_stream_type_handler(self, stream_type: StreamType) -> callable:
         handler_lookup = {
@@ -189,7 +190,7 @@ class DataScraper:
 
         return handler_lookup[stream_type]
 
-    def _difference_depth_stream_type_handler(self, files_list_to_download: list[str]) -> pd.DataFrame:
+    def _difference_depth_stream_type_handler(self, files_list_to_download: list[str], market: Market) -> pd.DataFrame:
 
         with alive_bar(len(files_list_to_download), force_tty=True, spinner='dots_waves') as bar:
             records = []
@@ -199,50 +200,178 @@ class DataScraper:
                 json_dict: list[dict] = self._convert_response_to_json(response)
 
                 for record in json_dict:
+
+                    stream = record["stream"]
+                    event_type = record["data"]["e"]
                     event_time = record["data"]["E"]
+
+                    if market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+                        transaction_time = record["data"]["T"]
+                        final_update_id_in_last_stream = record["data"]["pu"]
+                    if market == Market.COIN_M_FUTURES:
+                        ps_unknown_field_coin_m_diff_depth_only = record["data"]["ps"]
+
+                    symbol = record["data"]["s"]
                     first_update = record["data"]["U"]
                     final_update = record["data"]["u"]
                     bids = record["data"]["b"]
                     asks = record["data"]["a"]
                     timestamp_of_receive = record["_E"]
 
-                    for bid in bids:
-                        records.append([
-                            event_time,
-                            0,
-                            float(bid[0]),
-                            float(bid[1]),
-                            timestamp_of_receive,
-                            first_update,
-                            final_update
-                        ])
-
-                    for ask in asks:
-                        records.append([
-                            event_time,
-                            1,
-                            float(ask[0]),
-                            float(ask[1]),
-                            timestamp_of_receive,
-                            first_update,
-                            final_update
-                        ])
+                    if market == Market.USD_M_FUTURES:
+                        for bid in bids:
+                            records.append(
+                                [
+                                    timestamp_of_receive,
+                                    stream,
+                                    event_type,
+                                    event_time,
+                                    transaction_time,
+                                    symbol,
+                                    first_update,
+                                    final_update,
+                                    final_update_id_in_last_stream,
+                                    0,
+                                    float(bid[0]),
+                                    float(bid[1])
+                                ]
+                            )
+                        for ask in asks:
+                            records.append(
+                                [
+                                    timestamp_of_receive,
+                                    stream,
+                                    event_type,
+                                    event_time,
+                                    transaction_time,
+                                    symbol,
+                                    first_update,
+                                    final_update,
+                                    final_update_id_in_last_stream,
+                                    1,
+                                    float(ask[0]),
+                                    float(ask[1]),
+                                ]
+                            )
+                    elif market == Market.COIN_M_FUTURES:
+                        for bid in bids:
+                            records.append(
+                                [
+                                    timestamp_of_receive,
+                                    stream,
+                                    event_type,
+                                    event_time,
+                                    transaction_time,
+                                    symbol,
+                                    first_update,
+                                    final_update,
+                                    final_update_id_in_last_stream,
+                                    0,
+                                    float(bid[0]),
+                                    float(bid[1]),
+                                    ps_unknown_field_coin_m_diff_depth_only
+                                ]
+                            )
+                        for ask in asks:
+                            records.append(
+                                [
+                                    timestamp_of_receive,
+                                    stream,
+                                    event_type,
+                                    event_time,
+                                    transaction_time,
+                                    symbol,
+                                    first_update,
+                                    final_update,
+                                    final_update_id_in_last_stream,
+                                    1,
+                                    float(ask[0]),
+                                    float(ask[1]),
+                                    ps_unknown_field_coin_m_diff_depth_only
+                                ]
+                            )
+                    elif market == Market.SPOT:
+                        for bid in bids:
+                            records.append(
+                                [
+                                    timestamp_of_receive,
+                                    stream,
+                                    event_type,
+                                    event_time,
+                                    symbol,
+                                    first_update,
+                                    final_update,
+                                    0,
+                                    float(bid[0]),
+                                    float(bid[1])
+                                ]
+                            )
+                        for ask in asks:
+                            records.append(
+                                [
+                                    timestamp_of_receive,
+                                    stream,
+                                    event_type,
+                                    event_time,
+                                    symbol,
+                                    first_update,
+                                    final_update,
+                                    1,
+                                    float(ask[0]),
+                                    float(ask[1]),
+                                ]
+                            )
 
                 bar()
 
-            columns = [
-                "EventTime",
-                "IsAsk",
-                "Price",
-                "Quantity",
-                "TimestampOfReceive",
-                "FirstUpdate",
-                "FinalUpdate"
-            ]
+            if market == Market.SPOT:
+                columns = [
+                    "TimestampOfReceive",
+                    "Stream",
+                    "EventType",
+                    "EventTime",
+                    "Symbol",
+                    "FirstUpdate",
+                    "FinalUpdate",
+                    "IsAsk",
+                    "Price",
+                    "Quantity"
+                ]
+            elif market == Market.USD_M_FUTURES:
+                columns = [
+                    "TimestampOfReceive",
+                    "Stream",
+                    "EventType",
+                    "EventTime",
+                    "TransactionTime",
+                    "Symbol",
+                    "FirstUpdate",
+                    "FinalUpdate",
+                    "FinalUpdateIdInLastStream",
+                    "IsAsk",
+                    "Price",
+                    "Quantity"
+                ]
+            elif market == Market.COIN_M_FUTURES:
+                columns = [
+                    "TimestampOfReceive",
+                    "Stream",
+                    "EventType",
+                    "EventTime",
+                    "TransactionTime",
+                    "Symbol",
+                    "FirstUpdate",
+                    "FinalUpdate",
+                    "FinalUpdateIdInLastStream",
+                    "IsAsk",
+                    "Price",
+                    "Quantity",
+                    "PSUnknownFieldCoinMDiffDepthOnly"
+                ]
 
         return pd.DataFrame(data=records, columns=columns)
 
-    def _trade_stream_type_handler(self, files_list_to_download: list[str]) -> pd.DataFrame:
+    def _trade_stream_type_handler(self, files_list_to_download: list[str], market: Market) -> pd.DataFrame:
         with alive_bar(len(files_list_to_download), force_tty=True, spinner='dots_waves') as bar:
 
             records = []
@@ -252,41 +381,90 @@ class DataScraper:
                 json_dict: list[dict] = self._convert_response_to_json(response)
 
                 for record in json_dict:
+                    stream = record["stream"]
+                    event_type = record["data"]["e"]
                     event_time = record["data"]["E"]
+                    transaction_time = record["data"]["T"]
+                    symbol = record["data"]["s"]
                     trade_id = record["data"]["t"]
                     price = record["data"]["p"]
                     quantity = record["data"]["q"]
-                    # seller_order_id = record["data"]["a"] if "a" in record["data"] else None
-                    # buyer_order_id = record["data"]["b"] if "b" in record["data"] else None
-                    trade_time = record["data"]["T"]
+                    # seller_order_id = record["data"]["a"] if "a" in record["data"] else None # what the fuck was that?
+                    # buyer_order_id = record["data"]["b"] if "b" in record["data"] else None # what the fuck was that?
                     is_buyer_market_maker = record["data"]["m"]
                     timestamp_of_receive = record["_E"]
 
-                    records.append(
-                        [
-                            event_time,
-                            trade_id,
-                            price,
-                            quantity,
-                            # seller_order_id,
-                            # buyer_order_id,
-                            trade_time,
-                            int(is_buyer_market_maker),
-                            timestamp_of_receive
-                        ]
-                    )
+                    if market == Market.SPOT:
+                        large_m_unknown_parameter = record["data"]["M"]
+
+                    if market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+                        large_x_unknown_parameter = record["data"]["X"]
+
+                    if market == Market.SPOT:
+                        records.append(
+                            [
+                                timestamp_of_receive,
+                                stream,
+                                event_type,
+                                event_time,
+                                transaction_time,
+                                symbol,
+                                trade_id,
+                                price,
+                                quantity,
+                                int(is_buyer_market_maker),
+                                large_m_unknown_parameter
+                            ]
+                        )
+                    elif market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+                        records.append(
+                            [
+                                timestamp_of_receive,
+                                stream,
+                                event_type,
+                                event_time,
+                                transaction_time,
+                                symbol,
+                                trade_id,
+                                price,
+                                quantity,
+                                int(is_buyer_market_maker),
+                                large_x_unknown_parameter
+                            ]
+                        )
 
                 bar()
 
-        columns = [
-            "EventTime",
-            "TradeId",
-            "Price",
-            "Quantity",
-            "TradeTime",
-            "IsBuyerMarketMaker",
-            "TimestampOfReceive"
-        ]
+        columns = []
+
+        if market == Market.SPOT:
+            columns = [
+                "TimestampOfReceive",
+                "Stream",
+                "EventType",
+                "EventTime",
+                "TransactionTime",
+                "Symbol",
+                "TradeId",
+                "Price",
+                "Quantity",
+                "IsBuyerMarketMaker",
+                "MUnknownParameter"
+            ]
+        elif market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+            columns = [
+                "TimestampOfReceive",
+                "Stream",
+                "EventType",
+                "EventTime",
+                "TransactionTime",
+                "Symbol",
+                "TradeId",
+                "Price",
+                "Quantity",
+                "IsBuyerMarketMaker",
+                "XUnknownParameter"
+            ]
 
         return pd.DataFrame(data=records, columns=columns)
 
@@ -510,7 +688,7 @@ class DataQualityChecker:
     @staticmethod
     def _analyse_difference_depth_dataframe(df: pd.DataFrame) -> None:
         is_there_only_one_unique_value_in_series = IndividualColumnChecker.is_there_only_one_unique_value_in_series(df[''])
-        is_whole_series_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(df[''])
+        is_whole_series_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(df[''], )
         is_each_series_entry_greater_or_equal_to_previous_one = IndividualColumnChecker.is_each_series_entry_greater_or_equal_to_previous_one(df[''])
 
     @staticmethod
