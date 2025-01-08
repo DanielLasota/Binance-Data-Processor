@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-# import tracemalloc
-# import objgraph
-# from pympler import asizeof, muppy
+import tracemalloc #
+import objgraph #
+from pympler import asizeof, muppy #
 
 import binance_archiver.data_sink_facade
 from binance_archiver.stream_service import StreamService
@@ -217,13 +217,6 @@ class CommandLineInterface:
                         f"sub-attribute '{sub_attr_name}': size {sub_attr_size} bytes "
                         f"({sub_attr_size / (1024 * 1024):.2f} MB)"
                         f", type {type(sub_attr_value).__name__}")
-
-
-
-
-
-
-
 
 '''
 curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d '{"subscribe": ["StreamType.DifferenceDepth", "Market.SPOT", 'xrpusdt']}'

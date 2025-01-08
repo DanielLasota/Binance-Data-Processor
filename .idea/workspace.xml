@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: boot ready">
+    <list default="true" id="9db54f06-b5e9-410f-aa1a-e8034e427035" name="Changes" comment="feat: update columns in scraped data add all fields variants">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/main_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_scraper.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/binance_archiver/scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/scraper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/commandline_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/commandline_interface.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/main_data_sink.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binance_archiver/stock_data_sink_configs/almost_production_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/binance_archiver/stock_data_sink_configs/almost_production_config.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -403,7 +404,7 @@
       <recent name="C:\Users\defrg\PycharmProjects\Binance-Archiver\binance_archiver\config" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main_scraper">
+  <component name="RunManager" selected="Python.main_data_sink">
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
       <deployment type="docker-compose.yml">
         <settings />
@@ -513,11 +514,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main_data_sink" />
         <item itemvalue="Python.main_scraper" />
         <item itemvalue="Python tests.pytest for scraper_tests.TestIndividualColumnChecker" />
         <item itemvalue="Python tests.pytest for scraper_tests.TestIndividualColumnChecker.test_given_only_one_unique_value_in_pandas_series_when_is_there_only_one_unique_value_in_series_check_then_true_is_being_returned" />
         <item itemvalue="Python tests.pytest for scraper_tests.TestScraper" />
-        <item itemvalue="Python.main_data_sink" />
       </list>
     </recent_temporary>
   </component>
@@ -555,14 +556,6 @@
       <workItem from="1713702840071" duration="1174000" />
       <workItem from="1713862483109" duration="361000" />
       <workItem from="1713896144663" duration="1232000" />
-    </task>
-    <task id="LOCAL-00090" summary="refactor: Split ArchiverFacade into ListenerFacade and DataSinkFacade&#10;test: split">
-      <option name="closed" value="true" />
-      <created>1727219004885</created>
-      <option name="number" value="00090" />
-      <option name="presentableId" value="LOCAL-00090" />
-      <option name="project" value="LOCAL" />
-      <updated>1727219004886</updated>
     </task>
     <task id="LOCAL-00091" summary="chore: Move Enums, configs into separate folders">
       <option name="closed" value="true" />
@@ -948,7 +941,15 @@
       <option name="project" value="LOCAL" />
       <updated>1736007878916</updated>
     </task>
-    <option name="localTasksCounter" value="139" />
+    <task id="LOCAL-00139" summary="feat: update columns in scraped data add all fields variants">
+      <option name="closed" value="true" />
+      <created>1736324585255</created>
+      <option name="number" value="00139" />
+      <option name="presentableId" value="LOCAL-00139" />
+      <option name="project" value="LOCAL" />
+      <updated>1736324585255</updated>
+    </task>
+    <option name="localTasksCounter" value="140" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1008,7 +1009,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: New Command for changing websocket life time seconds" />
     <MESSAGE value="feat: New Command for changing file durations seconds" />
     <MESSAGE value="feat: New Command for changing snapshot intervals" />
     <MESSAGE value="fix: removed print" />
@@ -1033,7 +1033,8 @@
     <MESSAGE value="feat: scraper and individual columns checker improvements" />
     <MESSAGE value="refactor: complete file save system refactor from dict into regex, refactor trade_queue.py and difference_depth_queue.py&#10;rename files&#10;feat: memory leakage tracking: tracemalloc, objgraph and pympler" />
     <MESSAGE value="feat: boot ready" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: boot ready" />
+    <MESSAGE value="feat: update columns in scraped data add all fields variants" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: update columns in scraped data add all fields variants" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

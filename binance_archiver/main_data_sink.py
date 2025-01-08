@@ -4,10 +4,10 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import time
-# import tracemalloc
+import tracemalloc
 
 from binance_archiver import launch_data_sink
-# from binance_archiver.load_config import load_config
+from binance_archiver.load_config import load_config
 
 
 if __name__ == "__main__":
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     backblaze_endpoint_url = client.get_secret(backblaze_endpoint_url_secret_name).value
     backblaze_bucket_name = client.get_secret(backblaze_bucket_name_secret_name).value
 
-    # tracemalloc.start()
+    tracemalloc.start()
 
     data_sink = launch_data_sink(
         config,
