@@ -47,13 +47,13 @@ class StreamService:
     def run_streams(self):
         for market_str, pairs in self.instruments.items():
             market = Market[market_str.upper()]
-            for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
+            for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM]:
                 self.start_stream_service(
                     stream_type=stream_type,
                     market=market
                 )
 
-    def start_stream_service(self,stream_type: StreamType,market: Market) -> None:
+    def start_stream_service(self,stream_type: StreamType, market: Market) -> None:
         queue = self.queue_pool.get_queue(market, stream_type)
         pairs = self.instruments[market.name.lower()]
 
