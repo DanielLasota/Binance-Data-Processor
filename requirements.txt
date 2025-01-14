@@ -7,10 +7,10 @@ fastapi
 uvicorn
 websocket-client
 orjson
-numpy
 alive-progress
-pandas
 pytest
 objgraph
 pympler
 requests
+numpy
+pandas

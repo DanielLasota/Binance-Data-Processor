@@ -5,7 +5,7 @@ class URLFactory:
     __slots__ = ()
 
     @staticmethod
-    def get_snapshot_url(
+    def get_difference_depth_snapshot_url(
             market: Market,
             pair: str,
             limit: int | None = None
@@ -47,7 +47,7 @@ class URLFactory:
         return None
 
     @staticmethod
-    def get_orderbook_stream_url(
+    def get_difference_depth_stream_url(
             market: Market,
             pairs: list[str]
     ) -> str | None:
@@ -60,5 +60,6 @@ class URLFactory:
         streams = '/'.join([f'{pair.lower()}{stream_suffix}' for pair in pairs])
         base_url = base_urls.get(market)
         if base_url:
+            # print(base_url.format(streams))
             return base_url.format(streams)
         return None

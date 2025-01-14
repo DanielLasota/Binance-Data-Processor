@@ -183,7 +183,7 @@ class SnapshotManager:
 
     @staticmethod
     def _request_snapshot_with_timestamps(pair: str, market: Market) -> str:
-        url = URLFactory.get_snapshot_url(market=market, pair=pair)
+        url = URLFactory.get_difference_depth_snapshot_url(market=market, pair=pair)
 
         try:
             request_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()

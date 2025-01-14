@@ -141,7 +141,7 @@ class StreamListener:
         )
 
         stream_url_methods = {
-            StreamType.DIFFERENCE_DEPTH_STREAM: URLFactory.get_orderbook_stream_url,
+            StreamType.DIFFERENCE_DEPTH_STREAM: URLFactory.get_difference_depth_stream_url,
             StreamType.TRADE_STREAM: URLFactory.get_trade_stream_url
         }
 
