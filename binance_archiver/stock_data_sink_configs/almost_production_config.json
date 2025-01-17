@@ -1,13 +1,50 @@
 {
   "instruments": {
     "spot": [
-      "BTCUSDT"
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "DOGEUSDT",
+      "ADAUSDT",
+      "SHIBUSDT",
+      "LTCUSDT",
+      "AVAXUSDT",
+      "TRXUSDT",
+      "DOTUSDT",
+      "BCHUSDT",
+      "SUIUSDT"
     ],
     "usd_m_futures": [
-      "BTCUSDT"
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "DOGEUSDT",
+      "ADAUSDT",
+      "LTCUSDT",
+      "AVAXUSDT",
+      "TRXUSDT",
+      "DOTUSDT",
+      "BCHUSDT",
+      "SUIUSDT"
     ],
     "coin_m_futures": [
-      "BTCUSD_PERP"
+      "BTCUSD_PERP",
+      "ETHUSD_PERP",
+      "BNBUSD_PERP",
+      "SOLUSD_PERP",
+      "XRPUSD_PERP",
+      "DOGEUSD_PERP",
+      "ADAUSD_PERP",
+      "LTCUSD_PERP",
+      "AVAXUSD_PERP",
+      "TRXUSD_PERP",
+      "DOTUSD_PERP",
+      "BCHUSD_PERP",
+      "SUIUSD_PERP"
     ]
   },
   "file_duration_seconds": 120,
@@ -15,5 +52,5 @@
   "websocket_life_time_seconds": 21600,
   "save_to_json": false,
   "save_to_zip": false,
-  "send_zip_to_blob": true
+  "send_zip_to_blob": false
 }
