@@ -122,10 +122,16 @@ class DataScraper:
         print(f'\033[35m{BINANCE_ARCHIVER_LOGO}')
 
         if dump_path is None:
-            dump_path = os.path.join(os.path.expanduser("~"), 'binance_archival_data').replace('\\', '/')
+            dump_path = os.path.join(
+                os.path.expanduser("~"),
+                "Documents",
+                "binance_archival_data"
+            ).replace('\\', '/')
 
         if not os.path.exists(dump_path):
             os.makedirs(dump_path)
+
+        os.startfile(dump_path)
 
         markets = [Market[_.upper()] for _ in markets]
         stream_types = [StreamType[_.upper()] for _ in stream_types]
@@ -157,7 +163,7 @@ class DataScraper:
                 )
 
                 dataframe = self._download_files_as_one_df(asset_parameters, date)
-                # dataframe_quality_report = self.data_quality_checker.get_dataframe_quality_report(dataframe, asset_parameters)
+                dataframe_quality_report = self.data_quality_checker.get_dataframe_quality_report(dataframe, asset_parameters)
                 file_name = self._get_file_name(asset_parameters=asset_parameters, date=date)
                 dataframe.to_csv(f'{dump_path}/{file_name}.csv', index=False)
 
@@ -641,7 +647,8 @@ class DataQualityChecker:
             csv_name = csv_path.split('/')[-1]
             asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
             dataframe = pd.read_csv(csv_path)
-            self.get_dataframe_quality_report(dataframe=dataframe, asset_parameters=asset_parameters)
+            dataframe_quality_report = self.get_dataframe_quality_report(dataframe=dataframe, asset_parameters=asset_parameters)
+            print(dataframe_quality_report)
 
     @staticmethod
     def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
@@ -649,8 +656,8 @@ class DataQualityChecker:
 
         market_mapping = {
             'spot': Market.SPOT,
-            'futures_usd_m': Market.USD_M_FUTURES,
-            'futures_coin_m': Market.COIN_M_FUTURES,
+            'usd_m_futures': Market.USD_M_FUTURES,
+            'coin_m_futures': Market.COIN_M_FUTURES,
         }
 
         stream_type_mapping = {
@@ -679,24 +686,27 @@ class DataQualityChecker:
         stream_type_handlers = {
             StreamType.DIFFERENCE_DEPTH_STREAM: self._analyse_difference_depth_dataframe,
             StreamType.TRADE_STREAM: self._analyse_trade_dataframe,
-            StreamType.DEPTH_SNAPSHOT: self._analyse_difference_depth_snapshot
+            StreamType.DEPTH_SNAPSHOT: self._analyse_difference_depth_snapshot_dataframe
         }
         handler = stream_type_handlers.get(asset_parameters.stream_type)
-        handler(dataframe)
-        return '----x\n----r\n----w'
+        return handler(dataframe)
 
     @staticmethod
-    def _analyse_difference_depth_dataframe(df: pd.DataFrame) -> None:
-        is_there_only_one_unique_value_in_series = IndividualColumnChecker.is_there_only_one_unique_value_in_series(df[''])
-        is_whole_series_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(df[''], )
+    def _analyse_difference_depth_dataframe(df: pd.DataFrame) -> str:
+        is_there_only_one_unique_value_in_series = IndividualColumnChecker.is_there_only_one_unique_value_in_series(df['TimestampOfReceive'])
+        is_whole_series_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(df[''], f'')
         is_each_series_entry_greater_or_equal_to_previous_one = IndividualColumnChecker.is_each_series_entry_greater_or_equal_to_previous_one(df[''])
+
+        data_frame_quality_report = (f'is_there_only_one_unique_value_in_series: {is_there_only_one_unique_value_in_series}'
+                                     f'is_whole_series_made_of_only_one_expected_value')
+        return data_frame_quality_report
 
     @staticmethod
     def _analyse_trade_dataframe(df: pd.DataFrame) -> None:
         ...
 
     @staticmethod
-    def _analyse_difference_depth_snapshot(df: pd.DataFrame) -> None:
+    def _analyse_difference_depth_snapshot_dataframe(df: pd.DataFrame) -> None:
         ...
 
 
