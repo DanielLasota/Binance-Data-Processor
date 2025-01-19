@@ -43,6 +43,7 @@ class URLFactory:
         streams = '/'.join([f'{pair.lower()}{stream_suffix}' for pair in pairs])
         base_url = base_urls.get(market)
         if base_url:
+            # print(base_url.format(streams))
             return base_url.format(streams)
         return None
 
