@@ -39,7 +39,6 @@ class StreamService:
         self.logger = logger
         self.queue_pool = queue_pool
         self.global_shutdown_flag = global_shutdown_flag
-
         self.is_someone_overlapping_right_now_flag = threading.Event()
         self.stream_listeners = {}
         self.overlap_lock: threading.Lock = threading.Lock()

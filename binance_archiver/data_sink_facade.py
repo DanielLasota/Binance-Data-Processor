@@ -6,7 +6,7 @@ import pprint
 import threading
 
 from binance_archiver.commandline_interface import CommandLineInterface
-from binance_archiver.data_saver_sender import StreamDataPreSender
+from binance_archiver.data_saver_sender import StreamDataSaverAndSender
 from binance_archiver.exceptions import BadConfigException, BadStorageProviderParameters, WebSocketLifeTimeException
 from binance_archiver.fastapi_manager import FastAPIManager
 from binance_archiver.logo import binance_archiver_logo
@@ -105,7 +105,7 @@ class DataSinkFacade:
         'stream_service',
         'command_line_interface',
         'fast_api_manager',
-        'data_writer_sender',
+        'stream_data_saver_and_sender',
         'snapshot_manager'
     ]
 
@@ -126,8 +126,8 @@ class DataSinkFacade:
         self.backblaze_bucket_name = backblaze_bucket_name
         self.instruments = config["instruments"]
         self.global_shutdown_flag = threading.Event()
-
         self.queue_pool = QueuePoolDataSink()
+
         self.stream_service = StreamService(
             config=self.config,
             logger=self.logger,
@@ -135,15 +135,7 @@ class DataSinkFacade:
             global_shutdown_flag=self.global_shutdown_flag
         )
 
-        self.command_line_interface = CommandLineInterface(
-            config=self.config,
-            logger=self.logger,
-            stream_service=self.stream_service
-        )
-        self.fast_api_manager = FastAPIManager()
-        self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
-
-        self.data_writer_sender = StreamDataPreSender(
+        self.stream_data_saver_and_sender = StreamDataSaverAndSender(
             logger=self.logger,
             config=self.config,
             azure_blob_parameters_with_key=self.azure_blob_parameters_with_key,
@@ -152,6 +144,15 @@ class DataSinkFacade:
             backblaze_bucket_name=self.backblaze_bucket_name,
             global_shutdown_flag=self.global_shutdown_flag
         )
+
+        self.command_line_interface = CommandLineInterface(
+            config=self.config,
+            logger=self.logger,
+            stream_service=self.stream_service
+        )
+
+        self.fast_api_manager = FastAPIManager()
+        self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
 
         # snapshot_strategy = DataSinkSnapshotStrategy(
         #     data_saver=self.data_writer_sender,
@@ -174,7 +175,7 @@ class DataSinkFacade:
 
         self.fast_api_manager.run()
 
-        self.data_writer_sender.run_data_saver(
+        self.stream_data_saver_and_sender.run_data_saver(
             queue_pool=self.queue_pool,
             dump_path=dump_path,
             file_duration_seconds=self.config["file_duration_seconds"],

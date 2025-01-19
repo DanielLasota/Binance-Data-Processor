@@ -10,7 +10,7 @@ from queue import Queue
 
 import requests
 
-from binance_archiver.data_saver_sender import StreamDataPreSender
+from binance_archiver.data_saver_sender import StreamDataSaverAndSender
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.timestamps_generator import TimestampsGenerator
@@ -44,7 +44,7 @@ class DataSinkSnapshotStrategy(SnapshotStrategy):
 
     def __init__(
         self,
-        data_saver: StreamDataPreSender,
+        data_saver: StreamDataSaverAndSender,
         save_to_json: bool,
         save_to_zip: bool,
         send_zip_to_blob: bool
@@ -151,7 +151,7 @@ class SnapshotManager:
                 try:
                     message = self._request_snapshot_with_timestamps(pair, market)
 
-                    file_name = StreamDataPreSender.get_file_name(
+                    file_name = StreamDataSaverAndSender.get_file_name(
                         pair=pair,
                         market=market,
                         stream_type=StreamType.DEPTH_SNAPSHOT

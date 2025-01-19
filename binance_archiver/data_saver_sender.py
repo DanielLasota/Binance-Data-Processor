@@ -8,9 +8,10 @@ import time
 import zipfile
 from collections import defaultdict
 import boto3
-from azure.storage.blob import BlobServiceClient
-from botocore.config import Config
 import re
+
+# from azure.storage.blob import BlobServiceClient
+from botocore.config import Config
 
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
@@ -20,7 +21,7 @@ from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.trade_queue import TradeQueue
 
 
-class StreamDataPreSender:
+class StreamDataSaverAndSender:
 
     __slots__ = [
         'config',
