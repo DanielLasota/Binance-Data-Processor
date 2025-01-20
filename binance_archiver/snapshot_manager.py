@@ -10,7 +10,7 @@ from queue import Queue
 
 import requests
 
-from binance_archiver.data_saver_sender import StreamDataSaverAndSender
+from binance_archiver.stream_data_save_and_sender import StreamDataSaverAndSender
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.timestamps_generator import TimestampsGenerator

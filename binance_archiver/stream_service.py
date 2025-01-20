@@ -47,7 +47,6 @@ class StreamService:
         for market_str, pairs in self.instruments.items():
             market = Market[market_str.upper()]
             for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
-            # for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM]:
                 self.start_stream_service(
                     stream_type=stream_type,
                     market=market

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-import tracemalloc #
-import objgraph #
-from pympler import asizeof, muppy #
+# import tracemalloc #
+# import objgraph #
+# from pympler import asizeof, muppy #
 
 import binance_archiver.data_sink_facade
 from binance_archiver.stream_service import StreamService

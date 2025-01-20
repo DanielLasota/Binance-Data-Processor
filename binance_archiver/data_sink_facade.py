@@ -6,7 +6,7 @@ import pprint
 import threading
 
 from binance_archiver.commandline_interface import CommandLineInterface
-from binance_archiver.data_saver_sender import StreamDataSaverAndSender
+from binance_archiver.stream_data_save_and_sender import StreamDataSaverAndSender
 from binance_archiver.exceptions import BadConfigException, BadStorageProviderParameters, WebSocketLifeTimeException
 from binance_archiver.fastapi_manager import FastAPIManager
 from binance_archiver.logo import binance_archiver_logo
@@ -154,19 +154,19 @@ class DataSinkFacade:
         self.fast_api_manager = FastAPIManager()
         self.fast_api_manager.set_callback(self.command_line_interface.handle_command)
 
-        # snapshot_strategy = DataSinkSnapshotStrategy(
-        #     data_saver=self.data_writer_sender,
-        #     save_to_json=self.config["save_to_json"],
-        #     save_to_zip=self.config["save_to_zip"],
-        #     send_zip_to_blob=self.config["send_zip_to_blob"]
-        # )
+        snapshot_strategy = DataSinkSnapshotStrategy(
+            data_saver=self.stream_data_saver_and_sender,
+            save_to_json=self.config["save_to_json"],
+            save_to_zip=self.config["save_to_zip"],
+            send_zip_to_blob=self.config["send_zip_to_blob"]
+        )
 
-        # self.snapshot_manager = SnapshotManager(
-        #     config=self.config,
-        #     logger=self.logger,
-        #     snapshot_strategy=snapshot_strategy,
-        #     global_shutdown_flag=self.global_shutdown_flag
-        # )
+        self.snapshot_manager = SnapshotManager(
+            config=self.config,
+            logger=self.logger,
+            snapshot_strategy=snapshot_strategy,
+            global_shutdown_flag=self.global_shutdown_flag
+        )
 
     def run(self) -> None:
         dump_path = self.config.get("dump_path", "dump/")
@@ -184,7 +184,7 @@ class DataSinkFacade:
             send_zip_to_blob=self.config["send_zip_to_blob"]
         )
 
-        # self.snapshot_manager.run_snapshots(dump_path=dump_path)
+        self.snapshot_manager.run_snapshots(dump_path=dump_path)
 
     def shutdown(self):
         self.logger.info("Shutting down archiver")

@@ -24,7 +24,7 @@ from ..data_sink_facade import DataSinkFacade
 from .. import launch_data_sink
 from ..snapshot_manager import SnapshotStrategy, DataSinkSnapshotStrategy, ListenerSnapshotStrategy, SnapshotManager
 from ..listener_observer_updater import ListenerObserverUpdater
-from ..data_saver_sender import StreamDataSaverAndSender
+from ..stream_data_save_and_sender import StreamDataSaverAndSender
 from ..queue_pool import QueuePoolListener, QueuePoolDataSink
 from ..stream_service import StreamService
 from ..commandline_interface import CommandLineInterface

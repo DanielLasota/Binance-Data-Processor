@@ -151,27 +151,27 @@ class StreamListener:
         def _on_difference_depth_message(ws, message):
             # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {market} {stream_type}: {message}")
 
-            # timestamp_of_receive = int(time.time() * 1000 + 0.5)
+            timestamp_of_receive = int(time.time() * 1000 + 0.5)
 
-            # if 'stream' in message:
-            #     queue.put_queue_message(
-            #         stream_listener_id=self.id,
-            #         message=message,
-            #         timestamp_of_receive=timestamp_of_receive
-            #     )
+            if 'stream' in message:
+                queue.put_queue_message(
+                    stream_listener_id=self.id,
+                    message=message,
+                    timestamp_of_receive=timestamp_of_receive
+                )
             self._blackout_supervisor.notify()
 
         def _on_trade_message(ws, message):
             # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {market} {stream_type}: {message}")
 
-            # timestamp_of_receive = int(time.time() * 1000 + 0.5)
+            timestamp_of_receive = int(time.time() * 1000 + 0.5)
 
-            # if 'stream' in message:
-            #     queue.put_trade_message(
-            #         stream_listener_id=self.id,
-            #         message=message,
-            #         timestamp_of_receive=timestamp_of_receive
-            #     )
+            if 'stream' in message:
+                queue.put_trade_message(
+                    stream_listener_id=self.id,
+                    message=message,
+                    timestamp_of_receive=timestamp_of_receive
+                )
             self._blackout_supervisor.notify()
 
         def _on_error(ws, error):
