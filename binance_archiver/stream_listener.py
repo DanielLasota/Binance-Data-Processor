@@ -1,18 +1,19 @@
+import asyncio
 import json
 import logging
 import threading
 import time
 import traceback
+import websockets
 
-from websocket import WebSocketApp, ABNF
-
-from binance_archiver.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.exceptions import WrongListInstanceException, PairsLengthException
+from websockets.legacy.client import WebSocketClientProtocol
 from binance_archiver.enum_.market_enum import Market
-from binance_archiver.stream_id import StreamId
 from binance_archiver.enum_.stream_type_enum import StreamType
-from binance_archiver.blackout_supervisor import BlackoutSupervisor
+from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.trade_queue import TradeQueue
+from binance_archiver.stream_id import StreamId
+from binance_archiver.exceptions import WrongListInstanceException, PairsLengthException
+from binance_archiver.blackout_supervisor import BlackoutSupervisor
 from binance_archiver.url_factory import URLFactory
 
 
@@ -24,9 +25,13 @@ class StreamListener:
         'stream_type',
         'market',
         'id',
-        'websocket_app',
         'thread',
-        '_blackout_supervisor'
+        '_stop_event',
+        '_blackout_supervisor',
+        '_ws_lock',
+        '_ws',
+        '_url',
+        '_loop'
     ]
 
     def __init__(
@@ -50,86 +55,15 @@ class StreamListener:
         self.market = market
 
         self.id: StreamId = StreamId(pairs=pairs)
-        self.websocket_app: WebSocketApp = self._construct_websocket_app(self.queue, self.pairs, self.stream_type, self.market)
         self.thread: threading.Thread | None = None
-        self._blackout_supervisor: BlackoutSupervisor
-
-    def start_websocket_app(self):
-        self.thread = threading.Thread(
-            target=self.websocket_app.run_forever,
-            kwargs={'reconnect': 2},
-            name=f'websocket app thread {self.stream_type} {self.market} {self.id.start_timestamp}'
-        )
-        self.thread.start()
-        self._blackout_supervisor.run()
-
-    def restart_websocket_app(self):
-        self.websocket_app.close()
-
-        while self.websocket_app.sock:
-            if self.websocket_app.sock.connected is False:
-                break
-            time.sleep(1)
-
-        if self.thread is not None:
-            self.thread.join()
-
-        self.websocket_app = None
-        self.websocket_app = self._construct_websocket_app(self.queue, self.pairs, self.stream_type, self.market)
-
-        self.start_websocket_app()
-
-    def change_subscription(self, pair, action):
-        max_retries = 5
-        retry_delay = 2
-
-        for attempt in range(max_retries):
-            if self.websocket_app.sock and self.websocket_app.sock.connected:
-                break
-            else:
-                self.logger.error(
-                    f"Cannot {action}, WebSocket is not connected. Attempt {attempt + 1} of {max_retries}")
-                time.sleep(retry_delay)
-        else:
-            self.logger.error(f"Failed to {action}, WebSocket did not connect after {max_retries} attempts.")
-            return
-
-        pair = pair.lower()
-
-        method = None
-        if action.lower() == "subscribe":
-            method = "SUBSCRIBE"
-        elif action.lower() == "unsubscribe":
-            method = "UNSUBSCRIBE"
-
-        message = None
+        self._stop_event = threading.Event()
+        self._ws_lock = threading.Lock()
+        self._ws: WebSocketClientProtocol | None = None
 
         if self.stream_type == StreamType.TRADE_STREAM:
-            message = {
-                "method": method,
-                "params": [f"{pair}@trade"],
-                "id": 1
-            }
-
-        elif self.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
-            message = {
-                "method": method,
-                "params": [f"{pair}@depth@100ms"],
-                "id": 1
-            }
-
-        self.websocket_app.send(json.dumps(message))
-        self.logger.info(f"{method} message sent for pair: {pair}")
-        if isinstance(self.queue, DifferenceDepthQueue):
-            self.queue.update_deque_max_len(self.id.pairs_amount)
-
-    def _construct_websocket_app(
-        self,
-        queue: DifferenceDepthQueue | TradeQueue,
-        pairs: list[str],
-        stream_type: StreamType,
-        market: Market
-    ) -> WebSocketApp:
+            self._url = URLFactory.get_trade_stream_url(market, pairs)
+        else:
+            self._url = URLFactory.get_difference_depth_stream_url(market, pairs)
 
         self._blackout_supervisor = BlackoutSupervisor(
             stream_type=stream_type,
@@ -140,76 +74,141 @@ class StreamListener:
             logger=self.logger
         )
 
-        stream_url_methods = {
-            StreamType.DIFFERENCE_DEPTH_STREAM: URLFactory.get_difference_depth_stream_url,
-            StreamType.TRADE_STREAM: URLFactory.get_trade_stream_url
-        }
+    def start_websocket_app(self):
+        self._stop_event.clear()
+        self.logger.info(f"Starting StreamListener for {self.market} {self.stream_type}, id={self.id.start_timestamp}")
+        self.thread = threading.Thread(target=self._run_event_loop, daemon=True)
+        self.thread.start()
+        self._blackout_supervisor.run()
 
-        url_method = stream_url_methods.get(stream_type, None)
-        url = url_method(market, pairs)
+    def restart_websocket_app(self):
+        self.logger.warning(f"Restarting websocket for {self.market} {self.stream_type}")
+        self.close_websocket()
+        self.start_websocket_app()
 
-        def _on_difference_depth_message(ws, message):
-            # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {market} {stream_type}: {message}")
+    def close_websocket_app(self):
+        self.logger.info(f"Closing StreamListener for {self.market} {self.stream_type}")
+        self.close_websocket()
+        self._blackout_supervisor.shutdown_supervisor()
 
-            timestamp_of_receive = int(time.time() * 1000 + 0.5)
+    def close_websocket(self):
+        self._stop_event.set()
+        with self._ws_lock:
+            if self._ws:
+                try:
+                    pass
+                except Exception:
+                    pass
 
-            if 'stream' in message:
-                queue.put_queue_message(
-                    stream_listener_id=self.id,
-                    message=message,
-                    timestamp_of_receive=timestamp_of_receive
-                )
+        if self.thread and self.thread.is_alive():
+            self.thread.join()
+        self.thread = None
+
+    def change_subscription(self, pair: str, action: str):
+        pair = pair.lower()
+        method = None
+        if action.lower() == "subscribe":
+            method = "SUBSCRIBE"
+        elif action.lower() == "unsubscribe":
+            method = "UNSUBSCRIBE"
+
+        if not method:
+            self.logger.error(f"Unknown action: {action}, skipping subscription change.")
+            return
+
+        message = {}
+        if self.stream_type == StreamType.TRADE_STREAM:
+            message = {
+                "method": method,
+                "params": [f"{pair}@trade"],
+                "id": 1
+            }
+        elif self.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
+            message = {
+                "method": method,
+                "params": [f"{pair}@depth@100ms"],
+                "id": 1
+            }
+
+        loop = getattr(self, '_loop', None)
+        if loop is not None and loop.is_running():
+            def _do_send():
+                asyncio.create_task(self._send_message(json.dumps(message)))
+            loop.call_soon_threadsafe(_do_send)
+        else:
+            self.logger.error(f"Loop is not running, cannot {action} for pair={pair}.")
+
+    def _run_event_loop(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        self._loop = loop
+
+        try:
+            loop.run_until_complete(self._main_coroutine())
+        finally:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
+
+    async def _main_coroutine(self):
+        while not self._stop_event.is_set():
+            try:
+                async with websockets.connect(self._url) as ws:
+                    # self.logger.info(f"WebSocket connected: {self._url}")
+                    with self._ws_lock:
+                        self._ws = ws
+
+                    await self._listen_messages(ws)
+
+            except (OSError, websockets.exceptions.ConnectionClosed) as e:
+                self.logger.error(f"Connection error/reconnect for {self.market} {self.stream_type}: {e}")
+                await asyncio.sleep(2)
+            except Exception as e:
+                self.logger.error(f"Unexpected error in _main_coroutine: {e}")
+                self.logger.error(traceback.format_exc())
+                await asyncio.sleep(2)
+            finally:
+                with self._ws_lock:
+                    self._ws = None
+
+    async def _listen_messages(self, ws: WebSocketClientProtocol):
+        while not self._stop_event.is_set():
+            try:
+                message = await ws.recv()
+            except websockets.exceptions.ConnectionClosed:
+                self.logger.warning("WebSocket closed remotely.")
+                break
+
             self._blackout_supervisor.notify()
+            self._handle_incoming_message(message)
 
-        def _on_trade_message(ws, message):
-            # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {market} {stream_type}: {message}")
+    def _handle_incoming_message(self, raw_message: str):
+        timestamp_of_receive = int(time.time() * 1000 + 0.5)
 
-            timestamp_of_receive = int(time.time() * 1000 + 0.5)
+        # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
 
-            if 'stream' in message:
-                queue.put_trade_message(
-                    stream_listener_id=self.id,
-                    message=message,
-                    timestamp_of_receive=timestamp_of_receive
-                )
-            self._blackout_supervisor.notify()
-
-        def _on_error(ws, error):
-            self.logger.error(f"_error: {market} {stream_type} {self.id.start_timestamp}: {error} "
-                              f"_error: Traceback (most recent call last): {traceback.format_exc()}")
-
-        def _on_close(ws, close_status_code, close_msg):
-            self.logger.info(
-                f"_on_close: {market} {stream_type} {self.id.start_timestamp}"
-                f": WebSocket connection closed, {close_msg} (code: {close_status_code})"
+        if self.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
+            self.queue.put_queue_message(
+                stream_listener_id=self.id,
+                message=raw_message,
+                timestamp_of_receive=timestamp_of_receive
             )
-            self._blackout_supervisor.shutdown_supervisor()
+        elif self.stream_type == StreamType.TRADE_STREAM:
+            self.queue.put_trade_message(
+                stream_listener_id=self.id,
+                message=raw_message,
+                timestamp_of_receive=timestamp_of_receive
+            )
+        else:
+            self.logger.error(f"Unknown stream_type: {self.stream_type}, ignoring message.")
 
-        def _on_ping(ws, message: str, *args, **kwargs):
-            self.logger.debug(f'_on_ping: {market} {stream_type} ping has been received'
-                              f': {message}, args: {args}, kwargs: {kwargs}')
+    async def _send_message(self, message: str):
+        with self._ws_lock:
+            if not self._ws:
+                self.logger.error("Cannot send message – websocket is None.")
+                return
+            ws = self._ws
 
-            ws.send(message, ABNF.OPCODE_PONG)
-
-        def _on_open(ws):
-            self.logger.info(f"_on_open: {market} {stream_type} {self.id.start_timestamp}"
-                             f": WebSocket connection opened")
-
-        def _on_reconnect(ws):
-            self.logger.info(f'_on_reconnect: {market} {stream_type} {self.id.start_timestamp}')
-
-        websocket_app = WebSocketApp(
-            url=url,
-            on_message=(
-                _on_trade_message
-                if stream_type == StreamType.TRADE_STREAM
-                else _on_difference_depth_message
-            ),
-            on_error=_on_error,
-            on_close=_on_close,
-            on_ping=_on_ping,
-            on_open=_on_open,
-            on_reconnect=_on_reconnect
-        )
-
-        return websocket_app
+        try:
+            await ws.send(message)
+        except Exception as e:
+            self.logger.error(f"Error while sending message: {e}")

@@ -136,8 +136,8 @@ class StreamService:
                     if not self.global_shutdown_flag.is_set():
                         queue.did_websockets_switch_successfully = False
 
-                        old_stream_listener.websocket_app.close()
-                        old_stream_listener.thread.join()
+                        old_stream_listener.close_websocket_app()
+                        # old_stream_listener.thread.join()
 
                         old_stream_listener = new_stream_listener
                         old_stream_listener.thread = new_stream_listener.thread
@@ -150,31 +150,31 @@ class StreamService:
                 self.logger.error("Traceback (most recent call last):")
                 self.logger.error(traceback.format_exc())
 
-            finally:
-                if new_stream_listener is not None:
-                    for _ in range(10):
-                        if new_stream_listener.websocket_app.sock.connected is False:
-                            time.sleep(1)
-                        else:
-                            new_stream_listener.websocket_app.close()
-                            break
-                if old_stream_listener is not None:
-                    for _ in range(10):
-                        if old_stream_listener.websocket_app.sock.connected is False:
-                            time.sleep(1)
-                        else:
-                            old_stream_listener.websocket_app.close()
-                            break
-
-                if (new_stream_listener is not None and new_stream_listener.websocket_app.sock
-                        and new_stream_listener.websocket_app.sock.connected is False):
-                    new_stream_listener = None
-
-                if (old_stream_listener is not None and old_stream_listener.websocket_app.sock
-                        and old_stream_listener.websocket_app.sock.connected is False):
-                    old_stream_listener = None
-
-                time.sleep(6)
+            # finally:
+            #     if new_stream_listener is not None:
+            #         for _ in range(10):
+            #             if new_stream_listener.websocket_app.sock.connected is False:
+            #                 time.sleep(1)
+            #             else:
+            #                 new_stream_listener.close_websocket_app()
+            #                 break
+            #     if old_stream_listener is not None:
+            #         for _ in range(10):
+            #             if old_stream_listener.websocket_app.sock.connected is False:
+            #                 time.sleep(1)
+            #             else:
+            #                 old_stream_listener.close_websocket_app()
+            #                 break
+            #
+            #     if (new_stream_listener is not None and new_stream_listener.websocket_app.sock
+            #             and new_stream_listener.websocket_app.sock.connected is False):
+            #         new_stream_listener = None
+            #
+            #     if (old_stream_listener is not None and old_stream_listener.websocket_app.sock
+            #             and old_stream_listener.websocket_app.sock.connected is False):
+            #         old_stream_listener = None
+            #
+            #     time.sleep(6)
 
     def update_subscriptions(self, market: Market, asset_upper: str, action: str):
         for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
