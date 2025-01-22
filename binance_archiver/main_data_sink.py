@@ -40,7 +40,6 @@ if __name__ == "__main__":
 
     while not data_sink.global_shutdown_flag.is_set():
         time.sleep(8)
-        print(f'data_sink.queue_pool.spot_orderbook_stream_message_queue.qsize() {data_sink.queue_pool.spot_orderbook_stream_message_queue.qsize()}')
 
     data_sink.logger.info(f'data_sink.global_shutdown_flag.is_set() {data_sink.global_shutdown_flag.is_set()}')
     data_sink.logger.info('the program has ended, exiting')
