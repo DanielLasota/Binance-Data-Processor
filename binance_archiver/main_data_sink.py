@@ -12,7 +12,7 @@ from binance_archiver.load_config import load_config
 
 if __name__ == "__main__":
 
-    load_dotenv('binance-archiver.env')
+    # load_dotenv('binance-archiver.env')
     config = load_config('50x6.json')
 
     client = SecretClient(
@@ -21,7 +21,6 @@ if __name__ == "__main__":
     )
 
     # config = json.loads(client.get_secret('archer-main-config').value)
-    archer_container_name = client.get_secret('archer-main-container-name')
     backblaze_access_key_id = client.get_secret('backblaze-access-key-id-binance-prod').value
     backblaze_secret_access_key = client.get_secret('backblaze-secret-access-key-binance-prod').value
     backblaze_endpoint_url = client.get_secret('backblaze-endpoint-url-binance-prod').value
@@ -41,6 +40,7 @@ if __name__ == "__main__":
 
     while not data_sink.global_shutdown_flag.is_set():
         time.sleep(8)
+        print(f'data_sink.queue_pool.spot_orderbook_stream_message_queue.qsize() {data_sink.queue_pool.spot_orderbook_stream_message_queue.qsize()}')
 
     data_sink.logger.info(f'data_sink.global_shutdown_flag.is_set() {data_sink.global_shutdown_flag.is_set()}')
     data_sink.logger.info('the program has ended, exiting')

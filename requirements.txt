@@ -5,7 +5,7 @@ python-dotenv
 boto3
 fastapi
 uvicorn
-websocket-client
+websockets
 orjson
 alive-progress
 pytest
