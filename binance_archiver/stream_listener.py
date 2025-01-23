@@ -76,18 +76,18 @@ class StreamListener:
 
     def start_websocket_app(self):
         self._stop_event.clear()
-        self.logger.info(f"Starting StreamListener for {self.market} {self.stream_type}, id={self.id.start_timestamp}")
+        self.logger.info(f"{self.market} {self.stream_type} {self.id.start_timestamp} Starting streamListener")
         self.thread = threading.Thread(target=self._run_event_loop, daemon=True)
         self.thread.start()
         self._blackout_supervisor.run()
 
     def restart_websocket_app(self):
-        self.logger.warning(f"Restarting websocket for {self.market} {self.stream_type}")
+        self.logger.warning(f"{self.market} {self.stream_type} {self.id.start_timestamp} Restarting streamListener")
         self.close_websocket()
         self.start_websocket_app()
 
     def close_websocket_app(self):
-        self.logger.info(f"Closing StreamListener for {self.market} {self.stream_type}")
+        self.logger.info(f"{self.market} {self.stream_type} {self.id.start_timestamp} Closing StreamListener")
         self.close_websocket()
         self._blackout_supervisor.shutdown_supervisor()
 

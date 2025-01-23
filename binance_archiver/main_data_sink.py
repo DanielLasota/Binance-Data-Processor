@@ -13,7 +13,7 @@ from binance_archiver.load_config import load_config
 if __name__ == "__main__":
 
     # load_dotenv('binance-archiver.env')
-    config = load_config('50x6.json')
+    config = load_config('almost_production_config.json')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
