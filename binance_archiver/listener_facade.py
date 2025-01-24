@@ -147,6 +147,3 @@ class ListenerFacade(Subject):
                 self.logger.warning(f"Thread {thread.name} is still alive {thread.is_alive()}")
         else:
             self.logger.info("All threads have been successfully stopped.")
-
-
-

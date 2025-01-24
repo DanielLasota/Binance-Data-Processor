@@ -2,10 +2,10 @@ azure-identity
 azure-keyvault
 azure-storage-blob
 python-dotenv
-boto3
+boto3==1.35.2
 fastapi
 uvicorn
-websocket-client
+websockets
 orjson
 alive-progress
 pytest

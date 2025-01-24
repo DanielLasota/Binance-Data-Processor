@@ -4,6 +4,7 @@ import logging
 import os
 import pprint
 import threading
+import time
 
 from binance_archiver.commandline_interface import CommandLineInterface
 from binance_archiver.stream_data_save_and_sender import StreamDataSaverAndSender
@@ -191,6 +192,8 @@ class DataSinkFacade:
         self.global_shutdown_flag.set()
 
         self.fast_api_manager.shutdown()
+
+        time.sleep(5)
 
         remaining_threads = [
             thread for thread in threading.enumerate()

@@ -12,7 +12,7 @@ from binance_archiver.load_config import load_config
 
 if __name__ == "__main__":
 
-    load_dotenv('binance-archiver.env')
+    # load_dotenv('binance-archiver.env')
     config = load_config('almost_production_config.json')
 
     client = SecretClient(
@@ -21,13 +21,13 @@ if __name__ == "__main__":
     )
 
     # config = json.loads(client.get_secret('archer-main-config').value)
-    archer_container_name = client.get_secret('archer-main-container-name')
     backblaze_access_key_id = client.get_secret('backblaze-access-key-id-binance-prod').value
     backblaze_secret_access_key = client.get_secret('backblaze-secret-access-key-binance-prod').value
     backblaze_endpoint_url = client.get_secret('backblaze-endpoint-url-binance-prod').value
     backblaze_bucket_name = client.get_secret('backblaze-bucket-name-binance-prod').value
 
     # tracemalloc.start()
+    client.close()
 
     data_sink = launch_data_sink(
         config=config,
