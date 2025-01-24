@@ -7,10 +7,10 @@ import threading
 import time
 import zipfile
 from collections import defaultdict
-import boto3
 import re
 
-# from azure.storage.blob import BlobServiceClient
+import boto3
+from azure.storage.blob import BlobServiceClient
 from botocore.config import Config
 
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
@@ -241,7 +241,16 @@ class StreamDataSaverAndSender:
     def send_zipped_json_to_cloud_storage(self, data, file_name: str):
 
         if self.s3_client and self.backblaze_bucket_name:
-            self.send_zipped_json_to_backblaze(data, file_name)
+            try:
+                self.send_zipped_json_to_backblaze(data, file_name)
+            except Exception as e:
+                print(f'error sending to backblaze:{e}'
+                      f'gonna send on reserve target'
+                      f'')
+                dump_path = "dump/"
+                file_path = os.path.join(dump_path, file_name)
+                self.save_to_zip(data=data, file_name=file_name, file_path=file_path)
+
 
         elif self.azure_blob_service_client and self.azure_container_client:
             self.send_zipped_json_to_azure(data, file_name)
@@ -265,28 +274,26 @@ class StreamDataSaverAndSender:
             self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
     def send_zipped_json_to_backblaze(self, data, file_name: str):
-        try:
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
 
-                json_filename = f"{file_name}.json"
-                zipf.writestr(json_filename, data)
+            json_filename = f"{file_name}.json"
+            zipf.writestr(json_filename, data)
 
-            zip_buffer.seek(0)
+        zip_buffer.seek(0)
 
-            response = self.s3_client.put_object(
-                Bucket=self.backblaze_bucket_name,
-                Key=f"{file_name}.zip",
-                Body=zip_buffer.getvalue()
-            )
-            http_status_code = response['ResponseMetadata']['HTTPStatusCode']
+        response = self.s3_client.put_object(
+            Bucket=self.backblaze_bucket_name,
+            Key=f"{file_name}.zip",
+            Body=zip_buffer.getvalue()
+        )
+        http_status_code = response['ResponseMetadata']['HTTPStatusCode']
 
-            if http_status_code != 200 :
-                self.logger.error(f'sth bad with upload response {response}')
+        if http_status_code != 200 :
+            raise Exception(f'sth bad with upload response {response}')
 
-            self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: {self.backblaze_bucket_name}")
-        except Exception as e:
-            self.logger.error(f"Error whilst uploading ZIP to BackBlaze B2: {file_name} {e}")
+        self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: {self.backblaze_bucket_name}")
+
 
     @staticmethod
     def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:
