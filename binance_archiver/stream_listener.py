@@ -92,13 +92,14 @@ class StreamListener:
         self._blackout_supervisor.shutdown_supervisor()
 
     def close_websocket(self):
+        self._blackout_supervisor.shutdown_supervisor()
         self._stop_event.set()
         with self._ws_lock:
             if self._ws:
                 try:
-                    pass
-                except Exception:
-                    pass
+                    asyncio.run_coroutine_threadsafe(self._ws.close(), self._loop)
+                except Exception as e:
+                    self.logger.exception(f"Error while closing the websocket: {e}")
 
         if self.thread and self.thread.is_alive():
             self.thread.join()

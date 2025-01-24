@@ -111,9 +111,14 @@ class StreamService:
                     while self.is_someone_overlapping_right_now_flag.is_set():
                         time.sleep(1)
 
+                    if self.global_shutdown_flag.is_set():
+                        break
+
                     with self.overlap_lock:
+
                         self.is_someone_overlapping_right_now_flag.set()
-                        self.logger.info(f'{market} {stream_type} {old_stream_listener.id.start_timestamp} started changing procedure')
+                        self.logger.info(f'{market} {stream_type} {old_stream_listener.id.start_timestamp} '
+                                         f'started changing procedure')
 
                         new_stream_listener = StreamListener(
                             logger=self.logger,
@@ -138,10 +143,7 @@ class StreamService:
                         queue.did_websockets_switch_successfully = False
 
                         old_stream_listener.close_websocket_app()
-                        # old_stream_listener.thread.join()
-
                         old_stream_listener = new_stream_listener
-                        old_stream_listener.thread = new_stream_listener.thread
 
                         self.stream_listeners[(market, stream_type, 'new')] = None
                         self.stream_listeners[(market, stream_type, 'old')] = old_stream_listener
@@ -150,6 +152,11 @@ class StreamService:
                 self.logger.error(f'{e}, something bad happened')
                 self.logger.error("Traceback (most recent call last):")
                 self.logger.error(traceback.format_exc())
+
+            finally:
+                for listener in (old_stream_listener, new_stream_listener):
+                    if listener and listener._ws and listener._ws.state in [0, 1]:
+                        listener.close_websocket()
 
     def update_subscriptions(self, market: Market, asset_upper: str, action: str):
         for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
