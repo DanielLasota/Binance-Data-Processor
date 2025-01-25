@@ -176,7 +176,7 @@ class StreamListener:
             try:
                 message = await ws.recv()
             except websockets.exceptions.ConnectionClosed:
-                self.logger.warning("WebSocket closed remotely.")
+                self.logger.warning(f"{self.market} {self.stream_type} WebSocket closed remotely.")
                 break
 
             self._blackout_supervisor.notify()

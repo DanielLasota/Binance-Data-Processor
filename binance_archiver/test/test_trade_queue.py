@@ -16,6 +16,9 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
+def add_field_to_string_json_message(message: str, field_name: str, value: any) -> str:
+    return message[:-1] + f',"{field_name}":{str(value)}}}'
+
 
 class TestTradeQueue:
 
@@ -47,6 +50,35 @@ class TestTradeQueue:
         assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
                                           '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
                                           '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
+
+    def test_given_adding_receive_timestamp_fields_to_original_binance_message_in_string_then_final_message_is_correct(self):
+
+        pretty_message_from_sample_test = '''            
+            {
+                "stream": "trxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+                    ]
+                }
+            }
+        '''
+
+        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
+
+        mocked_timestamp = 2115
+
+        assert add_field_to_string_json_message(binance_format_message, "_E", mocked_timestamp) == '{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,"s":"TRXUSDT","U":4609985365,"u":4609985365,"b":[["0.12984000","123840.00000000"]],"a":[]},"_E":2115}'
 
     # TradeQueue singleton init test
     #
@@ -89,9 +121,9 @@ class TestTradeQueue:
 
     def test_given_trade_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
         global_queue = Queue()
-        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
         stream_listener_id = StreamId(pairs=['BTCUSDT'])
-        tq.currently_accepted_stream_id = stream_listener_id
+        trade_queue.currently_accepted_stream_id = stream_listener_id
         message = format_message_string_that_is_pretty_to_binance_string_format('''
         {
             "e": "trade",
@@ -108,19 +140,22 @@ class TestTradeQueue:
         }
         ''')
 
-        timestamp_of_receive = 1234567890
-        tq.put_trade_message(stream_listener_id, message, timestamp_of_receive)
+        mocked_timestamp_of_receive = 1234567890
+        trade_queue.put_trade_message(
+            stream_listener_id=stream_listener_id,
+            message=message,
+            timestamp_of_receive=mocked_timestamp_of_receive
+        )
         assert not global_queue.empty()
-        queued_message, received_timestamp = global_queue.get_nowait()
-        assert queued_message == message
-        assert received_timestamp == timestamp_of_receive
+        queued_message = global_queue.get_nowait()
+        assert queued_message == add_field_to_string_json_message(message, "_E", mocked_timestamp_of_receive)
         TradeQueue.clear_instances()
 
     def test_given_trade_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
         global_queue = Queue()
-        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
         stream_listener_id = StreamId(pairs=['ETHUSDT'])
-        tq.currently_accepted_stream_id = stream_listener_id
+        trade_queue.currently_accepted_stream_id = stream_listener_id
         message = format_message_string_that_is_pretty_to_binance_string_format('''
         {
             "e": "trade",
@@ -136,15 +171,13 @@ class TestTradeQueue:
             "M": true
         }
         ''')
-        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
         timestamp_of_receive = 1234567890
-        tq.put_trade_message(stream_listener_id, formatted_message, timestamp_of_receive)
-        assert tq.qsize() == 1
-        assert not tq.empty()
-        queued_message, received_timestamp = tq.get_nowait()
-        assert queued_message == formatted_message
-        assert received_timestamp == timestamp_of_receive
-        assert tq.empty()
+        trade_queue.put_trade_message(stream_listener_id, message, timestamp_of_receive)
+        assert trade_queue.qsize() == 1
+        assert not trade_queue.empty()
+        queued_message = trade_queue.get_nowait()
+        assert queued_message == add_field_to_string_json_message(message, "_E", timestamp_of_receive)
+        assert trade_queue.empty()
         TradeQueue.clear_instances()
 
     def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
@@ -210,7 +243,8 @@ class TestTradeQueue:
 
         while trade_queue.qsize() > 0:
             trade_queue_content_list.append(trade_queue.get_nowait())
-        assert (_first_listener_message_1, mocked_timestamp_of_receive) in trade_queue_content_list
+        assert (add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive)
+                in trade_queue_content_list)
         assert len(trade_queue_content_list) == 1
 
         TradeQueue.clear_instances()
@@ -438,10 +472,10 @@ class TestTradeQueue:
             trade_queue_content_list.append(trade_queue.get_nowait())
 
         expected_trade_queue_content_list = [
-            (_old_listener_message_1, mocked_timestamp_of_receive),
-            (_old_listener_message_2, mocked_timestamp_of_receive),
-            (_old_listener_message_3, mocked_timestamp_of_receive),
-            (_new_listener_message_4, mocked_timestamp_of_receive)
+            add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_new_listener_message_4, "_E", mocked_timestamp_of_receive)
         ]
 
         assert trade_queue_content_list == expected_trade_queue_content_list
@@ -698,10 +732,10 @@ class TestTradeQueue:
         assert trade_queue.qsize() == 0
 
         expected_trade_queue_content_list = [
-            (_old_listener_message_1, mocked_timestamp_of_receive),
-            (_old_listener_message_2, mocked_timestamp_of_receive),
-            (_old_listener_message_3, mocked_timestamp_of_receive),
-            (_new_listener_message_4, mocked_timestamp_of_receive)
+            add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_new_listener_message_4, "_E", mocked_timestamp_of_receive)
         ]
 
         assert trade_queue_content_list == expected_trade_queue_content_list
@@ -926,7 +960,7 @@ class TestTradeQueue:
 
         presumed_first_transaction = trade_queue.get_nowait()
 
-        assert presumed_first_transaction == (_old_listener_message_1, 2115)
+        assert presumed_first_transaction == add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive)
 
         TradeQueue.clear_instances()
 
@@ -1148,7 +1182,7 @@ class TestTradeQueue:
 
         presumed_first_transaction = trade_queue.get()
 
-        assert presumed_first_transaction == (_old_listener_message_1, 2115)
+        assert presumed_first_transaction == add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive)
 
         TradeQueue.clear_instances()
 

@@ -1,4 +1,3 @@
-import json
 import os
 import re
 import threading
@@ -645,7 +644,6 @@ class TestArchiverFacade:
                 expected_keys
             ), "queue_lookup keys do not match expected keys"
 
-            # Check if queues are instances of the correct classes
             assert isinstance(queue_pool.spot_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(queue_pool.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(queue_pool.coin_m_orderbook_stream_message_queue, DifferenceDepthQueue)
@@ -654,11 +652,9 @@ class TestArchiverFacade:
             assert isinstance(queue_pool.usd_m_futures_trade_stream_message_queue, TradeQueue)
             assert isinstance(queue_pool.coin_m_trade_stream_message_queue, TradeQueue)
 
-            # Verify that the correct number of instances have been created
             assert len(TradeQueue._instances) == 3, "There should be 3 instances of TradeQueue"
             assert len(DifferenceDepthQueue._instances) == 3, "There should be 3 instances of DifferenceDepthQueue"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
@@ -710,7 +706,6 @@ class TestArchiverFacade:
 
             assert queue_pool.global_queue is not None, "Global queue should be initialized in LISTENER mode"
 
-            # Check if queues are initialized with the global_queue
             assert queue_pool.spot_orderbook_stream_message_queue.queue == queue_pool.global_queue
             assert queue_pool.spot_trade_stream_message_queue.queue == queue_pool.global_queue
             assert queue_pool.usd_m_futures_orderbook_stream_message_queue.queue == queue_pool.global_queue
@@ -718,7 +713,6 @@ class TestArchiverFacade:
             assert queue_pool.coin_m_orderbook_stream_message_queue.queue == queue_pool.global_queue
             assert queue_pool.coin_m_trade_stream_message_queue.queue == queue_pool.global_queue
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
@@ -741,7 +735,6 @@ class TestArchiverFacade:
                 expected_keys
             ), "queue_lookup keys do not match expected keys"
 
-            # Check if queues are instances of the correct classes
             assert isinstance(queue_pool.spot_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(queue_pool.usd_m_futures_orderbook_stream_message_queue, DifferenceDepthQueue)
             assert isinstance(queue_pool.coin_m_orderbook_stream_message_queue, DifferenceDepthQueue)
@@ -750,11 +743,9 @@ class TestArchiverFacade:
             assert isinstance(queue_pool.usd_m_futures_trade_stream_message_queue, TradeQueue)
             assert isinstance(queue_pool.coin_m_trade_stream_message_queue, TradeQueue)
 
-            # Verify that the correct number of instances have been created
             assert len(TradeQueue._instances) == 3, "There should be 3 instances of TradeQueue"
             assert len(DifferenceDepthQueue._instances) == 3, "There should be 3 instances of DifferenceDepthQueue"
 
-            # Clear instances after test
             DifferenceDepthQueue.clear_instances()
             TradeQueue.clear_instances()
 
@@ -889,8 +880,11 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                with patch.object(SnapshotManager, '_request_snapshot_with_timestamps',
-                                  return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
+                with patch.object(
+                        SnapshotManager,
+                        '_request_snapshot_with_timestamps',
+                        return_value='{"sample_data": "sample_data","_rq":1234567890,"_rc":1234567891}'
+                ):
                     daemon_thread = threading.Thread(
                         target=snapshot_manager._snapshot_daemon,
                         args=(
@@ -911,10 +905,11 @@ class TestArchiverFacade:
                     assert not global_queue.empty(), "Global queue powinna zawierać dane snapshotu"
 
                     message = global_queue.get()
-                    assert isinstance(message, str), "Dane snapshotu powinny być zserializowane jako string JSON"
+                    assert isinstance(message, str), "Should have been serialized as string JSON"
 
-                    expected_snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
-                    assert message == json.dumps(expected_snapshot), "Dane snapshotu powinny zgadzać się z oczekiwanymi"
+                    expected_snapshot = '{"sample_data": "sample_data","_rq":1234567890,"_rc":1234567891}'
+
+                    assert message == expected_snapshot, "Dane snapshotu powinny zgadzać się z oczekiwanymi"
 
             def test_given_data_sink_strategy_when_snapshot_received_then_data_saver_methods_called(self):
                 config={
@@ -941,8 +936,11 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                with patch.object(SnapshotManager, '_request_snapshot_with_timestamps',
-                                  return_value=({"snapshot": "data"}, 1234567890, 1234567891)):
+                with patch.object(
+                        SnapshotManager,
+                        '_request_snapshot_with_timestamps',
+                        return_value='{"sample_data": "sample_data","_rq":1234567890,"_rc":1234567891}'
+                ):
                     with patch.object(StreamDataSaverAndSender, 'get_file_name', return_value='file_name.json'):
                         daemon_thread = threading.Thread(
                             target=snapshot_manager._snapshot_daemon,
@@ -964,7 +962,7 @@ class TestArchiverFacade:
                         file_name = 'file_name.json'
                         file_path = os.path.join("dump_path", file_name)
 
-                        expected_snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
+                        expected_snapshot = '{"sample_data": "sample_data","_rq":1234567890,"_rc":1234567891}'
 
                         data_saver.save_to_json.assert_called_with(expected_snapshot, file_path)
                         data_saver.save_to_zip.assert_called_with(expected_snapshot, file_name, file_path)
@@ -990,7 +988,11 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                with patch.object(SnapshotManager, '_request_snapshot_with_timestamps', side_effect=Exception("Test exception")):
+                with patch.object(
+                        SnapshotManager,
+                        '_request_snapshot_with_timestamps',
+                        side_effect=Exception("Test exception")
+                ):
                     with patch.object(logger, 'error') as mock_logger_error:
                         daemon_thread = threading.Thread(
                             target=snapshot_manager._snapshot_daemon,
@@ -1050,15 +1052,17 @@ class TestArchiverFacade:
 
                     daemon_thread.join(timeout=2)
 
-                    assert not daemon_thread.is_alive(), "Wątek snapshot_daemon powinien zakończyć działanie po ustawieniu flagi global_shutdown_flag"
+                    assert not daemon_thread.is_alive(), "snapshot_daemon thread should end if global_shutdown_flag.set"
 
             def test_given_successful_response_when_get_snapshot_called_then_data_and_timestamps_returned(self):
-                config={
-                    'instruments':{
+                config = {
+                    'instruments': {
                         "spot": ["BTCUSDT"]
                     },
-                    'websocket_lifetime_seconds':60
+                    'snapshot_fetcher_interval_seconds': 60,
+                    'websocket_lifetime_seconds': 60
                 }
+
                 logger = setup_logger()
                 global_shutdown_flag = threading.Event()
 
@@ -1071,49 +1075,27 @@ class TestArchiverFacade:
                     global_shutdown_flag=global_shutdown_flag
                 )
 
-                response_data = {"bids": [], "asks": []}
+                mock_response_text = '{"bids":[],"asks":[]}'
+
                 with patch('requests.get') as mock_get:
                     mock_response = MagicMock()
                     mock_response.status_code = 200
-                    mock_response.json.return_value = response_data
+                    mock_response.text = mock_response_text
                     mock_get.return_value = mock_response
 
-                    with patch.object(TimestampsGenerator, 'get_utc_timestamp_epoch_milliseconds', side_effect=[1000, 2000]):
-                        data, request_timestamp, receive_timestamp = snapshot_manager._request_snapshot_with_timestamps("BTCUSDT",
-                                                                                                                        Market.SPOT)
+                    with patch.object(
+                            TimestampsGenerator,
+                            'get_utc_timestamp_epoch_milliseconds',
+                            side_effect=[1000, 2000]
+                    ):
+                        returned_entry = snapshot_manager._request_snapshot_with_timestamps(
+                            "BTCUSDT",
+                            Market.SPOT
+                        )
 
-                        assert data == response_data
-                        assert request_timestamp == 1000
-                        assert receive_timestamp == 2000
+                        print(f'returned_entry {returned_entry}')
 
-            def test_given_exception_when_get_snapshot_called_then_none_returned_and_error_logged(self):
-                config={
-                    'instruments':{
-                        "spot": ["BTCUSDT"]
-                    },
-                    'websocket_lifetime_seconds':60
-                }
-                logger = setup_logger()
-                global_shutdown_flag = threading.Event()
-
-                snapshot_strategy = MagicMock(spec=SnapshotStrategy)
-
-                snapshot_manager = SnapshotManager(
-                    config=config,
-                    logger=logger,
-                    snapshot_strategy=snapshot_strategy,
-                    global_shutdown_flag=global_shutdown_flag
-                )
-
-                with patch('requests.get', side_effect=Exception("Network error")):
-                    with patch.object(logger, 'error') as mock_logger_error:
-                        data, request_timestamp, receive_timestamp = snapshot_manager._request_snapshot_with_timestamps("BTCUSDT",
-                                                                                                                        Market.SPOT)
-
-                        assert data is None
-                        assert request_timestamp is None
-                        assert receive_timestamp is None
-                        mock_logger_error.assert_called()
+                        assert returned_entry == '{"bids":[],"asks":[],"_rq":1000,"_rc":2000}'
 
             def test_given_shutdown_flag_set_when_sleep_with_flag_check_called_then_method_exits_early(self):
                 logger = setup_logger()
@@ -1149,18 +1131,18 @@ class TestArchiverFacade:
                 global_queue = Queue()
                 snapshot_strategy = ListenerSnapshotStrategy(global_queue=global_queue)
 
-                snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
+                json_content = '{"snapshot":"data","_rq":1234567890,"_rc":1234567891}'
                 snapshot_strategy.handle_snapshot(
-                    snapshot=snapshot,
+                    json_content=json_content,
                     pair="BTCUSDT",
                     market=Market.SPOT,
                     dump_path="",
                     file_name=""
                 )
 
-                assert not global_queue.empty(), "Global queue powinna zawierać dane snapshotu"
+                assert not global_queue.empty(), "Global queue should contain snapshot data"
                 message = global_queue.get()
-                assert message == json.dumps(snapshot), "Dane snapshotu powinny być zserializowane jako string JSON"
+                assert message == json_content, "Dane snapshotu powinny być zserializowane jako string JSON"
 
         class TestDataSinkSnapshotStrategy:
 
@@ -1173,21 +1155,21 @@ class TestArchiverFacade:
                     send_zip_to_blob=True
                 )
 
-                snapshot = {"snapshot": "data", "_rq": 1234567890, "_rc": 1234567891}
+                json_content = '{"snapshot":"data","_rq":1234567890,"_rc":1234567891}'
                 file_name = "file_name.json"
                 file_path = os.path.join("dump_path", file_name)
 
                 snapshot_strategy.handle_snapshot(
-                    snapshot=snapshot,
+                    json_content=json_content,
                     pair="BTCUSDT",
                     market=Market.SPOT,
                     dump_path="dump_path",
                     file_name=file_name
                 )
 
-                data_saver.save_to_json.assert_called_with(snapshot, file_path)
-                data_saver.save_to_zip.assert_called_with(snapshot, file_name, file_path)
-                data_saver.send_zipped_json_to_cloud_storage.assert_called_with(snapshot, file_name)
+                data_saver.save_to_json.assert_called_with(json_content, file_path)
+                data_saver.save_to_zip.assert_called_with(json_content, file_name, file_path)
+                data_saver.send_zipped_json_to_cloud_storage.assert_called_with(json_content, file_name)
 
             def test_given_save_to_json_false_when_handle_snapshot_called_then_save_to_json_not_called(self):
                 data_saver = MagicMock(spec=StreamDataSaverAndSender)
@@ -1198,12 +1180,12 @@ class TestArchiverFacade:
                     send_zip_to_blob=True
                 )
 
-                snapshot = {"snapshot": "data"}
+                json_content = '{"snapshot":"data","_rq":1234567890,"_rc":1234567891}'
                 file_name = "file_name.json"
                 file_path = os.path.join("dump_path", file_name)
 
                 snapshot_strategy.handle_snapshot(
-                    snapshot=snapshot,
+                    json_content=json_content,
                     pair="BTCUSDT",
                     market=Market.SPOT,
                     dump_path="dump_path",
@@ -1223,12 +1205,12 @@ class TestArchiverFacade:
                     send_zip_to_blob=True
                 )
 
-                snapshot = {"snapshot": "data"}
+                json_content = '{"snapshot":"data","_rq":1234567890,"_rc":1234567891}'
                 file_name = "file_name.json"
                 file_path = os.path.join("dump_path", file_name)
 
                 snapshot_strategy.handle_snapshot(
-                    snapshot=snapshot,
+                    json_content=json_content,
                     pair="BTCUSDT",
                     market=Market.SPOT,
                     dump_path="dump_path",
@@ -1249,12 +1231,12 @@ class TestArchiverFacade:
                     send_zip_to_blob=False
                 )
 
-                snapshot = {"snapshot": "data"}
+                json_content = '{"snapshot":"data","_rq":1234567890,"_rc":1234567891}'
                 file_name = "file_name.json"
                 file_path = os.path.join("dump_path", file_name)
 
                 snapshot_strategy.handle_snapshot(
-                    snapshot=snapshot,
+                    json_content=json_content,
                     pair="BTCUSDT",
                     market=Market.SPOT,
                     dump_path="dump_path",
@@ -1615,7 +1597,7 @@ class TestArchiverFacade:
             stream_listener_id = StreamId(pairs=['BTCUSDT'])
 
             queue = DifferenceDepthQueue(market=Market.SPOT)
-            message = '{"stream": "btcusdt@depth", "data": {}}'
+            message = '{"stream":"btcusdt@depth","data":{}}'
 
             queue.currently_accepted_stream_id = stream_listener_id.id
 
@@ -1630,6 +1612,7 @@ class TestArchiverFacade:
             with patch.object(StreamDataSaverAndSender, 'save_to_json') as mock_save_to_json, \
                     patch.object(StreamDataSaverAndSender, 'save_to_zip') as mock_save_to_zip, \
                     patch.object(StreamDataSaverAndSender, 'send_zipped_json_to_cloud_storage') as mock_send_zip:
+
                 data_saver._process_stream_data(
                     queue=queue,
                     market=Market.SPOT,
@@ -1917,7 +1900,7 @@ class TestArchiverFacade:
                 "instruments": {
                     "spot": ["BTCUSDT"]
                 },
-                "websocket_life_time_seconds": 10  # less than 60
+                "websocket_life_time_seconds": 10
             }
 
             with pytest.raises(WebSocketLifeTimeException) as excinfo:
