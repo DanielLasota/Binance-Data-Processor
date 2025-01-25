@@ -79,7 +79,7 @@ class ListenerSnapshotStrategy(SnapshotStrategy):
 
     def handle_snapshot(
         self,
-        json_content: dict,
+        json_content: str,
         pair: str,
         market: Market,
         dump_path: str,

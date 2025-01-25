@@ -18,9 +18,11 @@ def format_message_string_that_is_pretty_to_binance_string_format(message: str) 
 
     return compact_message
 
+def add_field_to_string_json_message(message: str, field_name: str, value: any) -> str:
+    return message[:-1] + f',"{field_name}":{str(value)}}}'
+
 
 class TestDifferenceDepthQueue:
-
 
     # format_message_string_that_is_pretty_to_binance_string_format method from above
     #
@@ -52,6 +54,35 @@ class TestDifferenceDepthQueue:
         assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
                                           '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
                                           '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
+
+    def test_given_adding_receive_timestamp_fields_to_original_binance_message_in_string_then_final_message_is_correct(self):
+
+        pretty_message_from_sample_test = '''            
+            {
+                "stream": "trxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+                    ]
+                }
+            }
+        '''
+
+        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
+
+        mocked_timestamp = 2115
+
+        assert add_field_to_string_json_message(binance_format_message, "_E", mocked_timestamp) == '{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,"s":"TRXUSDT","U":4609985365,"u":4609985365,"b":[["0.12984000","123840.00000000"]],"a":[]},"_E":2115}'
 
     # DifferenceDepthQueue singleton init test
     #
@@ -150,7 +181,9 @@ class TestDifferenceDepthQueue:
 
         while difference_depth_queue.qsize() > 0:
             difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
-        assert (_first_listener_message_1, mocked_timestamp_of_receive) in difference_depth_queue_content_list
+
+        assert (_first_listener_message_1[:-1] + f',"_E":{mocked_timestamp_of_receive}}}'
+                in difference_depth_queue_content_list)
         assert len(difference_depth_queue_content_list) == 1
 
         DifferenceDepthQueue.clear_instances()
@@ -478,49 +511,49 @@ class TestDifferenceDepthQueue:
         difference_depth_queue.put_queue_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_4,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_4,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         assert difference_depth_queue.currently_accepted_stream_id == new_stream_listener_id.id
@@ -531,15 +564,15 @@ class TestDifferenceDepthQueue:
         while difference_depth_queue.qsize() > 0:
             difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
 
-        assert (_old_listener_message_1, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_2, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_3, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_new_listener_message_4, mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_new_listener_message_4, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_new_listener_message_1, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_new_listener_message_2, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_new_listener_message_3, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_old_listener_message_4, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
 
-        assert (_new_listener_message_1, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_2, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_3, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_old_listener_message_4, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
         DifferenceDepthQueue.clear_instances()
 
     def test_given_putting_stream_message_and_two_last_throws_are_not_equal_when_two_listeners_messages_are_being_compared_then_currently_accepted_stream_id_is_not_changed_and_only_old_stream_listener_messages_are_put_in(self):
@@ -801,37 +834,37 @@ class TestDifferenceDepthQueue:
         difference_depth_queue.put_queue_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         difference_depth_queue.put_queue_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
-            timestamp_of_receive=2115
+            timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         assert difference_depth_queue.currently_accepted_stream_id == old_stream_listener_id.id
@@ -840,13 +873,13 @@ class TestDifferenceDepthQueue:
         difference_depth_queue_content_list = [difference_depth_queue.get_nowait() for _ in
                                                range(difference_depth_queue.qsize())]
 
-        assert (_old_listener_message_1, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_2, mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert (_old_listener_message_3, mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
 
-        assert (_new_listener_message_1, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_2, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert (_new_listener_message_3, mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_new_listener_message_1, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_new_listener_message_2, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_string_json_message(_new_listener_message_3, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
 
         DifferenceDepthQueue.clear_instances()
 
@@ -1144,9 +1177,9 @@ class TestDifferenceDepthQueue:
         assert difference_depth_queue.currently_accepted_stream_id == new_stream_listener_id.id
 
         expected_list = [
-            (_old_listener_message_1, mocked_timestamp_of_receive),
-            (_old_listener_message_2, mocked_timestamp_of_receive),
-            (_old_listener_message_3, mocked_timestamp_of_receive)
+            add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive)
         ]
 
         assert difference_depth_queue_content_list == expected_list
@@ -1157,15 +1190,15 @@ class TestDifferenceDepthQueue:
     #
     def test_given_data_listener_mode_and_global_queue_when_initializing_difference_depth_queue_then_queue_is_set_to_global_queue(self):
         global_queue = Queue()
-        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
-        assert ddq.queue is global_queue
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        assert difference_depth_queue.queue is global_queue
         DifferenceDepthQueue.clear_instances()
 
     def test_given_difference_depth_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
         global_queue = Queue()
-        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
         stream_listener_id = StreamId(pairs=['BTCUSDT'])
-        ddq.currently_accepted_stream_id = stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id = stream_listener_id.id
         message = '''
         {
             "stream": "btcusdt@depth@100ms",
@@ -1182,18 +1215,17 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
         timestamp_of_receive = 1234567890
-        ddq.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        difference_depth_queue.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
         assert not global_queue.empty()
-        queued_message, received_timestamp = global_queue.get_nowait()
-        assert queued_message == formatted_message
-        assert received_timestamp == timestamp_of_receive
+        queued_message = global_queue.get_nowait()
+        assert queued_message == add_field_to_string_json_message(formatted_message, "_E", timestamp_of_receive)
         DifferenceDepthQueue.clear_instances()
 
     def test_given_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
         global_queue = Queue()
-        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
         stream_listener_id = StreamId(pairs=['ETHUSDT'])
-        ddq.currently_accepted_stream_id = stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id = stream_listener_id.id
         message = '''
         {
             "stream": "ethusdt@depth@100ms",
@@ -1210,21 +1242,20 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
         timestamp_of_receive = 1234567890
-        ddq.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
-        assert ddq.qsize() == 1
-        assert not ddq.empty()
-        queued_message, received_timestamp = ddq.get_nowait()
-        assert queued_message == formatted_message
-        assert received_timestamp == timestamp_of_receive
-        assert ddq.empty()
+        difference_depth_queue.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        assert difference_depth_queue.qsize() == 1
+        assert not difference_depth_queue.empty()
+        queued_message = difference_depth_queue.get_nowait()
+        assert queued_message == add_field_to_string_json_message(formatted_message, "_E", timestamp_of_receive)
+        assert difference_depth_queue.empty()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
         global_queue = Queue()
-        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
-        assert ddq.empty()
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        assert difference_depth_queue.empty()
         with pytest.raises(queue.Empty):
-            ddq.get_nowait()
+            difference_depth_queue.get_nowait()
         DifferenceDepthQueue.clear_instances()
 
 
@@ -1876,13 +1907,11 @@ class TestDifferenceDepthQueue:
 
         expected_comparison_structure = {
             old_stream_listener_id.id: deque([
-                # _old_expected_message_1,
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_4)
             ], maxlen=old_stream_listener_id.pairs_amount),
             new_stream_listener_id.id: deque([
-                # _new_expected_message_1,
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_4)
@@ -3735,12 +3764,12 @@ class TestDifferenceDepthQueue:
             difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
 
         expected_list = [
-            (_first_listener_message_1, mocked_timestamp_of_receive),
-            (_first_listener_message_2, mocked_timestamp_of_receive),
-            (_first_listener_message_3, mocked_timestamp_of_receive),
-            (_second_listener_message_4, mocked_timestamp_of_receive),
-            (_second_listener_message_5, mocked_timestamp_of_receive),
-            (_second_listener_message_6, mocked_timestamp_of_receive)
+            add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_first_listener_message_2, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_first_listener_message_3, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_second_listener_message_4, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_second_listener_message_5, "_E", mocked_timestamp_of_receive),
+            add_field_to_string_json_message(_second_listener_message_6, "_E", mocked_timestamp_of_receive)
         ]
 
         assert difference_depth_queue_content_list == expected_list
@@ -4321,7 +4350,7 @@ class TestDifferenceDepthQueue:
         while difference_depth_queue.qsize() > 0:
             difference_depth_queue_content_list.append(difference_depth_queue.get())
 
-        assert difference_depth_queue_content_list[0] == (_first_listener_message_1, mocked_timestamp_of_receive)
+        assert difference_depth_queue_content_list[0] == add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive)
         DifferenceDepthQueue.clear_instances()
 
     def test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned(self):
@@ -4897,7 +4926,7 @@ class TestDifferenceDepthQueue:
         while difference_depth_queue.qsize() > 0:
             difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
 
-        assert difference_depth_queue_content_list[0] == (_first_listener_message_1, mocked_timestamp_of_receive)
+        assert difference_depth_queue_content_list[0] == add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive)
         DifferenceDepthQueue.clear_instances()
 
     def test_given_clearing_difference_depth_queue_when_invocation_then_qsize_equals_zero(self):
@@ -6615,7 +6644,7 @@ class TestDifferenceDepthQueue:
 
     # benchmark
     #
-    @pytest.mark.skip
+    # @pytest.mark.skip
     def test_comparison_algorithm_benchmark(self):
         total_execution_time = 0
         number_of_runs = 1000
@@ -6926,3 +6955,4 @@ class TestDifferenceDepthQueue:
         average_execution_time = total_execution_time / number_of_runs
 
         print(f"mean of {number_of_runs} runs: {average_execution_time} seconds")
+        print("mean of {} runs: {:.8f} seconds".format(number_of_runs, average_execution_time))
