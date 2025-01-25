@@ -52,5 +52,5 @@
   "websocket_life_time_seconds": 21600,
   "save_to_json": false,
   "save_to_zip": false,
-  "send_zip_to_blob": true
+  "send_zip_to_blob": false
 }
