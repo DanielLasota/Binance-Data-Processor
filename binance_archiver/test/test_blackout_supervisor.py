@@ -1,45 +1,39 @@
 import pytest
 import time
 from unittest.mock import MagicMock
+
+from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.blackout_supervisor import BlackoutSupervisor
 
-@pytest.fixture
-def mock_logger():
-    return MagicMock()
 
 @pytest.fixture
-def supervisor_fixture(mock_logger):
+def supervisor_fixture():
     return BlackoutSupervisor(
-        stream_type=StreamType.TRADE_STREAM,
-        market=Market.SPOT,
-        check_interval_in_seconds=1,
+        asset_parameters=AssetParameters(market=Market.SPOT, stream_type=StreamType.DIFFERENCE_DEPTH_STREAM, pairs=[]),
         max_interval_without_messages_in_seconds=2,
-        logger=mock_logger
     )
 
 class TestBlackoutSupervisor:
 
-    def test_given_blackout_supervisor_when_initialized_then_has_correct_parameters(self, mock_logger):
+    def test_given_blackout_supervisor_when_initialized_then_has_correct_parameters(self):
         stream_type = StreamType.DIFFERENCE_DEPTH_STREAM
         market = Market.USD_M_FUTURES
-        check_interval = 5
         max_interval = 10
 
         supervisor = BlackoutSupervisor(
-            stream_type=stream_type,
-            market=market,
-            check_interval_in_seconds=check_interval,
+            asset_parameters=AssetParameters(
+                market=market,
+                stream_type=stream_type,
+                pairs=[]
+            ),
             max_interval_without_messages_in_seconds=max_interval,
-            logger=mock_logger
         )
 
-        assert supervisor.stream_type == stream_type
-        assert supervisor.market == market
-        assert supervisor.check_interval_in_seconds == check_interval
+        assert supervisor.asset_parameters.stream_type == stream_type
+        assert supervisor.asset_parameters.market == market
         assert supervisor.max_interval_without_messages_in_seconds == max_interval
-        assert supervisor.logger == mock_logger
 
     def test_given_blackout_supervisor_when_notify_then_updates_last_message_time(self, supervisor_fixture):
         initial_time = supervisor_fixture.last_message_time_epoch_seconds_utc
@@ -49,14 +43,13 @@ class TestBlackoutSupervisor:
 
         assert supervisor_fixture.last_message_time_epoch_seconds_utc > initial_time
 
-    def test_given_blackout_supervisor_when_no_messages_for_max_interval_then_logger_warns(self, supervisor_fixture, mock_logger):
+    def test_given_blackout_supervisor_when_no_messages_for_max_interval_then_logger_warns(self, supervisor_fixture):
         mock_on_error_callback = MagicMock()
         supervisor_fixture.on_error_callback = mock_on_error_callback
         supervisor_fixture.run()
 
-        time.sleep(4)
+        time.sleep(6)
 
-        mock_logger.warning.assert_called_once()
         mock_on_error_callback.assert_called_once()
 
         supervisor_fixture.shutdown_supervisor()
@@ -77,5 +70,5 @@ class TestBlackoutSupervisor:
 
         assert not supervisor_fixture.running
 
-    def test_given_blackout_supervisor_when_no_error_callback_then_raises_exception(self, supervisor_fixture, mock_logger):
+    def test_given_blackout_supervisor_when_no_error_callback_then_raises_exception(self, supervisor_fixture):
         ...

@@ -1,106 +1,83 @@
 from __future__ import annotations
 
-import logging
 import pprint
 import time
 import threading
 
 from binance_archiver.logo import binance_archiver_logo
+from . import DataSinkConfig
 from .listener_observer_updater import ListenerObserverUpdater
-from .queue_pool import QueuePoolListener
+from .queue_pool import ListenerQueuePool
 from .setup_logger import setup_logger
-from .exceptions import WebSocketLifeTimeException, BadConfigException
 from .abstract_base_classes import Subject, Observer
-from .snapshot_manager import ListenerSnapshotStrategy, SnapshotManager
+from .snapshot_manager import ListenerDepthSnapshotStrategy, DepthSnapshotService
 from .stream_service import StreamService
 
 __all__ = [
-    'launch_data_listener'
+    'launch_data_listener',
+    'BinanceDataListener'
 ]
 
 
 def launch_data_listener(
-        config,
-        should_dump_logs: bool = False,
+        data_sink_config: DataSinkConfig,
         init_observers: list[object] = None
-) -> ListenerFacade:
+) -> BinanceDataListener:
 
-    valid_markets = {"spot", "usd_m_futures", "coin_m_futures"}
-    instruments = config.get("instruments")
-
-    if not isinstance(instruments, dict) or not (0 < len(instruments) <= 3):
-        raise BadConfigException("Config must contain 1 to 3 markets and must be a dictionary.")
-
-    for market, pairs in instruments.items():
-        if market not in valid_markets or not isinstance(pairs, list):
-            raise BadConfigException(f"Invalid pairs for market {market}.")
-
-    websocket_lifetime = config.get("websocket_life_time_seconds", 0)
-    if not (30 <= websocket_lifetime <= 60 * 60 * 23):
-        raise WebSocketLifeTimeException('Bad websocket_life_time_seconds')
-
-    logger = setup_logger(should_dump_logs=should_dump_logs)
-    logger.info("\n%s", binance_archiver_logo)
-    logger.info("Starting Binance Listener...")
-    logger.info("Configuration:\n%s", pprint.pformat(config, indent=1))
-
-    listener_facade = ListenerFacade(
-        config=config,
-        logger=logger,
+    listener_facade = BinanceDataListener(
+        data_sink_config=data_sink_config,
         init_observers=init_observers
     )
 
     listener_facade.run()
     return listener_facade
 
-class ListenerFacade(Subject):
+class BinanceDataListener(Subject):
 
     __slots__ = [
-        'config',
+        'data_sink_config',
         'logger',
-        'instruments',
         'global_shutdown_flag',
         'queue_pool',
         'stream_service',
         '_observers',
-        'whistleblower',
-        'snapshot_manager'
+        'listener_observer_updater',
+        'listener_snapshot_service'
     ]
 
     def __init__(
             self,
-            config: dict,
-            logger: logging.Logger,
+            data_sink_config: DataSinkConfig,
             init_observers: list[Observer] | None = None
     ) -> None:
-        self.config = config
-        self.logger = logger
-        self.instruments = config["instruments"]
+
+        self.data_sink_config = data_sink_config
+
+        self.logger = setup_logger(should_dump_logs=True)
+        self.logger.info("\n%s", binance_archiver_logo)
+        self.logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
+
         self.global_shutdown_flag = threading.Event()
 
-        self.queue_pool = QueuePoolListener()
-        self.stream_service = StreamService(
-            config=config,
-            logger=self.logger,
-            queue_pool=self.queue_pool,
-            global_shutdown_flag=self.global_shutdown_flag
-        )
+        self.queue_pool = ListenerQueuePool()
 
         self._observers = init_observers if init_observers is not None else []
 
-        self.whistleblower = ListenerObserverUpdater(
-            logger=self.logger,
+        self.stream_service = StreamService(
+            queue_pool=self.queue_pool,
+            global_shutdown_flag=self.global_shutdown_flag,
+            data_sink_config=data_sink_config
+        )
+
+        self.listener_observer_updater = ListenerObserverUpdater(
             observers=self._observers,
             global_queue=self.queue_pool.global_queue,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
-        snapshot_strategy = ListenerSnapshotStrategy(global_queue=self.queue_pool.global_queue)
-
-        self.snapshot_manager = SnapshotManager(
-            config=self.config,
-            logger=self.logger,
-            snapshot_strategy=snapshot_strategy,
+        self.listener_snapshot_service = DepthSnapshotService(
+            snapshot_strategy=ListenerDepthSnapshotStrategy(global_queue=self.queue_pool.global_queue),
+            data_sink_config=data_sink_config,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
@@ -115,22 +92,17 @@ class ListenerFacade(Subject):
             observer.update(message)
 
     def run(self) -> None:
-        dump_path = self.config.get("dump_path", "dump/")
 
-        snapshot_fetcher_interval_seconds = self.config["snapshot_fetcher_interval_seconds"]
+        self.stream_service.run()
 
-        self.stream_service.run_streams()
-
-        self.whistleblower.run_whistleblower()
+        self.listener_observer_updater.run_whistleblower()
 
         while not any(queue_.qsize() != 0 for queue_ in self.queue_pool.queue_lookup.values()):
             time.sleep(0.001)
 
         time.sleep(5)
 
-        self.snapshot_manager.run_snapshots(
-            dump_path=dump_path
-        )
+        self.listener_snapshot_service.run()
 
     def shutdown(self):
         self.logger.info("Shutting down archiver")
