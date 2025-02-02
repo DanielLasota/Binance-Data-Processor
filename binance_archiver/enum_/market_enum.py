@@ -1,8 +1,8 @@
-from enum import Enum, auto
+from enum import Enum
 
 
 class Market(Enum):
-    SPOT = auto()
-    USD_M_FUTURES = auto()
-    COIN_M_FUTURES = auto()
+    SPOT = 'spot'
+    USD_M_FUTURES = 'usd_m_futures'
+    COIN_M_FUTURES = 'coin_m_futures'
     ...

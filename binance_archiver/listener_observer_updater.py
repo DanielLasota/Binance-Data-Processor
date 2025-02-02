@@ -19,21 +19,21 @@ class ListenerObserverUpdater:
 
     def __init__(
             self,
-            logger: logging.Logger,
             observers: list[Observer],
             global_queue: Queue,
             global_shutdown_flag: threading.Event
     ) -> None:
-        self.logger = logger
+        self.logger = logging.getLogger('binance_archiver')
         self.observers = observers
         self.global_queue = global_queue
         self.global_shutdown_flag = global_shutdown_flag
 
-    def process_global_queue(self):
+    def process_global_queue(self) -> None:
         while not self.global_shutdown_flag.is_set():
 
             if self.global_queue.qsize() > 200:
-                self.logger.warning(f'qsize: {self.global_queue.qsize()}')
+                # self.logger.warning(f'qsize: {self.global_queue.qsize()}')
+                ...
 
             try:
                 message = self.global_queue.get(timeout=1)
@@ -43,6 +43,6 @@ class ListenerObserverUpdater:
             except queue.Empty:
                 continue
 
-    def run_whistleblower(self):
+    def run_whistleblower(self) -> None:
         whistleblower_thread = threading.Thread(target=self.process_global_queue)
         whistleblower_thread.start()

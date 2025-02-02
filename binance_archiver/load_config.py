@@ -2,9 +2,9 @@ import os
 import json
 
 
-def load_config(json_name: str):
+def load_config_from_json(json_filename: str)  -> dict:
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, 'stock_data_sink_configs', json_name)
+    config_path = os.path.join(script_dir, 'stock_data_sink_configs', json_filename)
 
     if not os.path.isdir(os.path.join(script_dir, 'stock_data_sink_configs')):
         raise FileNotFoundError(f"Katalog stock_data_sink_configs nie istnieje w {script_dir}.")
