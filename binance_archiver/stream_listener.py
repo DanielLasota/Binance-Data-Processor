@@ -7,6 +7,8 @@ import traceback
 import websockets
 
 from websockets.legacy.client import WebSocketClientProtocol
+
+from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
@@ -21,73 +23,63 @@ class StreamListener:
     __slots__ = [
         'logger',
         'queue',
-        'pairs',
-        'stream_type',
-        'market',
+        'asset_parameters',
         'id',
         'thread',
         '_stop_event',
-        '_blackout_supervisor',
         '_ws_lock',
         '_ws',
         '_url',
-        '_loop'
+        '_loop',
+        '_blackout_supervisor',
     ]
 
     def __init__(
         self,
-        logger: logging.Logger,
         queue: TradeQueue | DifferenceDepthQueue,
-        pairs: list[str],
-        stream_type: StreamType,
-        market: Market
+        asset_parameters: AssetParameters
     ):
 
-        if not isinstance(pairs, list):
+        if not isinstance(asset_parameters.pairs, list):
             raise WrongListInstanceException('pairs argument is not a list')
-        if len(pairs) == 0:
+        if len(asset_parameters.pairs) == 0:
             raise PairsLengthException('pairs len is zero')
 
-        self.logger = logger
+        self.logger = logging.getLogger('binance_data_sink')
         self.queue = queue
-        self.pairs = pairs
-        self.stream_type = stream_type
-        self.market = market
+        self.asset_parameters = asset_parameters
 
-        self.id: StreamId = StreamId(pairs=pairs)
+        self.id: StreamId = StreamId(pairs=self.asset_parameters.pairs)
         self.thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._ws_lock = threading.Lock()
         self._ws: WebSocketClientProtocol | None = None
 
-        if self.stream_type == StreamType.TRADE_STREAM:
-            self._url = URLFactory.get_trade_stream_url(market, pairs)
+        if self.asset_parameters.stream_type == StreamType.TRADE_STREAM:
+            self._url = URLFactory.get_trade_stream_url(asset_parameters)
         else:
-            self._url = URLFactory.get_difference_depth_stream_url(market, pairs)
+            self._url = URLFactory.get_difference_depth_stream_url(asset_parameters)
 
         self._blackout_supervisor = BlackoutSupervisor(
-            stream_type=stream_type,
-            market=market,
-            check_interval_in_seconds=5,
-            max_interval_without_messages_in_seconds=20 if market is Market.COIN_M_FUTURES else 15,
+            asset_parameters=asset_parameters,
             on_error_callback=lambda: self.restart_websocket_app(),
-            logger=self.logger
+            max_interval_without_messages_in_seconds=20 if self.asset_parameters.market is Market.COIN_M_FUTURES else 15,
         )
 
     def start_websocket_app(self):
         self._stop_event.clear()
-        self.logger.info(f"{self.market} {self.stream_type} {self.id.start_timestamp} Starting streamListener")
+        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.start_timestamp} Starting streamListener")
         self.thread = threading.Thread(target=self._run_event_loop, daemon=True)
         self.thread.start()
         self._blackout_supervisor.run()
 
     def restart_websocket_app(self):
-        self.logger.warning(f"{self.market} {self.stream_type} {self.id.start_timestamp} Restarting streamListener")
+        self.logger.warning(f"{self.asset_parameters} {self.asset_parameters} {self.asset_parameters} Restarting streamListener")
         self.close_websocket()
         self.start_websocket_app()
 
     def close_websocket_app(self):
-        self.logger.info(f"{self.market} {self.stream_type} {self.id.start_timestamp} Closing StreamListener")
+        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.start_timestamp} Closing StreamListener")
         self.close_websocket()
         self._blackout_supervisor.shutdown_supervisor()
 
@@ -118,13 +110,13 @@ class StreamListener:
             return
 
         message = {}
-        if self.stream_type == StreamType.TRADE_STREAM:
+        if self.asset_parameters.stream_type == StreamType.TRADE_STREAM:
             message = {
                 "method": method,
                 "params": [f"{pair}@trade"],
                 "id": 1
             }
-        elif self.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
+        elif self.asset_parameters.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
             message = {
                 "method": method,
                 "params": [f"{pair}@depth@100ms"],
@@ -176,7 +168,7 @@ class StreamListener:
             try:
                 message = await ws.recv()
             except websockets.exceptions.ConnectionClosed:
-                self.logger.warning(f"{self.market} {self.stream_type} WebSocket closed remotely.")
+                self.logger.warning(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} WebSocket closed remotely.")
                 break
 
             self._blackout_supervisor.notify()
@@ -187,20 +179,21 @@ class StreamListener:
 
         # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
 
-        if self.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
-            self.queue.put_queue_message(
-                stream_listener_id=self.id,
-                message=raw_message,
-                timestamp_of_receive=timestamp_of_receive
-            )
-        elif self.stream_type == StreamType.TRADE_STREAM:
-            self.queue.put_trade_message(
-                stream_listener_id=self.id,
-                message=raw_message,
-                timestamp_of_receive=timestamp_of_receive
-            )
-        else:
-            self.logger.error(f"Unknown stream_type: {self.stream_type}, ignoring message.")
+        if 'stream' in raw_message:
+            if self.asset_parameters.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
+                self.queue.put_queue_message(
+                    stream_listener_id=self.id,
+                    message=raw_message,
+                    timestamp_of_receive=timestamp_of_receive
+                )
+            elif self.asset_parameters.stream_type == StreamType.TRADE_STREAM:
+                self.queue.put_trade_message(
+                    stream_listener_id=self.id,
+                    message=raw_message,
+                    timestamp_of_receive=timestamp_of_receive
+                )
+            else:
+                self.logger.error(f"Unknown stream_type: {self.asset_parameters.stream_type}, ignoring message.")
 
     async def _send_message(self, message: str):
         with self._ws_lock:

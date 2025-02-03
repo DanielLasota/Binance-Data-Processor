@@ -5,7 +5,7 @@ from logging.handlers import RotatingFileHandler
 
 
 def setup_logger(should_dump_logs: bool | None = False) -> logging.Logger:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('binance_data_sink')
     logger.setLevel(logging.INFO)
     logging.Formatter.converter = time.gmtime
 

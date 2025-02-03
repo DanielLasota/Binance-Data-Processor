@@ -4,13 +4,14 @@ import threading
 import pytest
 import re
 
-from binance_archiver.queue_pool import QueuePoolDataSink
+from binance_archiver import DataSinkConfig
+from binance_archiver.enum_.asset_parameters import AssetParameters
+from binance_archiver.queue_pool import DataSinkQueuePool
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.setup_logger import setup_logger
 from binance_archiver.stream_id import StreamId
-from binance_archiver.stream_listener import StreamListener, WrongListInstanceException, \
-    PairsLengthException
+from binance_archiver.stream_listener import StreamListener, WrongListInstanceException, PairsLengthException
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.blackout_supervisor import BlackoutSupervisor
 from binance_archiver.trade_queue import TradeQueue
@@ -19,7 +20,7 @@ from binance_archiver.trade_queue import TradeQueue
 class TestStreamListener:
 
     def test_given_stream_listener_when_init_then_stream_listener_initializes_with_valid_parameters(self):
-        config = {
+        config_from_json = {
             "instruments": {
                 "spot": [
                     "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT",
@@ -43,23 +44,35 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        logger = setup_logger()
-        instruments = config['instruments']
+        data_sink_config = DataSinkConfig(
+            instruments={
+                'spot': config_from_json['instruments']['spot'],
+                'usd_m_futures': config_from_json['instruments']['usd_m_futures'],
+                'coin_m_futures': config_from_json['instruments']['coin_m_futures'],
+            },
+            time_settings={
+                "file_duration_seconds": config_from_json["file_duration_seconds"],
+                "snapshot_fetcher_interval_seconds": config_from_json["snapshot_fetcher_interval_seconds"],
+                "websocket_life_time_seconds": config_from_json["websocket_life_time_seconds"]
+            }
+        )
+
+        setup_logger()
         global_shutdown_flag = threading.Event()
 
-        queue_pool = QueuePoolDataSink()
+        queue_pool = DataSinkQueuePool()
 
-        for market_str in ['spot', 'usd_m_futures', 'coin_m_futures']:
-            market = Market[market_str.upper()]
-            pairs = instruments[market_str]
+        for market in Market:
 
-            queue = queue_pool.get_queue(market, StreamType.DIFFERENCE_DEPTH_STREAM)
+            pairs = data_sink_config.instruments.get_pairs(market=market)
+
             difference_depth_stream_listener = StreamListener(
-                logger=logger,
-                queue=queue,
-                pairs=pairs,
-                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
-                market=market
+                queue=queue_pool.get_queue(market, StreamType.DIFFERENCE_DEPTH_STREAM),
+                asset_parameters=AssetParameters(
+                    market=market,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                    pairs=pairs
+                )
             )
 
             expected_pairs_amount = len(pairs)
@@ -68,13 +81,13 @@ class TestStreamListener:
             assert isinstance(difference_depth_stream_listener.id, StreamId)
             assert difference_depth_stream_listener.id.pairs_amount == expected_pairs_amount
 
-            queue = queue_pool.get_queue(market, StreamType.TRADE_STREAM)
             trade_stream_listener = StreamListener(
-                logger=logger,
-                queue=queue,
-                pairs=pairs,
-                stream_type=StreamType.TRADE_STREAM,
-                market=market
+                queue=queue_pool.get_queue(market, StreamType.TRADE_STREAM),
+                asset_parameters=AssetParameters(
+                    market=market,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                    pairs=pairs
+                )
             )
 
             assert difference_depth_stream_listener._ws is None
@@ -88,7 +101,7 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_stream_listener_when_init_with_pairs_argument_as_str_then_exception_is_thrown(self):
-        config = {
+        config_from_json = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
                 "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
@@ -102,18 +115,31 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        logger = setup_logger()
-        instruments = config['instruments']
-        queue_pool = QueuePoolDataSink()
+        data_sink_config = DataSinkConfig(
+            instruments={
+                'spot': config_from_json['instruments']['spot'],
+                'usd_m_futures': config_from_json['instruments']['usd_m_futures'],
+                'coin_m_futures': config_from_json['instruments']['coin_m_futures'],
+            },
+            time_settings={
+                "file_duration_seconds": config_from_json["file_duration_seconds"],
+                "snapshot_fetcher_interval_seconds": config_from_json["snapshot_fetcher_interval_seconds"],
+                "websocket_life_time_seconds": config_from_json["websocket_life_time_seconds"]
+            }
+        )
+
+        setup_logger()
+        queue_pool = DataSinkQueuePool()
 
         with pytest.raises(WrongListInstanceException) as excinfo:
             queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM)
             stream_listener = StreamListener(
-                logger=logger,
-                queue=queue,
-                pairs=instruments['spot'][0],
-                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
-                market=Market.SPOT
+                queue=queue_pool.get_queue(market=Market.SPOT, stream_type=StreamType.DIFFERENCE_DEPTH_STREAM),
+                asset_parameters=AssetParameters(
+                    market=Market.SPOT,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                    pairs=data_sink_config.instruments.get_pairs(market=Market.SPOT)[0]
+                )
             )
 
         assert str(excinfo.value) == "pairs argument is not a list"
@@ -122,7 +148,7 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_stream_listener_when_init_with_pairs_amount_of_zero_then_exception_is_thrown(self):
-        config = {
+        config_from_json = {
             "instruments": {
                 "spot": [],
                 "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
@@ -136,19 +162,34 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
-        logger = setup_logger()
-        instruments = config['instruments']
-        queue_pool = QueuePoolDataSink()
+        data_sink_config = DataSinkConfig(
+            instruments={
+                'spot': config_from_json['instruments']['spot'],
+                'usd_m_futures': config_from_json['instruments']['usd_m_futures'],
+                'coin_m_futures': config_from_json['instruments']['coin_m_futures'],
+            },
+            time_settings={
+                "file_duration_seconds": config_from_json["file_duration_seconds"],
+                "snapshot_fetcher_interval_seconds": config_from_json["snapshot_fetcher_interval_seconds"],
+                "websocket_life_time_seconds": config_from_json["websocket_life_time_seconds"]
+            }
+        )
+
+        setup_logger()
+        queue_pool = DataSinkQueuePool()
 
         with pytest.raises(PairsLengthException) as excinfo:
-            pairs = instruments['spot']
-            queue = queue_pool.get_queue(Market.SPOT, StreamType.DIFFERENCE_DEPTH_STREAM)
+            queue = queue_pool.get_queue(
+                market=Market.SPOT,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM
+            )
             stream_listener = StreamListener(
-                logger=logger,
                 queue=queue,
-                pairs=pairs,
-                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
-                market=Market.SPOT
+                asset_parameters=AssetParameters(
+                    market=Market.SPOT,
+                    stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                    pairs=data_sink_config.instruments.get_pairs(market=Market.SPOT)
+                )
             )
 
         assert str(excinfo.value) == "pairs len is zero"
@@ -160,11 +201,12 @@ class TestStreamListener:
         pairs = ['BTCUSDT']
         queue = TradeQueue(market=Market.SPOT)
         stream_listener = StreamListener(
-            logger=setup_logger(),
             queue=queue,
-            pairs=pairs,
-            stream_type=StreamType.TRADE_STREAM,
-            market=Market.SPOT
+            asset_parameters=AssetParameters(
+                market=Market.SPOT,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                pairs=pairs
+            )
         )
 
         with caplog.at_level(logging.INFO):
@@ -179,11 +221,12 @@ class TestStreamListener:
         pairs = ['BTCUSDT']
         queue = TradeQueue(market=Market.SPOT)
         stream_listener = StreamListener(
-            logger=setup_logger(),
             queue=queue,
-            pairs=pairs,
-            stream_type=StreamType.TRADE_STREAM,
-            market=Market.SPOT
+            asset_parameters=AssetParameters(
+                market=Market.SPOT,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                pairs=pairs
+            )
         )
 
         with caplog.at_level(logging.INFO):
@@ -202,7 +245,7 @@ class TestStreamListener:
     def test_given_trade_stream_listener_when_connected_then_message_is_correctly_passed_to_trade_queue(self):
 
         logger = setup_logger()
-        config = {
+        config_from_json = {
             "instruments": {
                 "spot": ["BTCUSDT"],
                 "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
@@ -216,14 +259,28 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
+        data_sink_config = DataSinkConfig(
+            instruments={
+                'spot': config_from_json['instruments']['spot'],
+                'usd_m_futures': config_from_json['instruments']['usd_m_futures'],
+                'coin_m_futures': config_from_json['instruments']['coin_m_futures'],
+            },
+            time_settings={
+                "file_duration_seconds": config_from_json["file_duration_seconds"],
+                "snapshot_fetcher_interval_seconds": config_from_json["snapshot_fetcher_interval_seconds"],
+                "websocket_life_time_seconds": config_from_json["websocket_life_time_seconds"]
+            }
+        )
+
         trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
-            logger=logger,
             queue=trade_queue,
-            pairs=config['instruments']['spot'],
-            stream_type=StreamType.TRADE_STREAM,
-            market=Market.SPOT
+            asset_parameters=AssetParameters(
+                market=Market.SPOT,
+                stream_type=StreamType.TRADE_STREAM,
+                pairs=data_sink_config.instruments.get_pairs(market=Market.SPOT)
+            )
         )
 
         trade_queue.currently_accepted_stream_id = trade_stream_listener.id
@@ -247,9 +304,9 @@ class TestStreamListener:
         TradeQueue.clear_instances()
 
     def test_given_difference_depth_stream_listener_when_connected_then_message_is_correctly_passed_to_diff_queue(self):
-        logger = setup_logger()
+        setup_logger()
 
-        config = {
+        config_from_json = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
                 "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
@@ -263,14 +320,28 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
+        data_sink_config = DataSinkConfig(
+            instruments={
+                'spot': config_from_json['instruments']['spot'],
+                'usd_m_futures': config_from_json['instruments']['usd_m_futures'],
+                'coin_m_futures': config_from_json['instruments']['coin_m_futures'],
+            },
+            time_settings={
+                "file_duration_seconds": config_from_json["file_duration_seconds"],
+                "snapshot_fetcher_interval_seconds": config_from_json["snapshot_fetcher_interval_seconds"],
+                "websocket_life_time_seconds": config_from_json["websocket_life_time_seconds"]
+            }
+        )
+
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
         difference_depth_stream_listener = StreamListener(
-            logger=logger,
             queue=difference_depth_queue,
-            pairs=config['instruments']['spot'],
-            stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
-            market=Market.SPOT
+            asset_parameters=AssetParameters(
+                market=Market.SPOT,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                pairs=data_sink_config.instruments.get_pairs(market=Market.SPOT)
+            )
         )
 
         difference_depth_queue.currently_accepted_stream_id = difference_depth_stream_listener.id.id
@@ -297,7 +368,7 @@ class TestStreamListener:
 
         from unittest.mock import patch
 
-        config = {
+        config_from_json = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
                 "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
@@ -311,14 +382,28 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
+        data_sink_config = DataSinkConfig(
+            instruments={
+                'spot': config_from_json['instruments']['spot'],
+                'usd_m_futures': config_from_json['instruments']['usd_m_futures'],
+                'coin_m_futures': config_from_json['instruments']['coin_m_futures'],
+            },
+            time_settings={
+                "file_duration_seconds": config_from_json["file_duration_seconds"],
+                "snapshot_fetcher_interval_seconds": config_from_json["snapshot_fetcher_interval_seconds"],
+                "websocket_life_time_seconds": config_from_json["websocket_life_time_seconds"]
+            }
+        )
+
         trade_queue = TradeQueue(market=Market.SPOT)
 
         trade_stream_listener = StreamListener(
-            logger=logger,
             queue=trade_queue,
-            pairs=config['instruments']['spot'],
-            stream_type=StreamType.TRADE_STREAM,
-            market=Market.SPOT
+            asset_parameters=AssetParameters(
+                market=Market.SPOT,
+                stream_type=StreamType.TRADE_STREAM,
+                pairs=data_sink_config.instruments.get_pairs(market=Market.SPOT)
+            )
         )
 
         trade_queue.currently_accepted_stream_id = trade_stream_listener.id
@@ -355,7 +440,7 @@ class TestStreamListener:
 
         from unittest.mock import patch
 
-        config = {
+        config_from_json = {
             "instruments": {
                 "spot": ["BTCUSDT", "ETHUSDT"],
                 "usd_m_futures": ["BTCUSDT", "ETHUSDT"],
@@ -369,14 +454,28 @@ class TestStreamListener:
             "send_zip_to_blob": False
         }
 
+        data_sink_config = DataSinkConfig(
+            instruments={
+                'spot': config_from_json['instruments']['spot'],
+                'usd_m_futures': config_from_json['instruments']['usd_m_futures'],
+                'coin_m_futures': config_from_json['instruments']['coin_m_futures'],
+            },
+            time_settings={
+                "file_duration_seconds": config_from_json["file_duration_seconds"],
+                "snapshot_fetcher_interval_seconds": config_from_json["snapshot_fetcher_interval_seconds"],
+                "websocket_life_time_seconds": config_from_json["websocket_life_time_seconds"]
+            }
+        )
+
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
         difference_depth_queue_listener = StreamListener(
-            logger=setup_logger(),
             queue=difference_depth_queue,
-            pairs=config['instruments']['spot'],
-            stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
-            market=Market.SPOT
+            asset_parameters=AssetParameters(
+                market=Market.SPOT,
+                stream_type=StreamType.DIFFERENCE_DEPTH_STREAM,
+                pairs=data_sink_config.instruments.get_pairs(market=Market.SPOT)
+            )
         )
 
         with patch.object(StreamListener, 'restart_websocket_app') as mock_restart, \

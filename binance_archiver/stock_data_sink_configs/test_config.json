@@ -16,7 +16,5 @@
   "file_duration_seconds": 60,
   "snapshot_fetcher_interval_seconds": 60,
   "websocket_life_time_seconds": 60,
-  "save_to_json": false,
-  "save_to_zip": false,
-  "send_zip_to_blob": false
+  "data_save_target": "listen_only_for_test_purposes"
 }

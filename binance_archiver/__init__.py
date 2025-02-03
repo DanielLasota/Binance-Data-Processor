@@ -1,5 +1,7 @@
+from binance_archiver.data_sink_config import DataSinkConfig
 from binance_archiver.listener_facade import launch_data_listener
-from binance_archiver.data_sink_facade import launch_data_sink
+from binance_archiver.data_sink_facade import launch_data_sink, BinanceDataSink
+from binance_archiver.load_config import load_config_from_json
 
 from binance_archiver.scraper import (
     download_csv_data,
@@ -7,12 +9,17 @@ from binance_archiver.scraper import (
     conduct_whole_directory_of_csvs_data_quality_analysis
 )
 
+
+
 __all__ = [
     'launch_data_sink',
     'launch_data_listener',
     'download_csv_data',
     'conduct_whole_directory_of_csvs_data_quality_analysis',
-    'conduct_csv_files_data_quality_analysis'
+    'conduct_csv_files_data_quality_analysis',
+    'load_config_from_json',
+    'BinanceDataSink',
+    'DataSinkConfig'
 ]
 
 __version__ = "0.0.1"

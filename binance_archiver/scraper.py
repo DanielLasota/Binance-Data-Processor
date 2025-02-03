@@ -3,19 +3,20 @@ from __future__ import annotations
 import io
 import os
 import zipfile
-from dataclasses import dataclass
 from datetime import timedelta, datetime
 import boto3
 import orjson
 from alive_progress import alive_bar
 import pandas as pd
+
+from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from abc import ABC, abstractmethod
 from typing import List
 
 from binance_archiver.logo import binance_archiver_logo
-
+from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 
 BINANCE_ARCHIVER_LOGO = binance_archiver_logo
 
@@ -27,28 +28,11 @@ __all__ = [
 ]
 
 
-@dataclass(slots=True)
-class AssetParameters:
-    market: Market
-    stream_type: StreamType
-    pair: str
-
-
-@dataclass(slots=True)
-class StorageConnectionParameters:
-    blob_connection_string: str | None = None
-    container_name: str | None = None
-    backblaze_access_key_id: str | None = None
-    backblaze_secret_access_key: str | None = None
-    backblaze_endpoint_url: str | None = None
-    backblaze_bucket_name: str | None = None
-
-
 def download_csv_data(
         start_date: str,
         end_date: str,
         dump_path: str | None = None,
-        blob_connection_string: str | None = None,
+        azure_blob_parameters_with_key: str | None = None,
         azure_container_name: str | None = None,
         backblaze_access_key_id: str | None = None,
         backblaze_secret_access_key: str | None = None,
@@ -60,7 +44,7 @@ def download_csv_data(
         ) -> None:
 
     storage_connection_parameters = StorageConnectionParameters(
-        blob_connection_string,
+        azure_blob_parameters_with_key,
         azure_container_name,
         backblaze_access_key_id,
         backblaze_secret_access_key,
@@ -94,10 +78,10 @@ class DataScraper:
 
         self.data_quality_checker = DataQualityChecker()
 
-        if storage_connection_parameters.blob_connection_string is not None:
+        if storage_connection_parameters.azure_blob_parameters_with_key is not None:
             self.storage_client = AzureClient(
-                blob_connection_string=storage_connection_parameters.blob_connection_string,
-                container_name=storage_connection_parameters.container_name
+                blob_connection_string=storage_connection_parameters.azure_blob_parameters_with_key,
+                container_name=storage_connection_parameters.azure_container_name
             )
         elif storage_connection_parameters.backblaze_access_key_id is not None:
             self.storage_client = BackBlazeS3Client(
@@ -133,8 +117,8 @@ class DataScraper:
 
         os.startfile(dump_path)
 
-        markets = [Market[_.upper()] for _ in markets]
-        stream_types = [StreamType[_.upper()] for _ in stream_types]
+        markets = [Market(_.lower()) for _ in markets]
+        stream_types = [StreamType(_.lower()) for _ in stream_types]
         pairs = [_.lower() for _ in pairs]
         dates = self._generate_dates_from_range(start_date, end_date)
 
@@ -142,7 +126,7 @@ class DataScraper:
             AssetParameters(
                 market=market,
                 stream_type=stream_type,
-                pair=(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)
+                pairs=[(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)]
             )
             for market in markets
             for stream_type in stream_types
@@ -156,7 +140,7 @@ class DataScraper:
             for asset_parameters in asset_parameters_list:
                 print(
                     f'Downloading pair: '
-                    f'{asset_parameters.pair} '
+                    f'{asset_parameters.pairs[0]} '
                     f'{asset_parameters.stream_type} '
                     f'{asset_parameters.market} '
                     f'{date}'
@@ -537,7 +521,7 @@ class DataScraper:
 
     @staticmethod
     def _get_file_name(asset_parameters: AssetParameters, date: str) -> str:
-        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pair.lower()}_{date}"
+        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{date}"
 
 
 class IClientHandler(ABC):
@@ -679,7 +663,7 @@ class DataQualityChecker:
         return AssetParameters(
             market=market,
             stream_type=stream_type,
-            pair=pair
+            pairs=[pair]
         )
 
     def get_dataframe_quality_report(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> str:

@@ -5,7 +5,9 @@ import threading
 import time
 import traceback
 
-from binance_archiver.queue_pool import QueuePoolListener, QueuePoolDataSink
+from binance_archiver import DataSinkConfig
+from binance_archiver.enum_.asset_parameters import AssetParameters
+from binance_archiver.queue_pool import ListenerQueuePool, DataSinkQueuePool
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
@@ -15,13 +17,11 @@ from binance_archiver.trade_queue import TradeQueue
 
 class StreamService:
 
-
     __slots__ = [
-        'config',
-        'instruments',
         'logger',
         'queue_pool',
         'global_shutdown_flag',
+        'data_sink_config',
         'is_someone_overlapping_right_now_flag',
         'stream_listeners',
         'overlap_lock'
@@ -29,51 +29,51 @@ class StreamService:
 
     def __init__(
         self,
-        config: dict,
-        logger: logging.Logger,
-        queue_pool: QueuePoolDataSink | QueuePoolListener,
-        global_shutdown_flag: threading.Event
+        queue_pool: DataSinkQueuePool | ListenerQueuePool,
+        global_shutdown_flag: threading.Event,
+        data_sink_config: DataSinkConfig
     ):
-        self.config = config
-        self.instruments = config['instruments']
-        self.logger = logger
+        self.logger = logging.getLogger('binance_data_sink')
         self.queue_pool = queue_pool
+        self.data_sink_config = data_sink_config
         self.global_shutdown_flag = global_shutdown_flag
         self.is_someone_overlapping_right_now_flag = threading.Event()
         self.stream_listeners = {}
         self.overlap_lock: threading.Lock = threading.Lock()
 
-    def run_streams(self):
-        for market_str, pairs in self.instruments.items():
-            market = Market[market_str.upper()]
+    def run(self):
+        for market, instruments in self.data_sink_config.instruments.dict.items():
             for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
-                self.start_stream_service(
+                asset_parameters = AssetParameters(
+                    market=market,
                     stream_type=stream_type,
-                    market=market
+                    pairs=self.data_sink_config.instruments.get_pairs(market=market)
+                )
+                self.start_stream_service(
+                    queue=self.queue_pool.get_queue(market, stream_type),
+                    asset_parameters=asset_parameters
                 )
 
-    def start_stream_service(self,stream_type: StreamType, market: Market) -> None:
-        queue = self.queue_pool.get_queue(market, stream_type)
-        pairs = self.instruments[market.name.lower()]
+    def start_stream_service(
+            self,
+            queue: DifferenceDepthQueue | TradeQueue,
+            asset_parameters: AssetParameters
+    ) -> None:
 
         thread = threading.Thread(
             target=self._stream_service,
             args=(
                 queue,
-                pairs,
-                stream_type,
-                market
+                asset_parameters
             ),
-            name=f'stream_service: market: {market}, stream_type: {stream_type}'
+            name=f'stream_service: market: {asset_parameters.market}, stream_type: {asset_parameters.stream_type}'
         )
         thread.start()
 
     def _stream_service(
         self,
         queue: DifferenceDepthQueue | TradeQueue,
-        pairs: list[str],
-        stream_type: StreamType,
-        market: Market
+        asset_parameters: AssetParameters
     ) -> None:
 
         def sleep_with_flag_check(duration) -> None:
@@ -89,24 +89,21 @@ class StreamService:
 
             try:
                 old_stream_listener = StreamListener(
-                    logger=self.logger,
                     queue=queue,
-                    pairs=pairs,
-                    stream_type=stream_type,
-                    market=market
+                    asset_parameters=asset_parameters
                 )
-                self.stream_listeners[(market, stream_type, 'old')] = old_stream_listener
+                self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'old')] = old_stream_listener
 
-                if stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
+                if asset_parameters.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
                     queue.currently_accepted_stream_id = old_stream_listener.id.id
-                elif stream_type is StreamType.TRADE_STREAM:
+                elif asset_parameters.stream_type is StreamType.TRADE_STREAM:
                     queue.currently_accepted_stream_id = old_stream_listener.id
 
                 old_stream_listener.start_websocket_app()
                 new_stream_listener = None
 
                 while not self.global_shutdown_flag.is_set():
-                    sleep_with_flag_check(self.config['websocket_life_time_seconds'])
+                    sleep_with_flag_check(self.data_sink_config.time_settings.websocket_life_time_seconds)
 
                     while self.is_someone_overlapping_right_now_flag.is_set():
                         time.sleep(1)
@@ -117,27 +114,23 @@ class StreamService:
                     with self.overlap_lock:
 
                         self.is_someone_overlapping_right_now_flag.set()
-                        self.logger.info(f'{market} {stream_type} {old_stream_listener.id.start_timestamp} '
-                                         f'started changing procedure')
+                        self.logger.info(
+                            f'{asset_parameters.market} {asset_parameters.stream_type} {old_stream_listener.id.start_timestamp} started changing ws')
 
                         new_stream_listener = StreamListener(
-                            logger=self.logger,
                             queue=queue,
-                            pairs=pairs,
-                            stream_type=stream_type,
-                            market=market
+                            asset_parameters=asset_parameters
                         )
 
                         new_stream_listener.start_websocket_app()
-                        self.stream_listeners[(market, stream_type, 'new')] = new_stream_listener
+                        self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'new')] = new_stream_listener
 
                     while not queue.did_websockets_switch_successfully and not self.global_shutdown_flag.is_set():
                         time.sleep(1)
 
                     with self.overlap_lock:
                         self.is_someone_overlapping_right_now_flag.clear()
-                    self.logger.info(f"{market} {stream_type} {old_stream_listener.id.start_timestamp} "
-                                     f"switched successfully")
+                    self.logger.info(f"{asset_parameters.market} {asset_parameters.stream_type} {old_stream_listener.id.start_timestamp} overlapped")
 
                     if not self.global_shutdown_flag.is_set():
                         queue.did_websockets_switch_successfully = False
@@ -145,8 +138,8 @@ class StreamService:
                         old_stream_listener.close_websocket_app()
                         old_stream_listener = new_stream_listener
 
-                        self.stream_listeners[(market, stream_type, 'new')] = None
-                        self.stream_listeners[(market, stream_type, 'old')] = old_stream_listener
+                        self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'new')] = None
+                        self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'old')] = old_stream_listener
 
             except Exception as e:
                 self.logger.error(f'{e}, something bad happened')
@@ -158,7 +151,12 @@ class StreamService:
                     if listener and listener._ws and listener._ws.state in [0, 1]:
                         listener.close_websocket()
 
-    def update_subscriptions(self, market: Market, asset_upper: str, action: str):
+    def update_subscriptions(
+            self,
+            market: Market,
+            asset_upper: str,
+            action: str
+    ) -> None:
         for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
             for status in ['old', 'new']:
                 stream_listener: StreamListener = self.stream_listeners.get((market, stream_type, status))

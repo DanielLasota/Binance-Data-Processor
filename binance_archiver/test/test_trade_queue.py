@@ -115,8 +115,8 @@ class TestTradeQueue:
     #
     def test_given_data_listener_mode_and_global_queue_when_initializing_trade_queue_then_queue_is_set_to_global_queue(self):
         global_queue = Queue()
-        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
-        assert tq.queue is global_queue
+        trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        assert trade_queue.queue is global_queue
         TradeQueue.clear_instances()
 
     def test_given_trade_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):

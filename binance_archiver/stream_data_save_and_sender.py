@@ -2,21 +2,23 @@ from __future__ import annotations
 
 import io
 import logging
-import os
 import threading
 import time
 import zipfile
 from collections import defaultdict
 import re
 
+# import azure.storage.blob
 import boto3
-from azure.storage.blob import BlobServiceClient
 from botocore.config import Config
 
+from binance_archiver import DataSinkConfig
+from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
-from binance_archiver.enum_.market_enum import Market
-from binance_archiver.enum_.stream_type_enum import StreamType
-from binance_archiver.queue_pool import QueuePoolListener, QueuePoolDataSink
+from binance_archiver.enum_.data_save_target_enum import DataSaveTarget
+from binance_archiver.exceptions import BadStorageConnectionParameters
+from binance_archiver.queue_pool import ListenerQueuePool, DataSinkQueuePool
+from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.trade_queue import TradeQueue
 
@@ -24,157 +26,145 @@ from binance_archiver.trade_queue import TradeQueue
 class StreamDataSaverAndSender:
 
     __slots__ = [
-        'config',
-        'logger',
-        'azure_blob_parameters_with_key',
-        'azure_container_name',
-        'backblaze_s3_parameters',
-        'backblaze_bucket_name',
+        '_logger',
+        'queue_pool',
+        'data_sink_config',
         'global_shutdown_flag',
-        'azure_blob_service_client',
-        'azure_container_client',
+        '_stream_message_pair_pattern',
         's3_client',
-        '_stream_message_pair_pattern'
+        'azure_container_client'
     ]
-
 
     def __init__(
         self,
-        logger: logging.Logger,
-        config: dict,
-        azure_blob_parameters_with_key: str | None = None,
-        azure_container_name: str | None = None,
-        backblaze_s3_parameters: dict | None = None,
-        backblaze_bucket_name: str | None = None,
+        queue_pool: DataSinkQueuePool | ListenerQueuePool,
+        data_sink_config: DataSinkConfig,
         global_shutdown_flag: threading.Event = threading.Event()
     ):
-        self.config = config
-        self.logger = logger
-        self.azure_blob_parameters_with_key = azure_blob_parameters_with_key
-        self.azure_container_name = azure_container_name
-        self.backblaze_s3_parameters = backblaze_s3_parameters
-        self.backblaze_bucket_name = backblaze_bucket_name
+        self._logger = logging.getLogger('binance_data_sink')
+        self.queue_pool = queue_pool
+        self.data_sink_config = data_sink_config
         self.global_shutdown_flag = global_shutdown_flag
         self._stream_message_pair_pattern = re.compile(r'"stream":"(\w+)@')
 
-        if self.azure_blob_parameters_with_key and self.azure_container_name:
-            try:
-                self.azure_blob_service_client = BlobServiceClient.from_connection_string(
-                    self.azure_blob_parameters_with_key
-                )
-                self.azure_container_client = self.azure_blob_service_client.get_container_client(
-                    self.azure_container_name
-                )
-                self.logger.debug(f"Connected to Azure Blob container: {self.azure_container_name}")
-            except Exception as e:
-                self.logger.error(f"Could not connect to Azure: {e}")
-                self.azure_blob_service_client = None
-                self.azure_container_client = None
-        else:
-            self.azure_blob_service_client = None
-            self.azure_container_client = None
+    def run(self):
 
-        if self.backblaze_s3_parameters and self.backblaze_bucket_name:
-            try:
-                self.s3_client = boto3.client(
-                    's3',
-                    aws_access_key_id=self.backblaze_s3_parameters.get('access_key_id'),
-                    aws_secret_access_key=self.backblaze_s3_parameters.get('secret_access_key'),
-                    endpoint_url=self.backblaze_s3_parameters.get('endpoint_url'),
-                    region_name='us-east-1',
-                    config=Config(signature_version='s3v4', retries={'max_attempts': 100,'mode': 'adaptive'})
-                )
-                self.logger.debug(f"Connected to Backblaze S3 bucket: {self.backblaze_bucket_name}")
-            except Exception as e:
-                self.logger.error(f"Error whilst connecting to Backblaze S3: {e}")
-                self.s3_client = None
-        else:
-            self.s3_client = None
+        if self.data_sink_config.data_save_target in [DataSaveTarget.BACKBLAZE, DataSaveTarget.AZURE_BLOB]:
+            self.setup_cloud_storage_client()
 
-    def run_data_saver(
-        self,
-        queue_pool: QueuePoolDataSink | QueuePoolListener,
-        dump_path: str,
-        file_duration_seconds: int,
-        save_to_json: bool,
-        save_to_zip: bool,
-        send_zip_to_blob: bool
-    ):
-        file_duration_seconds = self.config['file_duration_seconds']
-
-        for (market, stream_type), queue in queue_pool.queue_lookup.items():
+        for (market, stream_type), queue in self.queue_pool.queue_lookup.items():
+            asset_parameters = AssetParameters(
+                market=market,
+                stream_type=stream_type,
+                pairs=[]
+            )
             self.start_stream_writer(
                 queue=queue,
-                market=market,
-                file_duration_seconds=file_duration_seconds,
-                dump_path=dump_path,
-                stream_type=stream_type,
-                save_to_json=save_to_json,
-                save_to_zip=save_to_zip,
-                send_zip_to_blob=send_zip_to_blob
+                asset_parameters=asset_parameters
             )
+
+    def setup_cloud_storage_client(self):
+
+        azure_params_ok = (
+                self.data_sink_config.storage_connection_parameters.azure_blob_parameters_with_key is not None
+                and self.data_sink_config.storage_connection_parameters.azure_container_name is not None
+        )
+
+        backblaze_params_ok = (
+                self.data_sink_config.storage_connection_parameters.backblaze_access_key_id is not None
+                and self.data_sink_config.storage_connection_parameters.backblaze_secret_access_key is not None
+                and self.data_sink_config.storage_connection_parameters.backblaze_endpoint_url is not None
+                and self.data_sink_config.storage_connection_parameters.backblaze_bucket_name is not None
+        )
+
+        if not azure_params_ok and not backblaze_params_ok:
+            raise BadStorageConnectionParameters(
+                "At least one set of storage parameters (Azure or Backblaze) "
+                "must be fully specified. Also whilst creating from os env using:"
+                "load_storage_connection_parameters_from_environ() "
+                "Check os env variables"
+            )
+
+        target_initializers = {
+            DataSaveTarget.BACKBLAZE: lambda: setattr(
+                self, 's3_client',
+                self._get_s3_client(self.data_sink_config.storage_connection_parameters)
+            ),
+            DataSaveTarget.AZURE_BLOB: lambda: setattr(
+                self, 'azure_container_client',
+                self._get_azure_container_client(self.data_sink_config.storage_connection_parameters)
+            )
+        }
+
+        initializer = target_initializers.get(self.data_sink_config.data_save_target)
+
+        if initializer:
+            initializer()
+
+    @staticmethod
+    def _get_azure_container_client(storage_connection_parameters) -> 'azure.storage.blob.ContainerClient':
+        from azure.storage.blob import BlobServiceClient
+
+        try:
+            azure_blob_service_client = BlobServiceClient.from_connection_string(
+                storage_connection_parameters.azure_blob_parameters_with_key
+            )
+
+            azure_container_client = azure_blob_service_client.get_container_client(
+                storage_connection_parameters.azure_container_name
+            )
+            return azure_container_client
+        except Exception as e:
+            print(f"Could not connect to Azure: {e}")
+
+    @staticmethod
+    def _get_s3_client(storage_connection_parameters: StorageConnectionParameters) -> boto3.client:
+        try:
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=storage_connection_parameters.backblaze_access_key_id,
+                aws_secret_access_key=storage_connection_parameters.backblaze_secret_access_key,
+                endpoint_url=storage_connection_parameters.backblaze_endpoint_url,
+                region_name='us-east-1',
+                config=Config(signature_version='s3v4', retries={'max_attempts': 100,'mode': 'adaptive'})
+            )
+            return s3_client
+        except Exception as e:
+            print(f"Error whilst connecting to Backblaze S3: {e}")
 
     def start_stream_writer(
         self,
         queue: DifferenceDepthQueue | TradeQueue,
-        market: Market,
-        file_duration_seconds: int,
-        dump_path: str,
-        stream_type: StreamType,
-        save_to_json: bool,
-        save_to_zip: bool,
-        send_zip_to_blob: bool
+        asset_parameters: AssetParameters,
     ) -> None:
         thread = threading.Thread(
-            target=self._stream_writer,
+            target=self._write_stream_to_target,
             args=(
                 queue,
-                market,
-                file_duration_seconds,
-                dump_path,
-                stream_type,
-                save_to_json,
-                save_to_zip,
-                send_zip_to_blob
+                asset_parameters
             ),
-            name=f'stream_writer: market: {market}, stream_type: {stream_type}'
+            name=f'stream_writer: market: {asset_parameters.market}, stream_type: {asset_parameters.stream_type}'
         )
         thread.start()
 
-    def _stream_writer(
+    def _write_stream_to_target(
         self,
         queue: DifferenceDepthQueue | TradeQueue,
-        market: Market,
-        file_duration_seconds: int,
-        dump_path: str,
-        stream_type: StreamType,
-        save_to_json: bool,
-        save_to_zip: bool,
-        send_zip_to_blob: bool
-    ):
+        asset_parameters: AssetParameters
+    ) -> None:
         while not self.global_shutdown_flag.is_set():
-            self._process_stream_data(
+            self._process_queue_data(
                 queue,
-                market,
-                dump_path,
-                stream_type,
-                save_to_json,
-                save_to_zip,
-                send_zip_to_blob,
+                asset_parameters
             )
-            self._sleep_with_flag_check(self.config['file_duration_seconds'])
+            self._sleep_with_flag_check(self.data_sink_config.time_settings.file_duration_seconds)
 
-        self._process_stream_data(
+        self._process_queue_data(
             queue,
-            market,
-            dump_path,
-            stream_type,
-            save_to_json,
-            save_to_zip,
-            send_zip_to_blob,
+            asset_parameters
         )
 
-        self.logger.info(f"{market} {stream_type}: ended _stream_writer")
+        self._logger.info(f"{asset_parameters.market} {asset_parameters.stream_type}: ended _stream_writer")
 
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 1
@@ -183,15 +173,10 @@ class StreamDataSaverAndSender:
                 break
             time.sleep(interval)
 
-    def _process_stream_data(
+    def _process_queue_data(
         self,
         queue: DifferenceDepthQueue | TradeQueue,
-        market: Market,
-        dump_path: str,
-        stream_type: StreamType,
-        save_to_json: bool,
-        save_to_zip: bool,
-        send_zip_to_blob: bool
+        asset_parameters: AssetParameters
     ) -> None:
         if not queue.empty():
 
@@ -206,96 +191,121 @@ class StreamDataSaverAndSender:
                 stream_data[pair_found_in_message].append(message)
 
             for pair, data in stream_data.items():
-                file_name = self.get_file_name(pair, market, stream_type)
-                file_path = os.path.join(dump_path, file_name)
 
-                json_content = '[' + ','.join(data) + ']'
+                file_name = self.get_file_name(
+                    asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(
+                        pair=pair
+                    )
+                )
 
-                if save_to_json:
-                    self.save_to_json(data=json_content, file_path=file_path)
+                self.save_data(
+                    json_content='[' + ','.join(data) + ']',
+                    file_save_catalog=self.data_sink_config.file_save_catalog,
+                    file_name=file_name
+                )
 
-                if save_to_zip:
-                    self.save_to_zip(data=json_content, file_name=file_name, file_path=file_path)
+    def save_data(
+            self,
+            json_content: str,
+            file_save_catalog: str,
+            file_name: str
+    ) -> None:
 
-                if send_zip_to_blob:
-                    self.send_zipped_json_to_cloud_storage(data=json_content, file_name=file_name)
+        data_savers = {
+            DataSaveTarget.JSON:
+                lambda: self.write_data_to_json_file(json_content=json_content, file_save_catalog=file_save_catalog, file_name=file_name),
+            DataSaveTarget.ZIP:
+                lambda: self.write_data_to_zip_file(json_content=json_content, file_save_catalog=file_save_catalog, file_name=file_name),
+            DataSaveTarget.AZURE_BLOB:
+                lambda: self.send_zipped_json_to_azure_container(json_content=json_content, file_name=file_name),
+            DataSaveTarget.BACKBLAZE:
+                lambda: self.send_zipped_json_to_backblaze_bucket(json_content=json_content, file_name=file_name)
+        }
 
-    def save_to_json(self, data, file_path) -> None:
+        saver = data_savers.get(self.data_sink_config.data_save_target)
+        if saver:
+            saver()
+
+    def write_data_to_json_file(self, json_content, file_save_catalog, file_name) -> None:
+        file_save_path = f'{file_save_catalog}/{file_name}.json'
+
         try:
-            with open(f'{file_path}.json', "w") as f:
-                f.write(data)
-            self.logger.debug(f"Saved to JSON: {file_path}")
+            with open(file_save_path, "w") as f:
+                f.write(json_content)
+            self._logger.debug(f"Saved to JSON: {file_save_path}")
         except IOError as e:
-            self.logger.error(f"IO Error whilst saving to file {file_path}: {e}")
+            self._logger.error(f"IO Error whilst saving to file {file_save_path}: {e}")
 
-    def save_to_zip(self, data, file_name, file_path):
-        zip_file_path = f"{file_path}.zip"
+    def write_data_to_zip_file(self, json_content: str, file_save_catalog: str, file_name: str):
+        file_save_path = f'{file_save_catalog}/{file_name}.json'
+
         try:
-            with zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-                json_filename = f"{file_name}.json"
-                zipf.writestr(json_filename, data)
-            self.logger.debug(f"Saved to ZIP: {zip_file_path}")
+            with zipfile.ZipFile(file_save_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+                zipf.writestr(file_save_path, json_content)
+            self._logger.debug(f"Saved to ZIP: {file_save_path}")
         except IOError as e:
-            self.logger.error(f"IO Error whilst saving to zip: {zip_file_path}: {e}")
+            self._logger.error(f"IO Error whilst saving to zip: {file_save_path}: {e}")
 
-    def send_zipped_json_to_cloud_storage(self, data, file_name: str):
+    def send_zipped_json_to_azure_container(self, json_content: str, file_name: str):
 
-        if self.s3_client and self.backblaze_bucket_name:
-            try:
-                self.send_zipped_json_to_backblaze(data, file_name)
-            except Exception as e:
-                print(f'error sending to backblaze:{e}'
-                      f'gonna send on reserve target'
-                      f'')
-                dump_path = "dump/"
-                file_path = os.path.join(dump_path, file_name)
-                self.save_to_zip(data=data, file_name=file_name, file_path=file_path)
-
-
-        elif self.azure_blob_service_client and self.azure_container_client:
-            self.send_zipped_json_to_azure(data, file_name)
-
-        else:
-            self.logger.error("No storage client Configured")
-
-    def send_zipped_json_to_azure(self, data, file_name: str):
         try:
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
                 json_filename = f"{file_name}.json"
-                zipf.writestr(json_filename, data)
+                zipf.writestr(json_filename, json_content)
 
             zip_buffer.seek(0)
 
             blob_client = self.azure_container_client.get_blob_client(blob=f"{file_name}.zip")
             blob_client.upload_blob(zip_buffer, overwrite=True)
-            self.logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container: {self.azure_container_name}")
+            self._logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container")
         except Exception as e:
-            self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
+            self._logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
-    def send_zipped_json_to_backblaze(self, data, file_name: str):
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+    def send_zipped_json_to_backblaze_bucket(self, json_content: str, file_name: str):
+        try:
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
 
-            json_filename = f"{file_name}.json"
-            zipf.writestr(json_filename, data)
+                json_filename = f"{file_name}.json"
+                zipf.writestr(json_filename, json_content)
 
-        zip_buffer.seek(0)
+            zip_buffer.seek(0)
 
-        response = self.s3_client.put_object(
-            Bucket=self.backblaze_bucket_name,
-            Key=f"{file_name}.zip",
-            Body=zip_buffer.getvalue()
-        )
-        http_status_code = response['ResponseMetadata']['HTTPStatusCode']
+            response = self.s3_client.put_object(
+                Bucket=self.data_sink_config.storage_connection_parameters.backblaze_bucket_name,
+                Key=f"{file_name}.zip",
+                Body=zip_buffer.getvalue()
+            )
+            http_status_code = response['ResponseMetadata']['HTTPStatusCode']
 
-        if http_status_code != 200 :
-            raise Exception(f'sth bad with upload response {response}')
+            if http_status_code != 200 :
+                raise Exception(f'sth bad with upload response {response}')
 
-        self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: {self.backblaze_bucket_name}")
+            self._logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: "
+                              f"{self.data_sink_config.storage_connection_parameters.backblaze_bucket_name}")
+        except Exception as e:
+            print(f'error sending to backblaze:{e}'
+                  f'gonna send on reserve target'
+                  f'')
 
+            self.write_data_to_zip_file(
+                json_content=json_content,
+                file_name=file_name,
+                file_save_catalog=self.data_sink_config.file_save_catalog
+            )
 
     @staticmethod
-    def get_file_name(pair: str, market: Market, stream_type: StreamType) -> str:
+    def get_file_name(asset_parameters: AssetParameters) -> str:
+
+        if len(asset_parameters.pairs) != 1:
+            raise Exception(f"asset_parameters.pairs should've been a string")
+
         formatted_now_timestamp = TimestampsGenerator.get_utc_formatted_timestamp_for_file_name()
-        return f"binance_{stream_type.name.lower()}_{market.name.lower()}_{pair.lower()}_{formatted_now_timestamp}"
+        return (
+            f"binance"
+            f"_{asset_parameters.stream_type.name.lower()}"
+            f"_{asset_parameters.market.name.lower()}"
+            f"_{asset_parameters.pairs[0].lower()}"
+            f"_{formatted_now_timestamp}"
+        )

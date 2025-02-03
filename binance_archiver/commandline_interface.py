@@ -1,35 +1,38 @@
 from __future__ import annotations
 
 import logging
+import pprint
+
 # import tracemalloc #
 # import objgraph #
 # from pympler import asizeof, muppy #
 
 import binance_archiver.data_sink_facade
+from binance_archiver import DataSinkConfig
 from binance_archiver.stream_service import StreamService
 from binance_archiver.enum_.market_enum import Market
 
 
 class CommandLineInterface:
     __slots__ = [
-        'config',
-        'instruments',
+        'stream_service',
+        'data_sink_config',
         'logger',
-        'stream_service'
     ]
 
     def __init__(
-        self,
-        config: dict,
-        logger: logging.Logger,
-        stream_service: StreamService
+            self,
+            stream_service: StreamService,
+            data_sink_config: DataSinkConfig
     ):
-        self.config = config
-        self.instruments = config['instruments']
-        self.logger = logger
         self.stream_service = stream_service
+        self.data_sink_config = data_sink_config
+        self.logger = logging.getLogger('binance_data_sink')
 
-    def handle_command(self, message):
+    def handle_command(
+            self,
+            message
+    ) -> None:
         command = list(message.items())[0][0]
         arguments = list(message.items())[0][1]
 
@@ -40,8 +43,8 @@ class CommandLineInterface:
         if command == 'modify_subscription':
             self.modify_subscription(
                 type_=arguments['type'],
-                market=arguments['market'],
-                asset=arguments['asset']
+                market=Market(arguments['market'].lower()),
+                instrument=arguments['asset'].upper()
             )
 
         elif command == 'override_interval':
@@ -77,33 +80,40 @@ class CommandLineInterface:
         self.logger.info('^^^^^^^^^^^^')
         self.logger.info('############')
 
-    def modify_subscription(self, type_: str, market: str, asset: str):
-        asset_upper = asset.upper()
-        market_lower = market.lower()
+    def modify_subscription(
+            self,
+            type_: str,
+            market: Market,
+            instrument: str
+    ) -> None:
 
         if type_ == 'subscribe':
-            if asset_upper not in self.instruments[market_lower]:
-                self.instruments[market_lower].append(asset_upper)
+            self.data_sink_config.instruments.add_pair(market=market, pair=instrument)
         elif type_ == 'unsubscribe':
-            if asset_upper in self.instruments[market_lower]:
-                self.instruments[market_lower].remove(asset_upper)
+            self.data_sink_config.instruments.remove_pair(market=market, instrument=instrument)
 
-        self.stream_service.update_subscriptions(Market[market.upper()], asset_upper, type_)
+        self.stream_service.update_subscriptions(
+            market=market,
+            asset_upper=instrument,
+            action=type_
+        )
 
-    def modify_config_intervals(self, selected_interval_name: str, new_interval: int) -> None:
+        self.logger.info(f'{type_}d {market} {instrument}')
 
-        if not isinstance(new_interval, int):
-            self.logger.error(f'new_interval not an int!')
-            return None
+    def modify_config_intervals(
+            self,
+            selected_interval_name: str,
+            new_interval: int
+    ) -> None:
 
-        if selected_interval_name in self.config:
-            self.config[selected_interval_name] = new_interval
-            self.logger.info(f"Updated {selected_interval_name} to {new_interval} seconds.")
-        else:
-            self.logger.warning(f"{selected_interval_name} not found in config.")
+        self.data_sink_config.time_settings.update_interval(
+            setting_name=selected_interval_name,
+            new_time=new_interval,
+            logger=self.logger
+        )
 
     def show_config(self):
-        self.logger.info(self.config)
+        self.logger.info("Configuration:\n%s", pprint.pformat(self.data_sink_config, indent=1))
 
     def show_tracemalloc_snapshot_statistics(self):
         snapshot = tracemalloc.take_snapshot()
@@ -160,7 +170,7 @@ class CommandLineInterface:
 
     def show_pympler_data_sink_object_analysis(self):
         data_sink_objects = [obj for obj in muppy.get_objects()
-                             if isinstance(obj, binance_archiver.data_sink_facade.DataSinkFacade)]
+                             if isinstance(obj, binance_archiver.data_sink_facade.BinanceDataSink)]
 
         if len(data_sink_objects) == 1:
             data_sink = data_sink_objects[0]
@@ -171,7 +181,7 @@ class CommandLineInterface:
 
     def show_pympler_data_sink_object_analysis_with_detail_level(self, n_detail_level):
         data_sink_objects = [obj for obj in muppy.get_objects()
-                             if isinstance(obj, binance_archiver.data_sink_facade.DataSinkFacade)]
+                             if isinstance(obj, binance_archiver.data_sink_facade.BinanceDataSink)]
 
         if len(data_sink_objects) == 1:
             data_sink = data_sink_objects[0]
@@ -185,7 +195,7 @@ class CommandLineInterface:
 
     def show_pympler_data_sink_object_analysis_with_manual_iteration(self):
         data_sink_objects = [obj for obj in muppy.get_objects()
-                             if isinstance(obj, binance_archiver.data_sink_facade.DataSinkFacade)]
+                             if isinstance(obj, binance_archiver.data_sink_facade.BinanceDataSink)]
 
         if len(data_sink_objects) != 1:
             raise Exception('len of data_sink_objects != 1')
@@ -217,20 +227,3 @@ class CommandLineInterface:
                         f"sub-attribute '{sub_attr_name}': size {sub_attr_size} bytes "
                         f"({sub_attr_size / (1024 * 1024):.2f} MB)"
                         f", type {type(sub_attr_value).__name__}")
-
-'''
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d '{"subscribe": ["StreamType.DifferenceDepth", "Market.SPOT", 'xrpusdt']}'
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{"modify_subscription": {"type": "subscribe", "stream_type": "DifferenceDepth", "market": "SPOT", "asset": "xrpusdt"}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"modify_subscription\": {\"type\": \"subscribe\", \"stream_type\": \"DifferenceDepth\", \"market\": \"SPOT\", \"asset\": \"xrpusdt\"}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"modify_subscription\": {\"type\": \"subscribe\", \"market\": \"SPOT\", \"asset\": \"xrpusdt\"}}"
-
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"override_interval\": {\"selected_interval_name\": \"websocket_life_time_seconds\", \"new_interval\": 300"}}"
-
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_config\": {}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_tracemalloc_snapshot_statistics\": {}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_objgraph_growth\": {}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_pympler_all_objects_analysis\": {}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_pympler_data_sink_object_analysis\": {}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_pympler_data_sink_object_analysis_with_detail_level\": {\"n_detail_level\": 1}}"
-curl -X POST http://localhost:5000/post -H "Content-Type: application/json" -d "{\"show_pympler_data_sink_object_analysis_with_manual_iteration\": {}}"
-'''

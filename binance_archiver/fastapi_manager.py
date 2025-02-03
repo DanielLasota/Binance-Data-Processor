@@ -13,7 +13,10 @@ class FastAPIManager:
         'server'
     ]
 
-    def __init__(self):
+    def __init__(
+            self,
+            callback = None
+    ):
         self.app = FastAPI()
         self.setup_routes()
         self.server_thread = None
@@ -29,10 +32,13 @@ class FastAPIManager:
             allow_headers=["*"],
         )
 
-    def set_callback(self, callback):
+        if callback is not None:
+            self.set_callback(callback)
+
+    def set_callback(self, callback) -> None:
         self.notify_cli = callback
 
-    def setup_routes(self):
+    def setup_routes(self) -> None:
         @self.app.post("/post")
         async def receive_data(request: Request):
             data = await request.json()
@@ -47,16 +53,16 @@ class FastAPIManager:
                 self.server.should_exit = True
             return {"message": "Server shutting down..."}
 
-    def app_init(self):
+    def app_init(self) -> None:
         config = uvicorn.Config(self.app, host="127.0.0.1", port=5000, log_level="error")
         self.server = uvicorn.Server(config)
         self.server.run()
 
-    def run(self):
+    def run(self) -> None:
         self.server_thread = Thread(target=self.app_init, name='fastapi_manager_thread')
         self.server_thread.start()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         try:
             requests.post('http://127.0.0.1:5000/shutdown')
         except requests.exceptions.ConnectionError:

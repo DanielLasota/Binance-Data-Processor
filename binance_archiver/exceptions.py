@@ -2,7 +2,7 @@ class BadConfigException(Exception):
     ...
 
 
-class BadStorageProviderParameters(Exception):
+class BadStorageConnectionParameters(Exception):
     ...
 
 
