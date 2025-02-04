@@ -60,7 +60,7 @@ class DifferenceDepthQueue:
     def market(self):
         return self._market
 
-    def put_queue_message(self, message: str, stream_listener_id: StreamId, timestamp_of_receive: int) -> None:
+    def put_difference_depth_message(self, message: str, stream_listener_id: StreamId, timestamp_of_receive: int) -> None:
         with self.lock:
             if stream_listener_id.id == self.no_longer_accepted_stream_id:
                 return

@@ -171,7 +171,7 @@ class TestDifferenceDepthQueue:
         '''
         _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -508,49 +508,49 @@ class TestDifferenceDepthQueue:
         _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_4)
         _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_4)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -831,37 +831,37 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -1140,32 +1140,32 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -1215,7 +1215,7 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
         timestamp_of_receive = 1234567890
-        difference_depth_queue.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        difference_depth_queue.put_difference_depth_message(formatted_message, stream_listener_id, timestamp_of_receive)
         assert not global_queue.empty()
         queued_message = global_queue.get_nowait()
         assert queued_message == add_field_to_string_json_message(formatted_message, "_E", timestamp_of_receive)
@@ -1242,7 +1242,7 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
         timestamp_of_receive = 1234567890
-        difference_depth_queue.put_queue_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        difference_depth_queue.put_difference_depth_message(formatted_message, stream_listener_id, timestamp_of_receive)
         assert difference_depth_queue.qsize() == 1
         assert not difference_depth_queue.empty()
         queued_message = difference_depth_queue.get_nowait()
@@ -1492,31 +1492,31 @@ class TestDifferenceDepthQueue:
         _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -1857,49 +1857,49 @@ class TestDifferenceDepthQueue:
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -3455,37 +3455,37 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -3722,37 +3722,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -4036,37 +4036,37 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -4306,37 +4306,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -4612,37 +4612,37 @@ class TestDifferenceDepthQueue:
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -4882,37 +4882,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -5187,37 +5187,37 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -5457,37 +5457,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -5756,37 +5756,37 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -6026,37 +6026,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -6333,37 +6333,37 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -6603,37 +6603,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_queue_message(
+        difference_depth_queue.put_difference_depth_message(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -6907,32 +6907,32 @@ class TestDifferenceDepthQueue:
 
             start_time = time.perf_counter()
 
-            difference_depth_queue.put_queue_message(
+            difference_depth_queue.put_difference_depth_message(
                 stream_listener_id=old_stream_listener_id,
                 message=_old_listener_message_1,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_queue_message(
+            difference_depth_queue.put_difference_depth_message(
                 stream_listener_id=old_stream_listener_id,
                 message=_old_listener_message_2,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_queue_message(
+            difference_depth_queue.put_difference_depth_message(
                 stream_listener_id=old_stream_listener_id,
                 message=_old_listener_message_3,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_queue_message(
+            difference_depth_queue.put_difference_depth_message(
                 stream_listener_id=new_stream_listener_id,
                 message=_new_listener_message_1,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_queue_message(
+            difference_depth_queue.put_difference_depth_message(
                 stream_listener_id=new_stream_listener_id,
                 message=_new_listener_message_2,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_queue_message(
+            difference_depth_queue.put_difference_depth_message(
                 stream_listener_id=new_stream_listener_id,
                 message=_new_listener_message_3,
                 timestamp_of_receive=mocked_timestamp_of_receive
