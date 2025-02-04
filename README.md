@@ -1,5 +1,22 @@
 # Real-time market data listener and archiver in python. 
-Saves raw binance data in zipped jsons on azure blob
+Saves raw binance data from:
+limit orderbook difference depth stream
+limit orderbook difference depth snapshot request
+transaction stream
+
+into .json / .json.zip / .json.zip on azure or backblaze
+
+simply enter azure backblaze connection params into environment variables and import 
+
+'launch_data_sink' - use as data sink
+
+or 
+
+'launch_data_listener' - Use in your algo trading as it just informs all observers without data save
+
+NEW!!!:
+Although Binance now limits each WebSocket connection to 24 hours, this code runs continuously (24/7) without missing any stream entries!
+
 
 # Handles: 
 spot, futures usd-m, futures coin-m
@@ -8,7 +25,7 @@ trade stream
 orderbook snapshots with configured trigger interval 
 24-hour WebSocket lifecycle. At the end of the WebSocket's lifespan, it initiates a new WebSocket to ensure the continuity of data flow is maintained seamlessly.
 
-Configured to use contenerised on Azure with Azure blob and keyvault
+Configured to use as container on Azure with Azure blob / keyvault or backblaze
 
 ![image](https://github.com/user-attachments/assets/a9461c8d-b5a7-43de-b1cc-96ef5df72f40)
 
