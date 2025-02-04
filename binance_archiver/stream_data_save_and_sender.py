@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import logging
+import os
 import threading
 import time
 import zipfile
@@ -26,7 +27,7 @@ from binance_archiver.trade_queue import TradeQueue
 class StreamDataSaverAndSender:
 
     __slots__ = [
-        '_logger',
+        'logger',
         'queue_pool',
         'data_sink_config',
         'global_shutdown_flag',
@@ -41,7 +42,7 @@ class StreamDataSaverAndSender:
         data_sink_config: DataSinkConfig,
         global_shutdown_flag: threading.Event = threading.Event()
     ):
-        self._logger = logging.getLogger('binance_data_sink')
+        self.logger = logging.getLogger('binance_data_sink')
         self.queue_pool = queue_pool
         self.data_sink_config = data_sink_config
         self.global_shutdown_flag = global_shutdown_flag
@@ -51,6 +52,7 @@ class StreamDataSaverAndSender:
 
         if self.data_sink_config.data_save_target in [DataSaveTarget.BACKBLAZE, DataSaveTarget.AZURE_BLOB]:
             self.setup_cloud_storage_client()
+            self.start_zip_reserve_sender_loop(retry_interval_seconds=1*60)
 
         for (market, stream_type), queue in self.queue_pool.queue_lookup.items():
             asset_parameters = AssetParameters(
@@ -62,6 +64,32 @@ class StreamDataSaverAndSender:
                 queue=queue,
                 asset_parameters=asset_parameters
             )
+
+    def start_zip_reserve_sender_loop(self, retry_interval_seconds) -> None:
+        thread = threading.Thread(
+            target=self.failed_zip_reserve_sender_loop,
+            args=[retry_interval_seconds],
+            name=f'failed_zip_reserve_sender_loop'
+        )
+        thread.start()
+
+
+    def failed_zip_reserve_sender_loop(self, retry_interval_seconds: int):
+        while not self.global_shutdown_flag.is_set():
+            for _ in range(retry_interval_seconds):
+                if self.global_shutdown_flag.is_set():
+                    break
+                time.sleep(1)
+
+            zip_files = [f for f in os.listdir(self.data_sink_config.file_save_catalog) if f.endswith(".zip")]
+
+            for zip_file in zip_files:
+                try:
+                    self.send_existing_file_to_backblaze_bucket(file_name=zip_file)
+                    full_path = os.path.join(self.data_sink_config.file_save_catalog, zip_file)
+                    os.remove(full_path)
+                except Exception as e:
+                    self.logger.error(f"Error whilst resending: {zip_file}: {e} gonna try in another again soon")
 
     def setup_cloud_storage_client(self):
 
@@ -164,7 +192,7 @@ class StreamDataSaverAndSender:
             asset_parameters
         )
 
-        self._logger.info(f"{asset_parameters.market} {asset_parameters.stream_type}: ended _stream_writer")
+        self.logger.info(f"{asset_parameters.market} {asset_parameters.stream_type}: ended _stream_writer")
 
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 1
@@ -217,9 +245,9 @@ class StreamDataSaverAndSender:
             DataSaveTarget.ZIP:
                 lambda: self.write_data_to_zip_file(json_content=json_content, file_save_catalog=file_save_catalog, file_name=file_name),
             DataSaveTarget.AZURE_BLOB:
-                lambda: self.send_zipped_json_to_azure_container(json_content=json_content, file_name=file_name),
+                lambda: self.send_zipped_json_to_specified_cloud(json_content=json_content, file_save_catalog=file_save_catalog, file_name=file_name),
             DataSaveTarget.BACKBLAZE:
-                lambda: self.send_zipped_json_to_backblaze_bucket(json_content=json_content, file_name=file_name)
+                lambda: self.send_zipped_json_to_specified_cloud(json_content=json_content, file_save_catalog=file_save_catalog, file_name=file_name)
         }
 
         saver = data_savers.get(self.data_sink_config.data_save_target)
@@ -232,21 +260,48 @@ class StreamDataSaverAndSender:
         try:
             with open(file_save_path, "w") as f:
                 f.write(json_content)
-            self._logger.debug(f"Saved to JSON: {file_save_path}")
+            self.logger.debug(f"Saved to JSON: {file_save_path}")
         except IOError as e:
-            self._logger.error(f"IO Error whilst saving to file {file_save_path}: {e}")
+            self.logger.error(f"IO Error whilst saving to file {file_save_path}: {e}")
 
-    def write_data_to_zip_file(self, json_content: str, file_save_catalog: str, file_name: str):
-        file_save_path = f'{file_save_catalog}/{file_name}.json'
+    def write_data_to_zip_file(self, json_content: str, file_save_catalog: str, file_name: str) -> None:
+        file_save_path = f'{file_save_catalog}/{file_name}.json.zip'
 
         try:
             with zipfile.ZipFile(file_save_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-                zipf.writestr(file_save_path, json_content)
-            self._logger.debug(f"Saved to ZIP: {file_save_path}")
+                zipf.writestr(f"{file_name}.json", json_content)
+            self.logger.debug(f"Saved to ZIP: {file_save_path}")
         except IOError as e:
-            self._logger.error(f"IO Error whilst saving to zip: {file_save_path}: {e}")
+            self.logger.error(f"IO Error whilst saving to zip: {file_save_path}: {e}")
 
-    def send_zipped_json_to_azure_container(self, json_content: str, file_name: str):
+    def send_zipped_json_to_specified_cloud(self, json_content: str, file_save_catalog: str, file_name: str) -> None:
+
+        cloud_data_savers = {
+            DataSaveTarget.AZURE_BLOB:
+                lambda: self.send_zipped_json_to_azure_container(json_content=json_content, file_name=file_name),
+            DataSaveTarget.BACKBLAZE:
+                lambda: self.send_zipped_json_to_backblaze_bucket(json_content=json_content, file_name=file_name)
+        }
+
+        saver = cloud_data_savers.get(self.data_sink_config.data_save_target)
+
+        if saver:
+            try:
+                saver()
+
+            except Exception as e:
+                self.logger.error(
+                    f'error sending to backblaze:{e} '
+                    f'gonna send on reserve target'
+                )
+
+                self.write_data_to_zip_file(
+                    json_content=json_content,
+                    file_name=file_name,
+                    file_save_catalog=file_save_catalog
+                )
+
+    def send_zipped_json_to_azure_container(self, json_content: str, file_name: str) -> None:
 
         try:
             zip_buffer = io.BytesIO()
@@ -258,42 +313,44 @@ class StreamDataSaverAndSender:
 
             blob_client = self.azure_container_client.get_blob_client(blob=f"{file_name}.zip")
             blob_client.upload_blob(zip_buffer, overwrite=True)
-            self._logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container")
+            self.logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container")
         except Exception as e:
-            self._logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
+            self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
-    def send_zipped_json_to_backblaze_bucket(self, json_content: str, file_name: str):
-        try:
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+    def send_zipped_json_to_backblaze_bucket(self, json_content: str, file_name: str) -> None:
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+            json_filename = f"{file_name}.json"
+            zipf.writestr(json_filename, json_content)
 
-                json_filename = f"{file_name}.json"
-                zipf.writestr(json_filename, json_content)
+        zip_buffer.seek(0)
 
-            zip_buffer.seek(0)
+        response = self.s3_client.put_object(
+            Bucket=self.data_sink_config.storage_connection_parameters.backblaze_bucket_name,
+            Key=f"{file_name}.zip",
+            Body=zip_buffer.getvalue()
+        )
+        http_status_code = response['ResponseMetadata']['HTTPStatusCode']
 
-            response = self.s3_client.put_object(
-                Bucket=self.data_sink_config.storage_connection_parameters.backblaze_bucket_name,
-                Key=f"{file_name}.zip",
-                Body=zip_buffer.getvalue()
-            )
-            http_status_code = response['ResponseMetadata']['HTTPStatusCode']
+        if http_status_code != 200:
+            raise Exception(f'sth bad with upload response {response}')
 
-            if http_status_code != 200 :
-                raise Exception(f'sth bad with upload response {response}')
+        self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: "
+                          f"{self.data_sink_config.storage_connection_parameters.backblaze_bucket_name}")
 
-            self._logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: "
-                              f"{self.data_sink_config.storage_connection_parameters.backblaze_bucket_name}")
-        except Exception as e:
-            print(f'error sending to backblaze:{e}'
-                  f'gonna send on reserve target'
-                  f'')
+    def send_existing_file_to_backblaze_bucket(self, file_name: str) -> None:
+        with open(f'{self.data_sink_config.file_save_catalog}/{file_name}', "rb") as f:
+            file_data = f.read()
 
-            self.write_data_to_zip_file(
-                json_content=json_content,
-                file_name=file_name,
-                file_save_catalog=self.data_sink_config.file_save_catalog
-            )
+        response = self.s3_client.put_object(
+            Bucket=self.data_sink_config.storage_connection_parameters.backblaze_bucket_name,
+            Key=file_name,
+            Body=file_data
+        )
+
+        http_status_code = response['ResponseMetadata']['HTTPStatusCode']
+        if http_status_code != 200:
+            raise Exception(f'sth bad with upload response {response}')
 
     @staticmethod
     def get_file_name(asset_parameters: AssetParameters) -> str:
