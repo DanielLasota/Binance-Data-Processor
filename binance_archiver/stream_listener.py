@@ -55,10 +55,7 @@ class StreamListener:
         self._ws_lock = threading.Lock()
         self._ws: WebSocketClientProtocol | None = None
 
-        if self.asset_parameters.stream_type == StreamType.TRADE_STREAM:
-            self._url = URLFactory.get_trade_stream_url(asset_parameters)
-        else:
-            self._url = URLFactory.get_difference_depth_stream_url(asset_parameters)
+        self._url = URLFactory.get_stream_url(asset_parameters)
 
         self._blackout_supervisor = BlackoutSupervisor(
             asset_parameters=asset_parameters,
@@ -153,10 +150,10 @@ class StreamListener:
                     await self._listen_messages(ws)
 
             except (OSError, websockets.exceptions.ConnectionClosed) as e:
-                self.logger.error(f"Connection error/reconnect for {self.market} {self.stream_type}: {e}")
+                self.logger.error(f"Connection error/reconnect for {self.asset_parameters}: {e}")
                 await asyncio.sleep(2)
             except Exception as e:
-                self.logger.error(f"Unexpected error in _main_coroutine: {e}")
+                self.logger.error(f"Unexpected error in _main_coroutine: {self.asset_parameters} {e}")
                 self.logger.error(traceback.format_exc())
                 await asyncio.sleep(2)
             finally:
@@ -167,30 +164,34 @@ class StreamListener:
         while not self._stop_event.is_set():
             try:
                 message = await ws.recv()
+
+                raw_timestamp_of_receive_ns = time.time_ns()
+                timestamp_of_receive_rounded_to_us = (raw_timestamp_of_receive_ns + 500) // 1000
+
             except websockets.exceptions.ConnectionClosed:
-                self.logger.warning(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} WebSocket closed remotely.")
+                self.logger.warning(
+                    f"{self.asset_parameters.market} {self.asset_parameters.stream_type} WebSocket closed remotely."
+                )
                 break
 
+            self._handle_incoming_message(message, timestamp_of_receive_rounded_to_us)
             self._blackout_supervisor.notify()
-            self._handle_incoming_message(message)
 
-    def _handle_incoming_message(self, raw_message: str):
-        timestamp_of_receive = int(time.time() * 1000 + 0.5)
-
+    def _handle_incoming_message(self, raw_message: str, timestamp_of_receive_rounded_to_us: int):
         # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
 
         if 'stream' in raw_message:
             if self.asset_parameters.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:
-                self.queue.put_queue_message(
+                self.queue.put_difference_depth_message(
                     stream_listener_id=self.id,
                     message=raw_message,
-                    timestamp_of_receive=timestamp_of_receive
+                    timestamp_of_receive=timestamp_of_receive_rounded_to_us
                 )
             elif self.asset_parameters.stream_type == StreamType.TRADE_STREAM:
                 self.queue.put_trade_message(
                     stream_listener_id=self.id,
                     message=raw_message,
-                    timestamp_of_receive=timestamp_of_receive
+                    timestamp_of_receive=timestamp_of_receive_rounded_to_us
                 )
             else:
                 self.logger.error(f"Unknown stream_type: {self.asset_parameters.stream_type}, ignoring message.")

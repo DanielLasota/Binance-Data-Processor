@@ -1,5 +1,6 @@
 from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.enum_.market_enum import Market
+from binance_archiver.enum_.stream_type_enum import StreamType
 
 
 class URLFactory:
@@ -36,35 +37,24 @@ class URLFactory:
         raise Exception(f'could not return depth snapshot url for: {asset_parameters}')
 
     @staticmethod
-    def get_trade_stream_url(asset_parameters: AssetParameters) -> str:
+    def get_stream_url(asset_parameters: AssetParameters) -> str:
 
         base_urls = {
-            Market.SPOT: 'wss://stream.binance.com:443/stream?streams={}',
+            Market.SPOT: 'wss://stream.binance.com:443/stream?streams={}&timeUnit=microsecond',
             Market.USD_M_FUTURES: 'wss://fstream.binance.com/stream?streams={}',
             Market.COIN_M_FUTURES: 'wss://dstream.binance.com/stream?streams={}'
         }
 
-        stream_suffix = '@trade'
+        stream_suffix_dict = {
+            StreamType.TRADE_STREAM: '@trade',
+            StreamType.DIFFERENCE_DEPTH_STREAM: '@depth@100ms'
+        }
+
+        stream_suffix = stream_suffix_dict.get(asset_parameters.stream_type)
+
         streams = '/'.join([f'{pair.lower()}{stream_suffix}' for pair in asset_parameters.pairs])
         base_url = base_urls.get(asset_parameters.market)
         if base_url:
             return base_url.format(streams)
 
-        raise Exception(f'could not return depth snapshot url for: {asset_parameters}')
-
-    @staticmethod
-    def get_difference_depth_stream_url(asset_parameters: AssetParameters) -> str:
-
-        base_urls = {
-            Market.SPOT: 'wss://stream.binance.com:443/stream?streams={}',
-            Market.USD_M_FUTURES: 'wss://fstream.binance.com/stream?streams={}',
-            Market.COIN_M_FUTURES: 'wss://dstream.binance.com/stream?streams={}'
-        }
-
-        stream_suffix = '@depth@100ms'
-        streams = '/'.join([f'{pair.lower()}{stream_suffix}' for pair in asset_parameters.pairs])
-        base_url = base_urls.get(asset_parameters.market)
-        if base_url:
-            return base_url.format(streams)
-
-        raise Exception(f'could not return depth snapshot url for: {asset_parameters}')
+        raise Exception(f'could not return url link for: {asset_parameters}')

@@ -1557,7 +1557,7 @@ class TestArchiverFacade:
 
             queue = queue_pool.get_queue(market=Market.SPOT, stream_type=StreamType.DIFFERENCE_DEPTH_STREAM)
 
-            queue.put_queue_message(
+            queue.put_difference_depth_message(
                 message='{"stream": "btcusdt@depth", "data": {}}',
                 stream_listener_id=stream_listener_id,
                 timestamp_of_receive=1234567890
@@ -1629,7 +1629,7 @@ class TestArchiverFacade:
             message = '{"stream":"btcusdt@depth","data":{}}'
             queue.currently_accepted_stream_id = stream_listener_id.id
 
-            queue.put_queue_message(
+            queue.put_difference_depth_message(
                 message=message,
                 stream_listener_id=stream_listener_id,
                 timestamp_of_receive=1234567890
