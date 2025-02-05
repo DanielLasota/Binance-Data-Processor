@@ -119,6 +119,7 @@ class StreamListener:
                 "params": [f"{pair}@depth@100ms"],
                 "id": 1
             }
+            self.queue.update_deque_max_len(len(self.asset_parameters.pairs))
 
         loop = getattr(self, '_loop', None)
         if loop is not None and loop.is_running():
@@ -193,8 +194,8 @@ class StreamListener:
                     message=raw_message,
                     timestamp_of_receive=timestamp_of_receive_rounded_to_us
                 )
-            else:
-                self.logger.error(f"Unknown stream_type: {self.asset_parameters.stream_type}, ignoring message.")
+        # else:
+        #     print(f'received message other than stream: {raw_message}')
 
     async def _send_message(self, message: str):
         with self._ws_lock:
