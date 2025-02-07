@@ -1433,7 +1433,7 @@ class TestArchiverFacade:
                 }
             )
 
-            logger = setup_logger()
+            setup_logger()
 
             global_shutdown_flag = threading.Event()
             queue_pool = DataSinkQueuePool()
@@ -1448,10 +1448,16 @@ class TestArchiverFacade:
                 data_sink_config=data_sink_config
             )
 
-            with patch.object(logger, 'warning') as mock_warning:
-                message = {'invalid_command': {'type': 'subscribe', 'market': 'spot', 'asset': 'BNBUSDT'}}
+            # with patch.object(logger, 'warning') as mock_warning:
+            #     message = {'invalid_command': {'type': 'subscribe', 'market': 'spot', 'asset': 'BNBUSDT'}}
+            #     cli.handle_command(message)
+            #     mock_warning.assert_called_with('Bad command, try again')
+
+            message = {'invalid_command': {'type': 'subscribe', 'market': 'spot', 'asset': 'BNBUSDT'}}
+
+            with pytest.raises(Exception) as excinfo:
                 cli.handle_command(message)
-                mock_warning.assert_called_with('Bad command, try again')
+            assert str(excinfo.value) == "'invalid_command' is not a valid CommandsRegistry"
 
             TradeQueue.clear_instances()
             DifferenceDepthQueue.clear_instances()
