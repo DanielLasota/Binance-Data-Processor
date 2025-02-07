@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import json
 import logging
 import pprint
+import threading
 
-# import tracemalloc #
-# import objgraph #
-# from pympler import asizeof, muppy #
+# import tracemalloc
+# import objgraph
+# from pympler import asizeof, muppy
 
 import binance_archiver.data_sink_facade
 from binance_archiver import DataSinkConfig
+from binance_archiver.enum_.commands_registry_enum import CommandsRegistry
 from binance_archiver.stream_service import StreamService
 from binance_archiver.enum_.market_enum import Market
 
@@ -17,7 +20,7 @@ class CommandLineInterface:
     __slots__ = [
         'stream_service',
         'data_sink_config',
-        'logger',
+        'logger'
     ]
 
     def __init__(
@@ -32,60 +35,49 @@ class CommandLineInterface:
     def handle_command(
             self,
             message
-    ) -> None:
-        command = list(message.items())[0][0]
-        arguments = list(message.items())[0][1]
+    ):
+        command, arguments = next(iter(message.items()))
+        command = CommandsRegistry(command)
 
         self.logger.info('\n')
         self.logger.info('############')
         self.logger.info('VVVVVVVVVVVV')
 
-        if command == 'modify_subscription':
-            self.modify_subscription(
-                type_=arguments['type'],
-                market=Market(arguments['market'].lower()),
-                instrument=arguments['asset'].upper()
-            )
+        commands_registry = {
+            CommandsRegistry.MODIFY_SUBSCRIPTION:
+                lambda: self.modify_subscription(type_=arguments['type'], market=Market(arguments['market'].lower()), instrument=arguments['asset'].upper()),
+            CommandsRegistry.OVERRIDE_CONFIG_INTERVAL:
+                lambda: self.override_config_interval(selected_interval_name=arguments['selected_interval_name'], new_interval=arguments['new_interval']),
+            CommandsRegistry.SHOW_CONFIG:
+                lambda: self.show_config(),
+            CommandsRegistry.SHOW_STATUS:
+                lambda: self.show_status(),
+            CommandsRegistry.SHOW_TRACEMALLOC_SNAPSHOT_STATISTICS:
+                lambda: self.show_tracemalloc_snapshot_statistics(),
+            CommandsRegistry.SHOW_OBJGRAPH_GROWTH:
+                lambda: self.show_objgraph_growth(),
+            CommandsRegistry.SHOW_PYMPLER_ALL_OBJECTS_ANALYSIS:
+                lambda: self.show_pympler_all_objects_analysis(),
+            CommandsRegistry.SHOW_PYMPLER_DATA_SINK_OBJECT_ANALYSIS:
+                lambda: self.show_pympler_data_sink_object_analysis(),
+            CommandsRegistry.SHOW_PYMPLER_DATA_SINK_OBJECT_ANALYSIS_WITH_DETAIL_LEVEL:
+                lambda: self.show_pympler_data_sink_object_analysis_with_detail_level(n_detail_level=arguments['n_detail_level']),
+            CommandsRegistry.SHOW_PYMPLER_DATA_SINK_OBJECT_ANALYSIS_WITH_MANUAL_ITERATION:
+                lambda: self.show_pympler_data_sink_object_analysis_with_manual_iteration()
+        }
 
-        elif command == 'override_interval':
-            self.modify_config_intervals(
-                selected_interval_name=arguments['selected_interval_name'],
-                new_interval=arguments['new_interval']
-            )
-
-        elif command == 'show_config':
-            self.show_config()
-
-        elif command == 'show_tracemalloc_snapshot_statistics':
-            self.show_tracemalloc_snapshot_statistics()
-
-        elif command == 'show_objgraph_growth':
-            self.show_objgraph_growth()
-
-        elif command == 'show_pympler_all_objects_analysis':
-            self.show_pympler_all_objects_analysis()
-
-        elif command == 'show_pympler_data_sink_object_analysis':
-            self.show_pympler_data_sink_object_analysis()
-
-        elif command == 'show_pympler_data_sink_object_analysis_with_detail_level':
-            self.show_pympler_data_sink_object_analysis_with_detail_level(n_detail_level=arguments['n_detail_level'])
-
-        elif command == 'show_pympler_data_sink_object_analysis_with_manual_iteration':
-            self.show_pympler_data_sink_object_analysis_with_manual_iteration()
-
+        command_executor = commands_registry.get(command)
+        if command_executor:
+            return command_executor()
         else:
-            self.logger.warning('Bad command, try again')
-
-        self.logger.info('^^^^^^^^^^^^')
-        self.logger.info('############')
+            raise Exception(f'Bad command, try again')
 
     def modify_subscription(
             self,
             type_: str,
             market: Market,
             instrument: str
-    ) -> None:
+    ):
 
         if type_ == 'subscribe':
             self.data_sink_config.instruments.add_pair(market=market, pair=instrument)
@@ -100,11 +92,22 @@ class CommandLineInterface:
 
         self.logger.info(f'{type_}d {market} {instrument}')
 
-    def modify_config_intervals(
+        final_output = {
+            'requested': f'{type_} {market} {instrument}',
+            'actual_instruments': f'{self.stream_service.data_sink_config.instruments.get_pairs(market=market)}'
+        }
+
+        self.logger.info('^^^^^^^^^^^^')
+        self.logger.info('############')
+        self.logger.info('\n')
+
+        return json.dumps(final_output)
+
+    def override_config_interval(
             self,
             selected_interval_name: str,
             new_interval: int
-    ) -> None:
+    ) -> str:
 
         self.data_sink_config.time_settings.update_interval(
             setting_name=selected_interval_name,
@@ -112,8 +115,114 @@ class CommandLineInterface:
             logger=self.logger
         )
 
+        final_output = {
+            'requested': f'override {selected_interval_name}, new interval: {new_interval}',
+            'actual_interval_time': f'{self.stream_service.data_sink_config.time_settings}'
+        }
+
+        self.logger.info('^^^^^^^^^^^^')
+        self.logger.info('############')
+        self.logger.info('\n')
+
+        return json.dumps(final_output)
+
     def show_config(self):
         self.logger.info("Configuration:\n%s", pprint.pformat(self.data_sink_config, indent=1))
+
+        self.logger.info('^^^^^^^^^^^^')
+        self.logger.info('############')
+        self.logger.info('\n')
+
+        json_output = json.dumps(f'{self.data_sink_config}')
+
+        return json_output
+
+    def show_status(self) -> str:
+        output_lines = []
+
+        output_lines.append("BINANCE ARCHIVER STATUS:")
+        output_lines.append("------------------------------------------")
+        output_lines.append("Queue Status with len and newest message:")
+        output_lines.append("------------------------------------------")
+
+        for (market, stream_type), queue_instance in self.stream_service.queue_pool.queue_lookup.items():
+            try:
+                last_message = queue_instance.queue.queue[-1] if queue_instance.queue.qsize() > 0 else "Empty queue"
+            except Exception as e:
+                last_message = f"Error: {e}"
+            output_lines.append(f"{market} {stream_type} : {queue_instance.queue.qsize()} {last_message}")
+
+        output_lines.append("------------------------------------------")
+        output_lines.append("Stream service status:")
+        output_lines.append("------------------------------------------")
+
+        dict_of_stream_listeners = self.stream_service.get_stream_listeners_status()
+        output_lines.append(pprint.pformat(dict_of_stream_listeners))
+
+        output_lines.append("------------------------------------------")
+        output_lines.append("Threads status:")
+        output_lines.append("------------------------------------------")
+
+        threads = [thread for thread in threading.enumerate() if thread.is_alive()]
+        output_lines.append(str(threads))
+
+        final_output = "\n".join(output_lines)
+        self.logger.info(final_output)
+
+        self.logger.info('^^^^^^^^^^^^')
+        self.logger.info('############')
+        self.logger.info('\n')
+
+        return final_output
+
+    def show_jsoned_status(self) -> str:
+
+        def convert_keys_to_str(obj):
+            if isinstance(obj, dict):
+                return {str(k): convert_keys_to_str(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_keys_to_str(item) for item in obj]
+            else:
+                return obj
+
+        status = {}
+
+        status["title"] = "BINANCE ARCHIVER STATUS"
+
+        queue_status = []
+        for (market, stream_type), queue_instance in self.stream_service.queue_pool.queue_lookup.items():
+            try:
+                last_message = queue_instance.queue.queue[-1] if queue_instance.queue.qsize() > 0 else "Empty queue"
+            except Exception as e:
+                last_message = f"Error: {e}"
+            queue_status.append({
+                "market": str(market),
+                "stream_type": str(stream_type),
+                "queue_size": queue_instance.queue.qsize(),
+                "last_message": last_message
+            })
+        status["queue_status"] = queue_status
+
+        dict_of_stream_listeners = self.stream_service.get_stream_listeners_status()
+        status["stream_service_status"] = convert_keys_to_str(dict_of_stream_listeners)
+
+        threads = [thread for thread in threading.enumerate() if thread.is_alive()]
+        threads_info = []
+        for thread in threads:
+            threads_info.append({
+                "name": thread.name,
+                "ident": thread.ident,
+                "daemon": thread.daemon,
+            })
+        status["threads_status"] = threads_info
+
+        json_output = json.dumps(status, indent=2)
+        self.logger.info(json_output)
+        self.logger.info('^^^^^^^^^^^^')
+        self.logger.info('############')
+        self.logger.info('\n')
+
+        return json_output
 
     def show_tracemalloc_snapshot_statistics(self):
         snapshot = tracemalloc.take_snapshot()

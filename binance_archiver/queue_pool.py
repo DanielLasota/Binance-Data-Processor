@@ -17,7 +17,7 @@ class QueuePool:
     def __init__(self, global_queue: Queue | None = None):
         self.global_queue = global_queue
 
-        self.queue_lookup = {
+        self.queue_lookup: dict[tuple[Market, StreamType], DifferenceDepthQueue | TradeQueue] = {
             (market, stream_type): (
                 DifferenceDepthQueue if stream_type == StreamType.DIFFERENCE_DEPTH_STREAM
                 else TradeQueue
