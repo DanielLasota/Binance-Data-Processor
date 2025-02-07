@@ -38,7 +38,7 @@ class StreamService:
         self.data_sink_config = data_sink_config
         self.global_shutdown_flag = global_shutdown_flag
         self.is_someone_overlapping_right_now_flag = threading.Event()
-        self.stream_listeners = {}
+        self.stream_listeners: dict[tuple[Market, StreamType, str], StreamListener | None] = {}
         self.overlap_lock: threading.Lock = threading.Lock()
 
     def run(self):
@@ -162,3 +162,27 @@ class StreamService:
                 stream_listener: StreamListener = self.stream_listeners.get((market, stream_type, status))
                 if stream_listener:
                     stream_listener.change_subscription(action=action, pair=asset_upper)
+
+    def get_stream_listeners_status(self) -> dict[tuple[Market, StreamType, str], str]:
+
+        statuses: dict[tuple[Market, StreamType, str], str] = {}
+
+        for key, listener in self.stream_listeners.items():
+            if listener is None:
+                statuses[key] = "Listener not initialized"
+            else:
+                if listener._ws is None:
+                    statuses[key] = "WebSocket not connected"
+                else:
+                    state = listener._ws.state
+                    if state == 0:
+                        statuses[key] = "Connecting"
+                    elif state == 1:
+                        statuses[key] = "Connected"
+                    elif state == 2:
+                        statuses[key] = "Closing"
+                    elif state == 3:
+                        statuses[key] = "Closed"
+                    else:
+                        statuses[key] = "Unknown state"
+        return statuses

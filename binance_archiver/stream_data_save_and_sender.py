@@ -73,7 +73,6 @@ class StreamDataSaverAndSender:
         )
         thread.start()
 
-
     def failed_zip_reserve_sender_loop(self, retry_interval_seconds: int):
         while not self.global_shutdown_flag.is_set():
             for _ in range(retry_interval_seconds):

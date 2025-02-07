@@ -42,10 +42,9 @@ class FastAPIManager:
         @self.app.post("/post")
         async def receive_data(request: Request):
             data = await request.json()
-            # print(f'>> {list(data.items())[0][1]}')
             if self.notify_cli:
-                self.notify_cli(data)
-            return {"message": "Data received"}
+                returned_message = self.notify_cli(data)
+            return f'{returned_message}'
 
         @self.app.post("/shutdown")
         async def shutdown():
