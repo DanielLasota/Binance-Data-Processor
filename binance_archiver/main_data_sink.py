@@ -1,8 +1,8 @@
 import time
-
 from dotenv import load_dotenv
 
 from binance_archiver import load_config_from_json, DataSinkConfig, launch_data_sink
+
 
 if __name__ == "__main__":
 
