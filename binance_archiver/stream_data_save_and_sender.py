@@ -52,7 +52,7 @@ class StreamDataSaverAndSender:
 
         if self.data_sink_config.data_save_target in [DataSaveTarget.BACKBLAZE, DataSaveTarget.AZURE_BLOB]:
             self.setup_cloud_storage_client()
-            self.start_zip_reserve_sender_loop(retry_interval_seconds=1*60)
+            self.start_zip_reserve_sender_loop(retry_interval_seconds=60*60)
 
         for (market, stream_type), queue in self.queue_pool.queue_lookup.items():
             asset_parameters = AssetParameters(
