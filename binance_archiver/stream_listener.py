@@ -167,7 +167,11 @@ class StreamListener:
                 message = await ws.recv()
 
                 raw_timestamp_of_receive_ns = time.time_ns()
-                timestamp_of_receive_rounded_to_us = (raw_timestamp_of_receive_ns + 500) // 1000
+                timestamp_of_receive_rounded = (
+                    (raw_timestamp_of_receive_ns + 500) // 1_000
+                    if self.asset_parameters.market is Market.SPOT
+                    else (raw_timestamp_of_receive_ns + 500_000) // 1_000_000
+                )
 
             except websockets.exceptions.ConnectionClosed:
                 self.logger.warning(
@@ -175,10 +179,13 @@ class StreamListener:
                 )
                 break
 
-            self._handle_incoming_message(message, timestamp_of_receive_rounded_to_us)
+            self._handle_incoming_message(
+                raw_message=message,
+                timestamp_of_receive=timestamp_of_receive_rounded
+            )
             self._blackout_supervisor.notify()
 
-    def _handle_incoming_message(self, raw_message: str, timestamp_of_receive_rounded_to_us: int):
+    def _handle_incoming_message(self, raw_message: str, timestamp_of_receive: int):
         # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
 
         if 'stream' in raw_message:
@@ -186,13 +193,13 @@ class StreamListener:
                 self.queue.put_difference_depth_message(
                     stream_listener_id=self.id,
                     message=raw_message,
-                    timestamp_of_receive=timestamp_of_receive_rounded_to_us
+                    timestamp_of_receive=timestamp_of_receive
                 )
             elif self.asset_parameters.stream_type == StreamType.TRADE_STREAM:
                 self.queue.put_trade_message(
                     stream_listener_id=self.id,
                     message=raw_message,
-                    timestamp_of_receive=timestamp_of_receive_rounded_to_us
+                    timestamp_of_receive=timestamp_of_receive
                 )
         # else:
         #     print(f'received message other than stream: {raw_message}')
