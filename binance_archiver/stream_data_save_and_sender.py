@@ -125,9 +125,7 @@ class StreamDataSaverAndSender:
             self.cloud_storage_client = initializer()
 
     @staticmethod
-    def _get_azure_container_client(storage_connection_parameters) -> 'azure.storage.blob.ContainerClient':
-        from azure.storage.blob import BlobServiceClient
-
+    def _get_azure_container_client(storage_connection_parameters):
         try:
             azure_blob_service_client = BlobServiceClient.from_connection_string(
                 storage_connection_parameters.azure_blob_parameters_with_key
