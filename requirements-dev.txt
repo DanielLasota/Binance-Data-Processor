@@ -1,0 +1,15 @@
+python-dotenv
+websockets
+orjson
+fastapi
+uvicorn
+requests
+numpy
+pandas
+alive-progress
+pytest
+objgraph
+pympler
+azure-identity
+azure-storage-blob
+boto3==1.35.2
