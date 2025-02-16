@@ -9,10 +9,6 @@ import zipfile
 from collections import defaultdict
 import re
 
-# import azure.storage.blob
-import boto3
-from botocore.config import Config
-
 from binance_archiver import DataSinkConfig
 from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
@@ -20,6 +16,7 @@ from binance_archiver.enum_.data_save_target_enum import DataSaveTarget
 from binance_archiver.exceptions import BadStorageConnectionParameters
 from binance_archiver.queue_pool import ListenerQueuePool, DataSinkQueuePool
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_archiver.s3_client import OwnLightweightS3Client
 from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.trade_queue import TradeQueue
 
@@ -32,8 +29,7 @@ class StreamDataSaverAndSender:
         'data_sink_config',
         'global_shutdown_flag',
         '_stream_message_pair_pattern',
-        's3_client',
-        'azure_container_client'
+        'cloud_storage_client'
     ]
 
     def __init__(
@@ -47,33 +43,36 @@ class StreamDataSaverAndSender:
         self.data_sink_config = data_sink_config
         self.global_shutdown_flag = global_shutdown_flag
         self._stream_message_pair_pattern = re.compile(r'"stream":"(\w+)@')
+        self.cloud_storage_client = None
 
     def run(self):
 
         if self.data_sink_config.data_save_target in [DataSaveTarget.BACKBLAZE, DataSaveTarget.AZURE_BLOB]:
-            self.setup_cloud_storage_client()
-            self.start_zip_reserve_sender_loop(retry_interval_seconds=60*60)
+            self._setup_cloud_storage_client()
+            self._start_zip_reserve_sender_loop(retry_interval_seconds=60*60)
 
         for (market, stream_type), queue in self.queue_pool.queue_lookup.items():
+
             asset_parameters = AssetParameters(
                 market=market,
                 stream_type=stream_type,
                 pairs=[]
             )
+
             self.start_stream_writer(
                 queue=queue,
                 asset_parameters=asset_parameters
             )
 
-    def start_zip_reserve_sender_loop(self, retry_interval_seconds) -> None:
+    def _start_zip_reserve_sender_loop(self, retry_interval_seconds) -> None:
         thread = threading.Thread(
-            target=self.failed_zip_reserve_sender_loop,
+            target=self._failed_zip_reserve_sender_loop,
             args=[retry_interval_seconds],
             name=f'failed_zip_reserve_sender_loop'
         )
         thread.start()
 
-    def failed_zip_reserve_sender_loop(self, retry_interval_seconds: int):
+    def _failed_zip_reserve_sender_loop(self, retry_interval_seconds: int):
         while not self.global_shutdown_flag.is_set():
             for _ in range(retry_interval_seconds):
                 if self.global_shutdown_flag.is_set():
@@ -82,15 +81,16 @@ class StreamDataSaverAndSender:
 
             zip_files = [f for f in os.listdir(self.data_sink_config.file_save_catalog) if f.endswith(".zip")]
 
-            for zip_file in zip_files:
+            for zip_file_filename in zip_files:
                 try:
-                    self.send_existing_file_to_backblaze_bucket(file_name=zip_file)
-                    full_path = os.path.join(self.data_sink_config.file_save_catalog, zip_file)
-                    os.remove(full_path)
+                    zip_file_path = f'{self.data_sink_config.file_save_catalog}/{zip_file_filename}'
+                    self.send_existing_file_to_backblaze_bucket(file_path=zip_file_path)
+                    os.remove(zip_file_path)
                 except Exception as e:
-                    self.logger.error(f"Error whilst resending: {zip_file}: {e} gonna try in another again soon")
+                    self.logger.error(f"_failed_zip_reserve_sender_loop Error: "
+                                      f"{zip_file_filename}: {e} gonna try in another again soon")
 
-    def setup_cloud_storage_client(self):
+    def _setup_cloud_storage_client(self):
 
         azure_params_ok = (
                 self.data_sink_config.storage_connection_parameters.azure_blob_parameters_with_key is not None
@@ -113,20 +113,16 @@ class StreamDataSaverAndSender:
             )
 
         target_initializers = {
-            DataSaveTarget.BACKBLAZE: lambda: setattr(
-                self, 's3_client',
-                self._get_s3_client(self.data_sink_config.storage_connection_parameters)
-            ),
-            DataSaveTarget.AZURE_BLOB: lambda: setattr(
-                self, 'azure_container_client',
-                self._get_azure_container_client(self.data_sink_config.storage_connection_parameters)
-            )
+            DataSaveTarget.BACKBLAZE: lambda: self._get_own_lightweight_s3_client(
+                self.data_sink_config.storage_connection_parameters),
+            DataSaveTarget.AZURE_BLOB: lambda: self._get_azure_container_client(
+                self.data_sink_config.storage_connection_parameters)
         }
 
         initializer = target_initializers.get(self.data_sink_config.data_save_target)
 
         if initializer:
-            initializer()
+            self.cloud_storage_client = initializer()
 
     @staticmethod
     def _get_azure_container_client(storage_connection_parameters) -> 'azure.storage.blob.ContainerClient':
@@ -145,17 +141,9 @@ class StreamDataSaverAndSender:
             print(f"Could not connect to Azure: {e}")
 
     @staticmethod
-    def _get_s3_client(storage_connection_parameters: StorageConnectionParameters) -> boto3.client:
+    def _get_own_lightweight_s3_client(storage_connection_parameters: StorageConnectionParameters):
         try:
-            s3_client = boto3.client(
-                's3',
-                aws_access_key_id=storage_connection_parameters.backblaze_access_key_id,
-                aws_secret_access_key=storage_connection_parameters.backblaze_secret_access_key,
-                endpoint_url=storage_connection_parameters.backblaze_endpoint_url,
-                region_name='us-east-1',
-                config=Config(signature_version='s3v4', retries={'max_attempts': 100,'mode': 'adaptive'})
-            )
-            return s3_client
+            return OwnLightweightS3Client(storage_connection_parameters=storage_connection_parameters)
         except Exception as e:
             print(f"Error whilst connecting to Backblaze S3: {e}")
 
@@ -220,9 +208,7 @@ class StreamDataSaverAndSender:
             for pair, data in stream_data.items():
 
                 file_name = self.get_file_name(
-                    asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(
-                        pair=pair
-                    )
+                    asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
                 )
 
                 self.save_data(
@@ -264,7 +250,7 @@ class StreamDataSaverAndSender:
             self.logger.error(f"IO Error whilst saving to file {file_save_path}: {e}")
 
     def write_data_to_zip_file(self, json_content: str, file_save_catalog: str, file_name: str) -> None:
-        file_save_path = f'{file_save_catalog}/{file_name}.json.zip'
+        file_save_path = f'{file_save_catalog}/{file_name}.zip'
 
         try:
             with zipfile.ZipFile(file_save_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
@@ -310,46 +296,25 @@ class StreamDataSaverAndSender:
 
             zip_buffer.seek(0)
 
-            blob_client = self.azure_container_client.get_blob_client(blob=f"{file_name}.zip")
+            blob_client = self.cloud_storage_client.get_blob_client(blob=f"{file_name}.zip")
             blob_client.upload_blob(zip_buffer, overwrite=True)
             self.logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container")
         except Exception as e:
             self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
     def send_zipped_json_to_backblaze_bucket(self, json_content: str, file_name: str) -> None:
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-            json_filename = f"{file_name}.json"
-            zipf.writestr(json_filename, json_content)
 
-        zip_buffer.seek(0)
-
-        response = self.s3_client.put_object(
-            Bucket=self.data_sink_config.storage_connection_parameters.backblaze_bucket_name,
-            Key=f"{file_name}.zip",
-            Body=zip_buffer.getvalue()
+        self.cloud_storage_client.upload_zipped_jsoned_string(
+            data=json_content,
+            file_name=file_name
         )
-        http_status_code = response['ResponseMetadata']['HTTPStatusCode']
-
-        if http_status_code != 200:
-            raise Exception(f'sth bad with upload response {response}')
 
         self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: "
                           f"{self.data_sink_config.storage_connection_parameters.backblaze_bucket_name}")
 
-    def send_existing_file_to_backblaze_bucket(self, file_name: str) -> None:
-        with open(f'{self.data_sink_config.file_save_catalog}/{file_name}', "rb") as f:
-            file_data = f.read()
-
-        response = self.s3_client.put_object(
-            Bucket=self.data_sink_config.storage_connection_parameters.backblaze_bucket_name,
-            Key=file_name,
-            Body=file_data
-        )
-
-        http_status_code = response['ResponseMetadata']['HTTPStatusCode']
-        if http_status_code != 200:
-            raise Exception(f'sth bad with upload response {response}')
+    def send_existing_file_to_backblaze_bucket(self, file_path: str) -> None:
+        self.logger.info(f'Invocation of send_existing_file_to_backblaze_bucket, {file_path}')
+        self.cloud_storage_client.upload_existing_file(file_path=file_path)
 
     @staticmethod
     def get_file_name(asset_parameters: AssetParameters) -> str:
