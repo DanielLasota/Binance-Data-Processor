@@ -1,27 +1,35 @@
 from setuptools import setup, find_packages
 
+
 setup(
     name='binance-archiver',
     version='0.0.2',
     packages=find_packages(),
     install_requires=[
-        'azure-identity',
-        'azure-keyvault',
-        'azure-storage-blob',
         'python-dotenv',
-        'boto3==1.35.2',
         'fastapi',
         'uvicorn',
         'websockets',
         'orjson',
-        'alive-progress',
-        'pytest',
-        'objgraph',
-        'pympler',
-        'requests',
-        'numpy',
-        'pandas'
+        'requests'
     ],
+    extras_require={
+        'dev': [
+            'pytest',
+            'objgraph',
+            'pympler'
+        ],
+        'scraper': [
+            'numpy',
+            'pandas',
+            'alive-progress'
+        ],
+        'azure': [
+            'azure-identity',
+            'azure-storage-blob',
+            'boto3==1.35.2'
+        ]
+    },
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="Daniel Lasota",
