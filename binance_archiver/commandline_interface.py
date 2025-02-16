@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import pprint
+import sys
 import threading
 
 # import tracemalloc
@@ -52,6 +53,7 @@ class CommandLineInterface:
                 lambda: self.show_config(),
             CommandsRegistry.SHOW_STATUS:
                 lambda: self.show_status(),
+
             CommandsRegistry.SHOW_TRACEMALLOC_SNAPSHOT_STATISTICS:
                 lambda: self.show_tracemalloc_snapshot_statistics(),
             CommandsRegistry.SHOW_OBJGRAPH_GROWTH:
@@ -165,6 +167,14 @@ class CommandLineInterface:
 
         threads = [thread for thread in threading.enumerate() if thread.is_alive()]
         output_lines.append(str(threads))
+
+        output_lines.append("------------------------------------------")
+        output_lines.append("Loaded Modules:")
+        output_lines.append("------------------------------------------")
+
+        loaded_modules = [module for module in sys.modules.keys()]
+
+        output_lines.append(", ".join(loaded_modules))
 
         final_output = "\n".join(output_lines)
         self.logger.info(final_output)
