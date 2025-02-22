@@ -76,6 +76,7 @@ class DifferenceDepthQueue:
             if do_throws_match is True:
                 self.set_new_stream_id_as_currently_accepted()
 
+            del message
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:
         id_index = stream_listener_id.id
 

@@ -1,2 +1,7 @@
 /logs/
-binance_archiver/binance-archiver.env
+binance_archiver/binance-archiver-1.env
+binance_archiver/binance-archiver-2.env
+binance_archiver/binance-archiver-3.env
+binance_archiver/binance-archiver-4.env
+.idea/
+binance_archiver/archiver.log

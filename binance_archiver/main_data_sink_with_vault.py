@@ -3,7 +3,7 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import time
-import tracemalloc
+# import tracemalloc
 
 from binance_archiver import launch_data_sink, DataSinkConfig
 from binance_archiver.load_config import load_config_from_json
@@ -11,7 +11,7 @@ from binance_archiver.load_config import load_config_from_json
 
 if __name__ == "__main__":
 
-    load_dotenv('binance-archiver.env')
+    load_dotenv('binance-archiver-2.env')
     config_from_json = load_config_from_json('almost_production_config.json')
 
     client = SecretClient(

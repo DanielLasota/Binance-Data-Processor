@@ -53,7 +53,7 @@ from binance_archiver import load_config_from_json, DataSinkConfig, launch_data_
 
 if __name__ == "__main__":
 
-    load_dotenv('binance-archiver.env')
+    load_dotenv('sample_env.env')
 
     data_sink_config = DataSinkConfig(
         instruments={

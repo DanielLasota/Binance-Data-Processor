@@ -4,10 +4,10 @@ import pprint
 import threading
 import time
 
-from binance_archiver.commandline_interface import CommandLineInterface
+from binance_archiver.command_line_interface import CommandLineInterface
 from binance_archiver.data_sink_config import DataSinkConfig
-from binance_archiver.stream_data_save_and_sender import StreamDataSaverAndSender
 from binance_archiver.fastapi_manager import FastAPIManager
+from binance_archiver.stream_data_save_and_sender import StreamDataSaverAndSender
 from binance_archiver.logo import binance_archiver_logo
 from binance_archiver.queue_pool import DataSinkQueuePool
 from binance_archiver.setup_logger import setup_logger
@@ -51,6 +51,7 @@ class BinanceDataSink:
         self.logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
 
         self.global_shutdown_flag = threading.Event()
+
         self.queue_pool = DataSinkQueuePool()
 
         self.stream_service = StreamService(
@@ -67,7 +68,8 @@ class BinanceDataSink:
 
         self.command_line_interface = CommandLineInterface(
             stream_service=self.stream_service,
-            data_sink_config=self.data_sink_config
+            data_sink_config=self.data_sink_config,
+            shutdown_callback=self.shutdown
         )
 
         self.fast_api_manager = FastAPIManager(callback=self.command_line_interface.handle_command)

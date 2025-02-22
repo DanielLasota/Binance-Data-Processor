@@ -25,7 +25,7 @@ from binance_archiver.enum_.storage_connection_parameters import StorageConnecti
 from ..stream_data_save_and_sender import StreamDataSaverAndSender
 from ..queue_pool import ListenerQueuePool, DataSinkQueuePool
 from ..stream_service import StreamService
-from ..commandline_interface import CommandLineInterface
+from ..command_line_interface import CommandLineInterface
 from ..timestamps_generator import TimestampsGenerator
 from ..fastapi_manager import FastAPIManager
 
