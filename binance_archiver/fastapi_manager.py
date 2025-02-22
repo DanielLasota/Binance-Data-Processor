@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from threading import Thread
 import uvicorn
-import requests
 
 
 class FastAPIManager:
@@ -62,11 +61,5 @@ class FastAPIManager:
         self.server_thread.start()
 
     def shutdown(self) -> None:
-        try:
-            requests.post('http://127.0.0.1:5000/shutdown')
-        except requests.exceptions.ConnectionError:
-            print("Server is already shut down.")
-        if self.server_thread and self.server_thread.is_alive():
-            self.server_thread.join(timeout=2)
-            if self.server_thread.is_alive():
-                print("Warning: server thread did not terminate properly.")
+        if self.server:
+            self.server.should_exit = True

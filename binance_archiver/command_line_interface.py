@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import gc
 import json
 import logging
 import pprint
 import sys
 import threading
+# from guppy import hpy
+
 
 # import tracemalloc
 # import objgraph
-# from pympler import asizeof, muppy
+# from pympler import asizeof, muppy, tracker
+# from operator import itemgetter
 
 import binance_archiver.data_sink_facade
 from binance_archiver import DataSinkConfig
@@ -21,17 +25,20 @@ class CommandLineInterface:
     __slots__ = [
         'stream_service',
         'data_sink_config',
-        'logger'
+        'logger',
+        'shutdown_callback'
     ]
 
     def __init__(
             self,
             stream_service: StreamService,
-            data_sink_config: DataSinkConfig
+            data_sink_config: DataSinkConfig,
+            shutdown_callback
     ):
         self.stream_service = stream_service
         self.data_sink_config = data_sink_config
         self.logger = logging.getLogger('binance_data_sink')
+        self.shutdown_callback = shutdown_callback
 
     def handle_command(
             self,
@@ -45,6 +52,8 @@ class CommandLineInterface:
         self.logger.info('VVVVVVVVVVVV')
 
         commands_registry = {
+            CommandsRegistry.SHUTDOWN:
+                lambda: self.shutdown(),
             CommandsRegistry.MODIFY_SUBSCRIPTION:
                 lambda: self.modify_subscription(type_=arguments['type'], market=Market(arguments['market'].lower()), instrument=arguments['asset'].upper()),
             CommandsRegistry.OVERRIDE_CONFIG_INTERVAL:
@@ -53,6 +62,10 @@ class CommandLineInterface:
                 lambda: self.show_config(),
             CommandsRegistry.SHOW_STATUS:
                 lambda: self.show_status(),
+            CommandsRegistry.SHOW_IMPORTED_MODULES:
+                lambda: self.show_imported_modules(),
+            CommandsRegistry.GC_COLLECT:
+                lambda: self.gc_collect(),
 
             CommandsRegistry.SHOW_TRACEMALLOC_SNAPSHOT_STATISTICS:
                 lambda: self.show_tracemalloc_snapshot_statistics(),
@@ -65,7 +78,9 @@ class CommandLineInterface:
             CommandsRegistry.SHOW_PYMPLER_DATA_SINK_OBJECT_ANALYSIS_WITH_DETAIL_LEVEL:
                 lambda: self.show_pympler_data_sink_object_analysis_with_detail_level(n_detail_level=arguments['n_detail_level']),
             CommandsRegistry.SHOW_PYMPLER_DATA_SINK_OBJECT_ANALYSIS_WITH_MANUAL_ITERATION:
-                lambda: self.show_pympler_data_sink_object_analysis_with_manual_iteration()
+                lambda: self.show_pympler_data_sink_object_analysis_with_manual_iteration(),
+            CommandsRegistry.SHOW_GUPPY_INFO:
+                lambda: self.show_guppy_info()
         }
 
         command_executor = commands_registry.get(command)
@@ -73,6 +88,9 @@ class CommandLineInterface:
             return command_executor()
         else:
             raise Exception(f'Bad command, try again')
+
+    def shutdown(self):
+        self.shutdown_callback()
 
     def modify_subscription(
             self,
@@ -144,7 +162,16 @@ class CommandLineInterface:
 
         output_lines.append("BINANCE ARCHIVER STATUS:")
         output_lines.append("------------------------------------------")
-        output_lines.append("Queue Status with len and newest message:")
+        output_lines.append("Queue Pool len:")
+        output_lines.append("------------------------------------------")
+
+        for (market, stream_type), queue_instance in self.stream_service.queue_pool.queue_lookup.items():
+            output_lines.append(f"{market} {stream_type} : {queue_instance.queue.qsize()}")
+        output_lines.append("\n")
+
+
+        output_lines.append("------------------------------------------")
+        output_lines.append("Queue Pool newest message:")
         output_lines.append("------------------------------------------")
 
         for (market, stream_type), queue_instance in self.stream_service.queue_pool.queue_lookup.items():
@@ -152,7 +179,8 @@ class CommandLineInterface:
                 last_message = queue_instance.queue.queue[-1] if queue_instance.queue.qsize() > 0 else "Empty queue"
             except Exception as e:
                 last_message = f"Error: {e}"
-            output_lines.append(f"{market} {stream_type} : {queue_instance.queue.qsize()} {last_message}")
+            output_lines.append(f"{market} {stream_type} : {last_message}")
+            output_lines.append(f"\n")
 
         output_lines.append("------------------------------------------")
         output_lines.append("Stream service status:")
@@ -184,6 +212,32 @@ class CommandLineInterface:
         self.logger.info('\n')
 
         return final_output
+
+    def show_imported_modules(self):
+        modules = list(sys.modules.keys())
+        self.logger.info('returned list of imported modules check api')
+        return json.dumps(modules)
+
+    def gc_collect(self) -> str:
+
+        # gc_get_objects = gc.get_objects()
+        # gc_get_count = gc.get_count()
+        # gc_collect_return = gc.collect()
+        self.logger.info('invocating gc.collect()')
+        gc.collect()
+        # print(gc_get_objects)
+        # print(gc_get_count)
+        # print(gc_collect_return)
+
+        # final_output = {
+        #     'gc_get_objects': gc_get_objects,
+        #     'gc_get_count': gc_get_count,
+        #     'gc_collect_return': gc_collect_return
+        # }
+        #
+        # return json.dumps(final_output)
+        self.logger.info('ended gc.collect()')
+        return 'gc_collected'
 
     def show_jsoned_status(self) -> str:
 
@@ -242,6 +296,25 @@ class CommandLineInterface:
         for stat in top_stats[:40]:
             self.logger.info(stat)
 
+        mem = tracker.SummaryTracker()
+        print(sorted(mem.create_summary(), reverse=True, key=itemgetter(2))[:10])
+
+        def lsos(n=30):
+            import pandas as pd
+            import sys
+
+            all_obj = globals()
+
+            object_name = list(all_obj).copy()
+            object_size = [sys.getsizeof(all_obj[x]) for x in object_name]
+
+            d = pd.DataFrame(dict(name=object_name, size=object_size))
+            d.sort_values(['size'], ascending=[0], inplace=True)
+
+            return (d.head(n))
+
+        print(lsos(50))
+
     def show_objgraph_growth(self):
         objgraph.show_growth(limit=8)
         # self.logger.info(objgraph.growth(limit=1))
@@ -256,24 +329,13 @@ class CommandLineInterface:
             self.logger.error(e)
 
     def show_pympler_all_objects_analysis(self):
-
-        # self.logger.info('pympler 1')
-
         all_objects = muppy.get_objects()
-        # self.logger.info('pympler 2')
-
         objects_with_sizes = []
-        # self.logger.info('pympler 3')
 
         for obj in all_objects:
-            # self.logger.info('pympler 4')
 
             try:
-                # self.logger.info('pympler 5')
-
                 size = asizeof.asizeof(obj)
-                # self.logger.info('pympler 6')
-
                 objects_with_sizes.append((size, type(obj).__name__, repr(obj)[:100]))
 
             except (TypeError, RecursionError) as e:
@@ -346,3 +408,10 @@ class CommandLineInterface:
                         f"sub-attribute '{sub_attr_name}': size {sub_attr_size} bytes "
                         f"({sub_attr_size / (1024 * 1024):.2f} MB)"
                         f", type {type(sub_attr_value).__name__}")
+
+    def show_guppy_info(self):
+
+        print('xxxddsdfsdf')
+
+        hp = hpy()
+        print(hp.heap())

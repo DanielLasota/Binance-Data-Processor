@@ -6,17 +6,22 @@ import re
 import zipfile
 import requests
 from pathlib import Path
+from time import time
 
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 
 
-class OwnLightweightS3Client:
+class S3Client:
+
+    REFRESH_INTERVAL = 4 * 3600
 
     __slots__ = [
         'storage_connection_parameters',
         'region',
         'service',
         'host',
+        '_session',
+        '_last_refresh_time'
     ]
 
     def __init__(
@@ -24,6 +29,8 @@ class OwnLightweightS3Client:
             storage_connection_parameters: StorageConnectionParameters
     ) -> None:
         self.storage_connection_parameters = storage_connection_parameters
+        self._session = requests.Session()
+        self._last_refresh_time = time()
 
         region_match = re.search(
             r's3\.([^.]+)\.backblazeb2\.com',
@@ -34,6 +41,13 @@ class OwnLightweightS3Client:
         self.region = region_match.group(1)
         self.service = "s3"
         self.host = f"s3.{self.region}.backblazeb2.com"
+
+    def _refresh_session_if_needed(self) -> None:
+        current_time = time()
+        if current_time - self._last_refresh_time > self.REFRESH_INTERVAL:
+            self._session.close()
+            self._session = requests.Session()
+            self._last_refresh_time = current_time
 
     @staticmethod
     def sign(key: bytes, msg: str) -> bytes:
@@ -55,12 +69,10 @@ class OwnLightweightS3Client:
             self,
             file_path: str
     ) -> None:
-
         with open(file_path, "rb") as f:
             file_data = f.read()
 
         object_name = Path(file_path).name
-
         self._upload_payload(file_data, object_name)
 
     def upload_zipped_jsoned_string(
@@ -82,6 +94,7 @@ class OwnLightweightS3Client:
             object_name: str,
             content_type: str = "application/octet-stream"
     ) -> None:
+        self._refresh_session_if_needed()
         t = datetime.datetime.utcnow()
         amz_date = t.strftime('%Y%m%dT%H%M%SZ')
         date_stamp = t.strftime('%Y%m%d')
@@ -131,5 +144,11 @@ class OwnLightweightS3Client:
         }
         url = self.storage_connection_parameters.backblaze_endpoint_url + canonical_uri
 
-        response = requests.put(url, data=payload, headers=headers)
-        response.raise_for_status()
+        response = self._session.put(url, data=payload, headers=headers)
+        try:
+            response.raise_for_status()
+        finally:
+            response.close()
+
+    def shutdown(self) -> None:
+        self._session.close()
