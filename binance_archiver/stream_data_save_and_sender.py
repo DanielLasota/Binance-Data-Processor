@@ -16,7 +16,6 @@ from binance_archiver.enum_.data_save_target_enum import DataSaveTarget
 from binance_archiver.exceptions import BadStorageConnectionParameters
 from binance_archiver.queue_pool import ListenerQueuePool, DataSinkQueuePool
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
-from binance_archiver.s3_client import OwnLightweightS3Client
 from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.trade_queue import TradeQueue
 
@@ -140,8 +139,10 @@ class StreamDataSaverAndSender:
 
     @staticmethod
     def _get_own_lightweight_s3_client(storage_connection_parameters: StorageConnectionParameters):
+        from binance_archiver.s3_client import S3Client
+
         try:
-            return OwnLightweightS3Client(storage_connection_parameters=storage_connection_parameters)
+            return S3Client(storage_connection_parameters=storage_connection_parameters)
         except Exception as e:
             print(f"Error whilst connecting to Backblaze S3: {e}")
 
@@ -152,10 +153,7 @@ class StreamDataSaverAndSender:
     ) -> None:
         thread = threading.Thread(
             target=self._write_stream_to_target,
-            args=(
-                queue,
-                asset_parameters
-            ),
+            args=(queue, asset_parameters),
             name=f'stream_writer: market: {asset_parameters.market}, stream_type: {asset_parameters.stream_type}'
         )
         thread.start()
@@ -192,28 +190,27 @@ class StreamDataSaverAndSender:
         asset_parameters: AssetParameters
     ) -> None:
         if not queue.empty():
-
             stream_data = defaultdict(list)
 
             while not queue.empty():
                 message = queue.get_nowait()
-
                 match = self._stream_message_pair_pattern.search(message)
                 pair_found_in_message = match.group(1)
-
                 stream_data[pair_found_in_message].append(message)
 
-            for pair, data in stream_data.items():
-
+            for pair in list(stream_data.keys()):
+                data = stream_data[pair]
                 file_name = self.get_file_name(
                     asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
                 )
-
                 self.save_data(
                     json_content='[' + ','.join(data) + ']',
                     file_save_catalog=self.data_sink_config.file_save_catalog,
                     file_name=file_name
                 )
+                del stream_data[pair]
+                del data
+            del stream_data
 
     def save_data(
             self,

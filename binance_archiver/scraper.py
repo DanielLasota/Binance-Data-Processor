@@ -118,7 +118,7 @@ class DataScraper:
         os.startfile(dump_path)
 
         markets = [Market(_.lower()) for _ in markets]
-        stream_types = [StreamType(_.lower()) for _ in stream_types]
+        stream_types = [StreamType[_.upper()] for _ in stream_types]
         pairs = [_.lower() for _ in pairs]
         dates = self._generate_dates_from_range(start_date, end_date)
 
@@ -678,8 +678,8 @@ class DataQualityChecker:
     @staticmethod
     def _analyse_difference_depth_dataframe(df: pd.DataFrame) -> str:
         is_there_only_one_unique_value_in_series = IndividualColumnChecker.is_there_only_one_unique_value_in_series(df['TimestampOfReceive'])
-        is_whole_series_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(df[''], f'')
-        is_each_series_entry_greater_or_equal_to_previous_one = IndividualColumnChecker.is_each_series_entry_greater_or_equal_to_previous_one(df[''])
+        # is_whole_series_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(df[''], f'')
+        # is_each_series_entry_greater_or_equal_to_previous_one = IndividualColumnChecker.is_each_series_entry_greater_or_equal_to_previous_one(df[''])
 
         data_frame_quality_report = (f'is_there_only_one_unique_value_in_series: {is_there_only_one_unique_value_in_series}'
                                      f'is_whole_series_made_of_only_one_expected_value')

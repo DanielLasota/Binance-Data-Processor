@@ -82,6 +82,8 @@ class TradeQueue:
 
             self.last_message_signs = current_message_signs
 
+            del message
+
     @staticmethod
     def get_message_signs(message: str) -> str:
         match = TradeQueue._transaction_signs_compiled_pattern.search(message)

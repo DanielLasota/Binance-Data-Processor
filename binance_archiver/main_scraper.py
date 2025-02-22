@@ -8,9 +8,9 @@ from binance_archiver.scraper import download_csv_data
 
 if __name__ == '__main__':
 
-    # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver.env')
+    # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver-1.env')
     # load_dotenv(env_path)
-    load_dotenv('binance-archiver.env')
+    load_dotenv('binance-archiver-1.env')
 
     client = SecretClient(
         vault_url=os.environ.get('VAULT_URL'),
