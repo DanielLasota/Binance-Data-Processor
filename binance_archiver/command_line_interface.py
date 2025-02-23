@@ -98,30 +98,35 @@ class CommandLineInterface:
             market: Market,
             instrument: str
     ):
+        try:
 
-        if type_ == 'subscribe':
-            self.data_sink_config.instruments.add_pair(market=market, pair=instrument)
-        elif type_ == 'unsubscribe':
-            self.data_sink_config.instruments.remove_pair(market=market, instrument=instrument)
+            if type_ == 'subscribe':
+                self.data_sink_config.instruments.add_pair(market=market, pair=instrument)
+            elif type_ == 'unsubscribe':
+                self.data_sink_config.instruments.remove_pair(market=market, instrument=instrument)
 
-        self.stream_service.update_subscriptions(
-            market=market,
-            asset_upper=instrument,
-            action=type_
-        )
+            self.stream_service.update_subscriptions(
+                market=market,
+                asset_upper=instrument,
+                action=type_
+            )
 
-        self.logger.info(f'{type_}d {market} {instrument}')
+            self.logger.info(f'{type_}d {market} {instrument}')
 
-        final_output = {
-            'requested': f'{type_} {market} {instrument}',
-            'actual_instruments': f'{self.stream_service.data_sink_config.instruments.get_pairs(market=market)}'
-        }
+            final_output = {
+                'requested': f'{type_} {market} {instrument}',
+                'actual_instruments': f'{self.stream_service.data_sink_config.instruments.get_pairs(market=market)}'
+            }
 
-        self.logger.info('^^^^^^^^^^^^')
-        self.logger.info('############')
-        self.logger.info('\n')
+            self.logger.info('^^^^^^^^^^^^')
+            self.logger.info('############')
+            self.logger.info('\n')
 
-        return json.dumps(final_output)
+            return json.dumps(final_output)
+
+        except Exception as e:
+            self.logger.error(e)
+            return e
 
     def override_config_interval(
             self,
