@@ -14,9 +14,9 @@ from binance_archiver.enum_.interval_settings import IntervalSettings
 class DataSinkConfig:
     instruments: InstrumentsMatrix | dict[str, any] = field(
         default_factory=lambda: InstrumentsMatrix(
-            spot=['btcusdt'],
-            usd_m_futures=['btcusdt'],
-            coin_m_futures=['btcusdt']
+            spot=['BTCUSDT'],
+            usd_m_futures=['BTCUSDT'],
+            coin_m_futures=['BTCUSDT_PERP']
         )
     )
     time_settings: IntervalSettings | dict[str, any] = field(
@@ -50,19 +50,19 @@ class DataSinkConfig:
         if not self.storage_connection_parameters:
             raise ValueError("Storage connection parameters must be provided.")
 
-        if not self.instruments.spot and not self.instruments.usd_m_futures and not self.instruments.coin_m_futures:
-            raise ValueError("At least one type of instruments must be provided.")
-
         if not isinstance(self.time_settings, IntervalSettings):
             raise ValueError("time_settings must be an instance of TimeSettings.")
 
     def __post_init__(self):
         if isinstance(self.instruments, dict):
-            self.instruments = InstrumentsMatrix(
-                spot=self.instruments.get('spot', []),
-                usd_m_futures=self.instruments.get('usd_m_futures', []),
-                coin_m_futures=self.instruments.get('coin_m_futures', [])
-            )
+            instruments_kwargs = {}
+            if 'spot' in self.instruments and self.instruments['spot']:  # Sprawdzamy, czy lista nie jest pusta
+                instruments_kwargs['spot'] = self.instruments['spot']
+            if 'usd_m_futures' in self.instruments and self.instruments['usd_m_futures']:
+                instruments_kwargs['usd_m_futures'] = self.instruments['usd_m_futures']
+            if 'coin_m_futures' in self.instruments and self.instruments['coin_m_futures']:
+                instruments_kwargs['coin_m_futures'] = self.instruments['coin_m_futures']
+            self.instruments = InstrumentsMatrix(**instruments_kwargs)
 
         if isinstance(self.storage_connection_parameters, dict):
             self.storage_connection_parameters = StorageConnectionParameters(**self.storage_connection_parameters)
