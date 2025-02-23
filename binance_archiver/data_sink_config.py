@@ -56,7 +56,7 @@ class DataSinkConfig:
     def __post_init__(self):
         if isinstance(self.instruments, dict):
             instruments_kwargs = {}
-            if 'spot' in self.instruments and self.instruments['spot']:  # Sprawdzamy, czy lista nie jest pusta
+            if 'spot' in self.instruments and self.instruments['spot']:
                 instruments_kwargs['spot'] = self.instruments['spot']
             if 'usd_m_futures' in self.instruments and self.instruments['usd_m_futures']:
                 instruments_kwargs['usd_m_futures'] = self.instruments['usd_m_futures']
