@@ -5,3 +5,6 @@ binance_archiver/binance-archiver-3.env
 binance_archiver/binance-archiver-4.env
 .idea/
 binance_archiver/archiver.log
+binance_archiver/archiver.log.1
+binance_archiver/archiver.log.2
+binance_archiver/archiver.log.3
