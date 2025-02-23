@@ -149,7 +149,7 @@ class StreamService:
             finally:
                 for listener in (old_stream_listener, new_stream_listener):
                     if listener and listener._ws and listener._ws.state in [0, 1]:
-                        listener.close_websocket()
+                        listener.close_websocket_app()
 
     def update_subscriptions(
             self,
