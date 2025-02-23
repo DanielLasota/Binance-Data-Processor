@@ -30,7 +30,7 @@ class StreamListener:
         '_ws',
         '_url',
         '_loop',
-        '_blackout_supervisor',
+        '_blackout_supervisor'
     ]
 
     def __init__(
@@ -45,9 +45,8 @@ class StreamListener:
         self.id: StreamId = StreamId(pairs=self.asset_parameters.pairs)
         self.thread: threading.Thread | None = None
         self._blackout_supervisor = BlackoutSupervisor(
-            asset_parameters=asset_parameters,
-            on_error_callback=lambda: self.restart_websocket_app(),
-            max_interval_without_messages_in_seconds=5
+            max_interval_without_messages_in_seconds=120 if asset_parameters.market is Market.COIN_M_FUTURES else 30,
+            on_error_callback=lambda: self.restart_websocket_app()
         )
 
         self._stop_event = threading.Event()
@@ -164,6 +163,13 @@ class StreamListener:
                     else (raw_timestamp_of_receive_ns + 500_000) // 1_000_000
                 )
 
+                self._handle_incoming_message(
+                    raw_message=message,
+                    timestamp_of_receive=timestamp_of_receive_rounded
+                )
+
+                self._blackout_supervisor.notify()
+
             except websockets.exceptions.ConnectionClosed as e:
                 if not self._stop_event.is_set():
                     self.logger.info(
@@ -173,12 +179,6 @@ class StreamListener:
                         f"self._stop_event.is_set(): {self._stop_event.is_set()}"
                     )
                 break
-
-            self._handle_incoming_message(
-                raw_message=message,
-                timestamp_of_receive=timestamp_of_receive_rounded
-            )
-            self._blackout_supervisor.notify()
 
     def _handle_incoming_message(self, raw_message: str, timestamp_of_receive: int):
         # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")

@@ -36,12 +36,12 @@ class TestBlackoutSupervisor:
         assert supervisor.max_interval_without_messages_in_seconds == max_interval
 
     def test_given_blackout_supervisor_when_notify_then_updates_last_message_time(self, supervisor_fixture):
-        initial_time = supervisor_fixture.last_message_time_epoch_seconds_utc
+        initial_time = supervisor_fixture._last_message_time_epoch_seconds_utc
         time.sleep(1)
 
         supervisor_fixture.notify()
 
-        assert supervisor_fixture.last_message_time_epoch_seconds_utc > initial_time
+        assert supervisor_fixture._last_message_time_epoch_seconds_utc > initial_time
 
     def test_given_blackout_supervisor_when_no_messages_for_max_interval_then_logger_warns(self, supervisor_fixture):
         mock_on_error_callback = MagicMock()
@@ -59,7 +59,7 @@ class TestBlackoutSupervisor:
 
         time.sleep(1)
 
-        assert supervisor_fixture.running
+        assert supervisor_fixture._running
 
         supervisor_fixture.shutdown_supervisor()
 
@@ -68,7 +68,7 @@ class TestBlackoutSupervisor:
 
         supervisor_fixture.shutdown_supervisor()
 
-        assert not supervisor_fixture.running
+        assert not supervisor_fixture._running
 
     def test_given_blackout_supervisor_when_no_error_callback_then_raises_exception(self, supervisor_fixture):
         ...
