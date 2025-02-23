@@ -14,7 +14,6 @@ from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.trade_queue import TradeQueue
 from binance_archiver.stream_id import StreamId
-from binance_archiver.exceptions import WrongListInstanceException, PairsLengthException
 from binance_archiver.blackout_supervisor import BlackoutSupervisor
 from binance_archiver.url_factory import URLFactory
 
@@ -40,47 +39,38 @@ class StreamListener:
         asset_parameters: AssetParameters
     ):
 
-        if not isinstance(asset_parameters.pairs, list):
-            raise WrongListInstanceException('pairs argument is not a list')
-        if len(asset_parameters.pairs) == 0:
-            raise PairsLengthException('pairs len is zero')
-
         self.logger = logging.getLogger('binance_data_sink')
         self.queue = queue
         self.asset_parameters = asset_parameters
-
         self.id: StreamId = StreamId(pairs=self.asset_parameters.pairs)
         self.thread: threading.Thread | None = None
-        self._stop_event = threading.Event()
-        self._ws_lock = threading.Lock()
-        self._ws: WebSocketClientProtocol | None = None
-
-        self._url = URLFactory.get_stream_url(asset_parameters)
-
         self._blackout_supervisor = BlackoutSupervisor(
             asset_parameters=asset_parameters,
             on_error_callback=lambda: self.restart_websocket_app(),
-            max_interval_without_messages_in_seconds=60 if self.asset_parameters.market is Market.COIN_M_FUTURES else 30
+            max_interval_without_messages_in_seconds=5
         )
 
+        self._stop_event = threading.Event()
+        self._ws_lock = threading.Lock()
+        self._ws: WebSocketClientProtocol | None = None
+        self._url = URLFactory.get_stream_url(asset_parameters)
+
     def start_websocket_app(self):
-        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.start_timestamp} Starting streamListener")
+        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.id} Starting streamListener")
         self.thread = threading.Thread(target=self._run_event_loop, daemon=True)
         self.thread.start()
-        self._blackout_supervisor.run()
 
     def restart_websocket_app(self):
-        self.logger.warning(f"{self.asset_parameters} {self.asset_parameters} {self.asset_parameters} Restarting streamListener")
-        self.close_websocket()
+        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} Restarting streamListener")
+        self.close_websocket_app()
+        self._stop_event.clear()
+        time.sleep(1)
         self.start_websocket_app()
 
     def close_websocket_app(self):
         self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.start_timestamp} Closing StreamListener")
-        self.close_websocket()
         self._blackout_supervisor.shutdown_supervisor()
 
-    def close_websocket(self):
-        self._blackout_supervisor.shutdown_supervisor()
         self._stop_event.set()
         with self._ws_lock:
             if self._ws:
@@ -143,7 +133,6 @@ class StreamListener:
         while not self._stop_event.is_set():
             try:
                 async with websockets.connect(self._url) as ws:
-                    # self.logger.info(f"WebSocket connected: {self._url}")
                     with self._ws_lock:
                         self._ws = ws
 
@@ -161,6 +150,9 @@ class StreamListener:
                     self._ws = None
 
     async def _listen_messages(self, ws: WebSocketClientProtocol):
+
+        self._blackout_supervisor.run()
+
         while not self._stop_event.is_set():
             try:
                 message = await ws.recv()
@@ -174,13 +166,13 @@ class StreamListener:
 
             except websockets.exceptions.ConnectionClosed as e:
                 if not self._stop_event.is_set():
-                    self.logger.warning(
-                        f"{e} \n"
+                    self.logger.info(
+                        f"websockets.exceptions.ConnectionClosed: {e} \n"
                         f"stream_listener_id: {self.id.id} "
                         f"{self.asset_parameters.market} {self.asset_parameters.stream_type} "
                         f"self._stop_event.is_set(): {self._stop_event.is_set()}"
                     )
-
+                break
 
             self._handle_incoming_message(
                 raw_message=message,
