@@ -1,4 +1,6 @@
 import re
+import zlib
+
 import orjson
 import threading
 from queue import Queue
@@ -67,7 +69,8 @@ class DifferenceDepthQueue:
 
             if stream_listener_id.id == self.currently_accepted_stream_id:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.queue.put(message_with_timestamp_of_receive)
+                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
+                self.queue.put(compressed_message)
 
             self._append_message_to_compare_structure(stream_listener_id, message)
 
@@ -77,6 +80,7 @@ class DifferenceDepthQueue:
                 self.set_new_stream_id_as_currently_accepted()
 
             del message
+
     def _append_message_to_compare_structure(self, stream_listener_id: StreamId, message: str) -> None:
         id_index = stream_listener_id.id
 

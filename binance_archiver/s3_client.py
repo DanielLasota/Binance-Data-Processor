@@ -12,7 +12,6 @@ from binance_archiver.enum_.storage_connection_parameters import StorageConnecti
 
 
 class S3Client:
-
     REFRESH_INTERVAL = 4 * 3600
 
     __slots__ = [
@@ -81,12 +80,12 @@ class S3Client:
             file_name: str,
             content_type: str = "application/octet-stream"
     ) -> None:
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-            zipf.writestr(f"{file_name}.json", data)
-        zip_buffer.seek(0)
-        object_name = f"{file_name}.zip"
-        self._upload_payload(zip_buffer.getvalue(), object_name, content_type)
+        with io.BytesIO() as zip_buffer:
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+                zipf.writestr(f"{file_name}.json", data)
+            zip_buffer.seek(0)
+            object_name = f"{file_name}.zip"
+            self._upload_payload(zip_buffer.getvalue(), object_name, content_type)
 
     def _upload_payload(
             self,
