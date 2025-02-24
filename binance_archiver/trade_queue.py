@@ -1,3 +1,4 @@
+import zlib
 from queue import Queue
 from typing import final
 import threading
@@ -68,7 +69,8 @@ class TradeQueue:
 
             if stream_listener_id.id == self.currently_accepted_stream_id.id:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.queue.put(message_with_timestamp_of_receive)
+                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
+                self.queue.put(compressed_message)
             else:
                 self.new_stream_listener_id = stream_listener_id
 
