@@ -87,8 +87,7 @@ class StreamDataSaverAndSender:
                     self.send_existing_file_to_backblaze_bucket(file_path=zip_file_path)
                     os.remove(zip_file_path)
                 except Exception as e:
-                    self.logger.error(f"_failed_zip_reserve_sender_loop Error: "
-                                      f"{zip_file_filename}: {e} gonna try in another again soon")
+                    self.logger.error(f"Error retrying file send: {zip_file_filename}:\n {e} trying again soon")
 
     def _setup_cloud_storage_client(self):
 
@@ -273,10 +272,7 @@ class StreamDataSaverAndSender:
                 saver()
 
             except Exception as e:
-                self.logger.error(
-                    f'error sending to backblaze:{e} '
-                    f'gonna send on reserve target'
-                )
+                self.logger.error(f'error whilst sending to blob {file_name} To be sent later: \n{e} \n')
 
                 self.write_data_to_zip_file(
                     json_content=json_content,
@@ -311,8 +307,8 @@ class StreamDataSaverAndSender:
                           f"{self.data_sink_config.storage_connection_parameters.backblaze_bucket_name}")
 
     def send_existing_file_to_backblaze_bucket(self, file_path: str) -> None:
-        self.logger.info(f'Invocation of send_existing_file_to_backblaze_bucket, {file_path}')
         self.cloud_storage_client.upload_existing_file(file_path=file_path)
+        self.logger.info(f'Successfully sent  missing file: {file_path} \n')
 
     @staticmethod
     def get_file_name(asset_parameters: AssetParameters) -> str:

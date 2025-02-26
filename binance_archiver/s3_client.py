@@ -6,7 +6,7 @@ import re
 import zipfile
 import requests
 from pathlib import Path
-from time import time
+import time
 
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 
@@ -29,7 +29,7 @@ class S3Client:
     ) -> None:
         self.storage_connection_parameters = storage_connection_parameters
         self._session = requests.Session()
-        self._last_refresh_time = time()
+        self._last_refresh_time = time.time()
 
         region_match = re.search(
             r's3\.([^.]+)\.backblazeb2\.com',
@@ -42,7 +42,7 @@ class S3Client:
         self.host = f"s3.{self.region}.backblazeb2.com"
 
     def _refresh_session_if_needed(self) -> None:
-        current_time = time()
+        current_time = time.time()
         if current_time - self._last_refresh_time > self.REFRESH_INTERVAL:
             self._session.close()
             self._session = requests.Session()
