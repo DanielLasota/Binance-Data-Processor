@@ -94,10 +94,7 @@ class StreamService:
                 )
                 self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'old')] = old_stream_listener
 
-                if asset_parameters.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
-                    queue.currently_accepted_stream_id = old_stream_listener.id.id
-                elif asset_parameters.stream_type is StreamType.TRADE_STREAM:
-                    queue.currently_accepted_stream_id = old_stream_listener.id
+                queue.currently_accepted_stream_id_keys = old_stream_listener.id.id_keys
 
                 old_stream_listener.start_websocket_app()
                 new_stream_listener = None
@@ -123,6 +120,8 @@ class StreamService:
                         )
 
                         new_stream_listener.start_websocket_app()
+
+                        queue.set_switching_websockets_mode()
                         self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'new')] = new_stream_listener
 
                     while not queue.did_websockets_switch_successfully and not self.global_shutdown_flag.is_set():

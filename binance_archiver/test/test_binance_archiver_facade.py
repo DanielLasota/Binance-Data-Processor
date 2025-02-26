@@ -31,7 +31,7 @@ from ..fastapi_manager import FastAPIManager
 
 from ..setup_logger import setup_logger
 from ..difference_depth_queue import DifferenceDepthQueue
-from ..stream_id import StreamId
+from ..stream_listener_id import StreamListenerId
 from ..trade_queue import TradeQueue
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
@@ -1559,11 +1559,11 @@ class TestArchiverFacade:
         def test_given_stream_writer_when_shutdown_flag_set_then_exits_loop(self):
 
             queue_pool = DataSinkQueuePool()
-            stream_listener_id = StreamId(pairs=['BTCUSDT'])
+            stream_listener_id = StreamListenerId(pairs=['BTCUSDT'])
 
             queue = queue_pool.get_queue(market=Market.SPOT, stream_type=StreamType.DIFFERENCE_DEPTH_STREAM)
 
-            queue.put_difference_depth_message(
+            queue._put_difference_depth_message_changing_websockets_mode(
                 message='{"stream": "btcusdt@depth", "data": {}}',
                 stream_listener_id=stream_listener_id,
                 timestamp_of_receive=1234567890
@@ -1630,12 +1630,12 @@ class TestArchiverFacade:
                 global_shutdown_flag=self.global_shutdown_flag
             )
 
-            stream_listener_id = StreamId(pairs=['BTCUSDT'])
+            stream_listener_id = StreamListenerId(pairs=['BTCUSDT'])
             queue = queue_pool.get_queue(market=Market.SPOT, stream_type=StreamType.DIFFERENCE_DEPTH_STREAM)
             message = '{"stream":"btcusdt@depth","data":{}}'
-            queue.currently_accepted_stream_id = stream_listener_id.id
+            queue.currently_accepted_stream_id_keys = stream_listener_id.id_keys
 
-            queue.put_difference_depth_message(
+            queue._put_difference_depth_message_changing_websockets_mode(
                 message=message,
                 stream_listener_id=stream_listener_id,
                 timestamp_of_receive=1234567890
