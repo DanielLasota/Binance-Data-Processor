@@ -10,7 +10,7 @@ from binance_archiver.queue_pool import DataSinkQueuePool
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.setup_logger import setup_logger
-from binance_archiver.stream_id import StreamId
+from binance_archiver.stream_listener_id import StreamListenerId
 from binance_archiver.stream_listener import StreamListener, WrongListInstanceException, PairsLengthException
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.blackout_supervisor import BlackoutSupervisor
@@ -78,7 +78,7 @@ class TestStreamListener:
             expected_pairs_amount = len(pairs)
 
             assert difference_depth_stream_listener._ws is None
-            assert isinstance(difference_depth_stream_listener.id, StreamId)
+            assert isinstance(difference_depth_stream_listener.id, StreamListenerId)
             assert difference_depth_stream_listener.id.pairs_amount == expected_pairs_amount
 
             trade_stream_listener = StreamListener(
@@ -91,7 +91,7 @@ class TestStreamListener:
             )
 
             assert difference_depth_stream_listener._ws is None
-            assert isinstance(trade_stream_listener.id, StreamId)
+            assert isinstance(trade_stream_listener.id, StreamListenerId)
             assert trade_stream_listener.id.pairs_amount == expected_pairs_amount
 
             trade_stream_listener.close_websocket_app()
@@ -283,7 +283,7 @@ class TestStreamListener:
             )
         )
 
-        trade_queue.currently_accepted_stream_id = trade_stream_listener.id
+        trade_queue.currently_accepted_stream_id_keys = trade_stream_listener.id
 
         trade_stream_listener.start_websocket_app()
 
@@ -344,7 +344,7 @@ class TestStreamListener:
             )
         )
 
-        difference_depth_queue.currently_accepted_stream_id = difference_depth_stream_listener.id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = difference_depth_stream_listener.id.id_keys
 
         difference_depth_stream_listener.start_websocket_app()
 
@@ -406,7 +406,7 @@ class TestStreamListener:
             )
         )
 
-        trade_queue.currently_accepted_stream_id = trade_stream_listener.id
+        trade_queue.currently_accepted_stream_id_keys = trade_stream_listener.id
 
         with patch.object(StreamListener, 'restart_websocket_app') as mock_restart, \
                 patch.object(BlackoutSupervisor, 'notify') as mock_notify:

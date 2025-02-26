@@ -1,3 +1,4 @@
+import uuid
 import zlib
 from queue import Queue
 from typing import final
@@ -6,7 +7,7 @@ import re
 
 from binance_archiver.exceptions import ClassInstancesAmountLimitException
 from binance_archiver.enum_.market_enum import Market
-from binance_archiver.stream_id import StreamId
+from binance_archiver.stream_listener_id import StreamListenerId
 
 
 class TradeQueue:
@@ -14,23 +15,24 @@ class TradeQueue:
         'lock',
         '_market',
         'did_websockets_switch_successfully',
-        'new_stream_listener_id',
-        'currently_accepted_stream_id',
-        'no_longer_accepted_stream_id',
-        'last_message_signs',
+        'new_stream_listener_id_keys',
+        'currently_accepted_stream_id_keys',
+        'no_longer_accepted_stream_id_keys',
+        '_last_message_signs',
+        'put_trade_message',
         'queue'
     ]
 
     _instances = []
     _lock = threading.Lock()
-    _instances_amount_limit = 3
-    _transaction_signs_compiled_pattern = re.compile(r'"s":"([^"]+)","t":(\d+)')
+    _INSTANCES_AMOUNT_LIMIT = 3
+    _TRANSACTION_SIGNS_COMPILED_PATTERN = re.compile(r'"s":"([^"]+)","t":(\d+)')
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:
-            if len(cls._instances) >= cls._instances_amount_limit:
-                raise ClassInstancesAmountLimitException(f"Cannot create more than {cls._instances_amount_limit} "
-                                                         f"instances of TradeQueue")
+            if len(cls._instances) >= cls._INSTANCES_AMOUNT_LIMIT:
+                raise ClassInstancesAmountLimitException(
+                    f"Cannot create more than {cls._INSTANCES_AMOUNT_LIMIT} instances of TradeQueue")
             instance = super(TradeQueue, cls).__new__(cls)
             cls._instances.append(instance)
             return instance
@@ -44,15 +46,22 @@ class TradeQueue:
         with cls._lock:
             cls._instances.clear()
 
-    def __init__(self, market: Market, global_queue: Queue | None = None):
+    def __init__(
+            self,
+            market: Market,
+            global_queue: Queue | None = None
+    ):
         self.lock = threading.Lock()
         self._market = market
 
         self.did_websockets_switch_successfully = False
-        self.new_stream_listener_id: StreamId | None = None
-        self.currently_accepted_stream_id: StreamId | None = None
-        self.no_longer_accepted_stream_id: StreamId = StreamId(pairs=[])
-        self.last_message_signs: str = ''
+        self.new_stream_listener_id_keys: tuple[int, 'uuid.UUID'] | None = None
+        self.currently_accepted_stream_id_keys: tuple[int, 'uuid.UUID'] | None = None
+        self.no_longer_accepted_stream_id_keys: tuple[int, 'uuid.UUID'] | None = None
+        self._last_message_signs: str = ''
+
+        self.put_trade_message = ...
+        self.set_continuous_listening_mode()
 
         self.queue = Queue() if global_queue is None else global_queue
 
@@ -61,34 +70,67 @@ class TradeQueue:
     def market(self):
         return self._market
 
-    def put_trade_message(self, stream_listener_id: StreamId, message: str, timestamp_of_receive: int) -> None:
+    def set_continuous_listening_mode(self) -> None:
+        self.put_trade_message = self._put_difference_depth_message_continuous_listening_mode
 
+    def set_switching_websockets_mode(self) -> None:
+        self.put_trade_message = self._put_difference_depth_message_changing_websockets_mode
+
+    def _put_difference_depth_message_continuous_listening_mode(
+            self,
+            stream_listener_id: StreamListenerId,
+            message: str,
+            timestamp_of_receive: int
+    ) -> None:
         with self.lock:
-            if stream_listener_id.id == self.no_longer_accepted_stream_id.id:
+            stream_listener_id_keys = stream_listener_id.id_keys
+
+            if stream_listener_id_keys == self.no_longer_accepted_stream_id_keys:
                 return
 
-            if stream_listener_id.id == self.currently_accepted_stream_id.id:
+            if stream_listener_id_keys == self.currently_accepted_stream_id_keys:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
                 compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
                 self.queue.put(compressed_message)
             else:
-                self.new_stream_listener_id = stream_listener_id
+                self.new_stream_listener_id_keys = stream_listener_id_keys
+
+    def _put_difference_depth_message_changing_websockets_mode(
+            self,
+            stream_listener_id: StreamListenerId,
+            message: str,
+            timestamp_of_receive: int
+    ) -> None:
+        with self.lock:
+            stream_listener_id_keys = stream_listener_id.id_keys
+
+            if stream_listener_id_keys  == self.no_longer_accepted_stream_id_keys:
+                return
+
+            if stream_listener_id_keys == self.currently_accepted_stream_id_keys:
+                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
+                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
+                self.queue.put(compressed_message)
+            else:
+                self.new_stream_listener_id_keys = stream_listener_id_keys
 
             current_message_signs = self.get_message_signs(message)
 
-            if current_message_signs == self.last_message_signs:
-                self.no_longer_accepted_stream_id = self.currently_accepted_stream_id
-                self.currently_accepted_stream_id = self.new_stream_listener_id
-                self.new_stream_listener_id = None
-                self.did_websockets_switch_successfully = True
+            if current_message_signs == self._last_message_signs:
 
-            self.last_message_signs = current_message_signs
+                self.no_longer_accepted_stream_id_keys = self.currently_accepted_stream_id_keys
+                self.currently_accepted_stream_id_keys = self.new_stream_listener_id_keys
+                self.new_stream_listener_id_keys = None
+                self.did_websockets_switch_successfully = True
+                self.set_continuous_listening_mode()
+
+            self._last_message_signs = current_message_signs
 
             del message
 
     @staticmethod
     def get_message_signs(message: str) -> str:
-        match = TradeQueue._transaction_signs_compiled_pattern.search(message)
+        match = TradeQueue._TRANSACTION_SIGNS_COMPILED_PATTERN.search(message)
         return '"s":"' + match.group(1) + '","t":' + match.group(2)
 
     def get(self) -> any:

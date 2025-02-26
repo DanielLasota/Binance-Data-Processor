@@ -13,7 +13,7 @@ from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue
 from binance_archiver.trade_queue import TradeQueue
-from binance_archiver.stream_id import StreamId
+from binance_archiver.stream_listener_id import StreamListenerId
 from binance_archiver.blackout_supervisor import BlackoutSupervisor
 from binance_archiver.url_factory import URLFactory
 
@@ -40,9 +40,9 @@ class StreamListener:
     ):
 
         self.logger = logging.getLogger('binance_data_sink')
-        self.queue = queue
+        self.queue: DifferenceDepthQueue | TradeQueue = queue
         self.asset_parameters = asset_parameters
-        self.id: StreamId = StreamId(pairs=self.asset_parameters.pairs)
+        self.id: StreamListenerId = StreamListenerId(pairs=self.asset_parameters.pairs)
         self.thread: threading.Thread | None = None
         self._blackout_supervisor = BlackoutSupervisor(
             max_interval_without_messages_in_seconds=120 if asset_parameters.market is Market.COIN_M_FUTURES else 30,
@@ -55,12 +55,12 @@ class StreamListener:
         self._url = URLFactory.get_stream_url(asset_parameters)
 
     def start_websocket_app(self):
-        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.id} Starting streamListener")
+        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.start_timestamp} Starting streamListener")
         self.thread = threading.Thread(target=self._run_event_loop, daemon=True)
         self.thread.start()
 
     def restart_websocket_app(self):
-        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} Restarting streamListener")
+        self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.start_timestamp} Restarting streamListener")
         self.close_websocket_app()
         self._stop_event.clear()
         time.sleep(1)
@@ -174,7 +174,7 @@ class StreamListener:
                 if not self._stop_event.is_set():
                     self.logger.info(
                         f"websockets.exceptions.ConnectionClosed: {e} \n"
-                        f"stream_listener_id: {self.id.id} "
+                        f"stream_listener_id: {self.id.id_keys} "
                         f"{self.asset_parameters.market} {self.asset_parameters.stream_type} "
                         f"self._stop_event.is_set(): {self._stop_event.is_set()}"
                     )
