@@ -8,7 +8,7 @@ import pytest
 from binance_archiver.difference_depth_queue import DifferenceDepthQueue, \
     ClassInstancesAmountLimitException
 from binance_archiver.enum_.market_enum import Market
-from binance_archiver.stream_id import StreamId
+from binance_archiver.stream_listener_id import StreamListenerId
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
@@ -135,10 +135,10 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
         mocked_timestamp_of_receive = 2115
 
         _first_listener_message_1 = '''            
@@ -171,7 +171,7 @@ class TestDifferenceDepthQueue:
         '''
         _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -206,16 +206,16 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
 
         _old_listener_message_1 = '''            
             {
@@ -508,55 +508,55 @@ class TestDifferenceDepthQueue:
         _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_4)
         _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_4)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == new_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == new_stream_listener_id.id_keys
         assert difference_depth_queue.qsize() == 4
 
         difference_depth_queue_content_list = []
@@ -596,13 +596,13 @@ class TestDifferenceDepthQueue:
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
 
         _old_listener_message_1 = '''            
             {
@@ -831,43 +831,43 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == old_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == old_stream_listener_id.id_keys
         assert difference_depth_queue.qsize() == 3
 
         difference_depth_queue_content_list = [difference_depth_queue.get_nowait() for _ in
@@ -901,13 +901,13 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
 
         _old_listener_message_1 = '''            
             {
@@ -1140,32 +1140,32 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -1174,7 +1174,7 @@ class TestDifferenceDepthQueue:
         difference_depth_queue_content_list = [difference_depth_queue.get_nowait() for _ in
                                                range(difference_depth_queue.qsize())]
 
-        assert difference_depth_queue.currently_accepted_stream_id == new_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == new_stream_listener_id.id_keys
 
         expected_list = [
             add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
@@ -1197,8 +1197,8 @@ class TestDifferenceDepthQueue:
     def test_given_difference_depth_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
         global_queue = Queue()
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamId(pairs=['BTCUSDT'])
-        difference_depth_queue.currently_accepted_stream_id = stream_listener_id.id
+        stream_listener_id = StreamListenerId(pairs=['BTCUSDT'])
+        difference_depth_queue.currently_accepted_stream_id_keys = stream_listener_id.id_keys
         message = '''
         {
             "stream": "btcusdt@depth@100ms",
@@ -1215,7 +1215,7 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
         timestamp_of_receive = 1234567890
-        difference_depth_queue.put_difference_depth_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(formatted_message, stream_listener_id, timestamp_of_receive)
         assert not global_queue.empty()
         queued_message = global_queue.get_nowait()
         assert queued_message == add_field_to_string_json_message(formatted_message, "_E", timestamp_of_receive)
@@ -1224,8 +1224,8 @@ class TestDifferenceDepthQueue:
     def test_given_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
         global_queue = Queue()
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamId(pairs=['ETHUSDT'])
-        difference_depth_queue.currently_accepted_stream_id = stream_listener_id.id
+        stream_listener_id = StreamListenerId(pairs=['ETHUSDT'])
+        difference_depth_queue.currently_accepted_stream_id_keys = stream_listener_id.id_keys
         message = '''
         {
             "stream": "ethusdt@depth@100ms",
@@ -1242,7 +1242,7 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
         timestamp_of_receive = 1234567890
-        difference_depth_queue.put_difference_depth_message(formatted_message, stream_listener_id, timestamp_of_receive)
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(formatted_message, stream_listener_id, timestamp_of_receive)
         assert difference_depth_queue.qsize() == 1
         assert not difference_depth_queue.empty()
         queued_message = difference_depth_queue.get_nowait()
@@ -1280,13 +1280,13 @@ class TestDifferenceDepthQueue:
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
 
         _old_listener_message_1 = '''            
             {
@@ -1492,53 +1492,53 @@ class TestDifferenceDepthQueue:
         _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         expected_comparison_structure = {
-            old_stream_listener_id.id: deque([
+            old_stream_listener_id.id_keys: deque([
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3)
             ]),
-            new_stream_listener_id.id: deque([
+            new_stream_listener_id.id_keys: deque([
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2)
             ])
         }
 
         assert difference_depth_queue._two_last_throws == expected_comparison_structure
-        assert old_stream_listener_id.id in difference_depth_queue._two_last_throws
-        assert new_stream_listener_id.id in difference_depth_queue._two_last_throws
-        assert len(difference_depth_queue._two_last_throws[old_stream_listener_id.id]) == 3
-        assert len(difference_depth_queue._two_last_throws[new_stream_listener_id.id]) == 2
+        assert old_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
+        assert new_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
+        assert len(difference_depth_queue._two_last_throws[old_stream_listener_id.id_keys]) == 3
+        assert len(difference_depth_queue._two_last_throws[new_stream_listener_id.id_keys]) == 2
 
         DifferenceDepthQueue.clear_instances()
 
@@ -1561,13 +1561,13 @@ class TestDifferenceDepthQueue:
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
 
         _old_listener_message_1 = '''
             {
@@ -1857,61 +1857,61 @@ class TestDifferenceDepthQueue:
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=old_stream_listener_id,
             message=_old_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=new_stream_listener_id,
             message=_new_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
         expected_comparison_structure = {
-            old_stream_listener_id.id: deque([
+            old_stream_listener_id.id_keys: deque([
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
                 DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_4)
             ], maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id: deque([
+            new_stream_listener_id.id_keys: deque([
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
                 DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_4)
@@ -1919,10 +1919,10 @@ class TestDifferenceDepthQueue:
         }
 
         assert difference_depth_queue._two_last_throws == expected_comparison_structure
-        assert old_stream_listener_id.id in difference_depth_queue._two_last_throws
-        assert new_stream_listener_id.id in difference_depth_queue._two_last_throws
-        assert len(difference_depth_queue._two_last_throws[old_stream_listener_id.id]) == 3
-        assert len(difference_depth_queue._two_last_throws[new_stream_listener_id.id]) == 3
+        assert old_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
+        assert new_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
+        assert len(difference_depth_queue._two_last_throws[old_stream_listener_id.id_keys]) == 3
+        assert len(difference_depth_queue._two_last_throws[new_stream_listener_id.id_keys]) == 3
 
         DifferenceDepthQueue.clear_instances()
 
@@ -2096,9 +2096,9 @@ class TestDifferenceDepthQueue:
         pairs = config['instruments']['spot']
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         _old_listener_message_1 = '''            
             {
@@ -2332,7 +2332,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
         difference_depth_queue._two_last_throws = {
-            old_stream_listener_id.id:
+            old_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
@@ -2340,7 +2340,7 @@ class TestDifferenceDepthQueue:
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
                     ],
                 maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id:
+            new_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
@@ -2377,9 +2377,9 @@ class TestDifferenceDepthQueue:
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         _old_listener_message_1 = '''            
             {
@@ -2609,7 +2609,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
         difference_depth_queue._two_last_throws = {
-            old_stream_listener_id.id:
+            old_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
@@ -2617,7 +2617,7 @@ class TestDifferenceDepthQueue:
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
                     ],
                     maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id:
+            new_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
@@ -2656,9 +2656,9 @@ class TestDifferenceDepthQueue:
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         _old_listener_message_1 = '''            
             {
@@ -2886,7 +2886,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
         difference_depth_queue._two_last_throws = {
-            old_stream_listener_id.id:
+            old_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
@@ -2894,7 +2894,7 @@ class TestDifferenceDepthQueue:
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
                     ],
                     maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id:
+            new_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
@@ -2931,9 +2931,9 @@ class TestDifferenceDepthQueue:
         pairs = config['instruments']['spot']
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         _old_listener_message_1 = '''            
             {
@@ -3163,7 +3163,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
         difference_depth_queue._two_last_throws = {
-            old_stream_listener_id.id:
+            old_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
@@ -3171,7 +3171,7 @@ class TestDifferenceDepthQueue:
                         DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
                     ],
                 maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id:
+            new_stream_listener_id.id_keys:
                 deque(
                     [
                         DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
@@ -3214,15 +3214,15 @@ class TestDifferenceDepthQueue:
         pairs = config['instruments']['spot']
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId(pairs=pairs)
+        second_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId(pairs=pairs)
+        third_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
 
         _first_listener_message_1 = '''            
             {
@@ -3455,37 +3455,37 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -3722,37 +3722,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -3795,15 +3795,15 @@ class TestDifferenceDepthQueue:
 
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId(pairs=pairs)
+        second_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId(pairs=pairs)
+        third_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
 
         _first_listener_message_1 = '''            
             {
@@ -4036,43 +4036,43 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == second_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
         assert difference_depth_queue._two_last_throws == {}
 
         _second_listener_message_4 = '''            
@@ -4306,43 +4306,43 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == third_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == third_stream_listener_id.id_keys
         assert difference_depth_queue._two_last_throws == {}
 
         difference_depth_queue_content_list = []
@@ -4370,15 +4370,15 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId(pairs=pairs)
+        second_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId(pairs=pairs)
+        third_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
 
         _first_listener_message_1 = '''            
             {
@@ -4612,43 +4612,43 @@ class TestDifferenceDepthQueue:
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == second_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
         assert difference_depth_queue._two_last_throws == {}
 
         _second_listener_message_4 = '''            
@@ -4882,43 +4882,43 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == third_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == third_stream_listener_id.id_keys
         assert difference_depth_queue._two_last_throws == {}
 
         difference_depth_queue_content_list = []
@@ -4946,15 +4946,15 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId(pairs=pairs)
+        second_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId(pairs=pairs)
+        third_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
 
         _first_listener_message_1 = '''            
             {
@@ -5187,43 +5187,43 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == second_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
         assert difference_depth_queue._two_last_throws == {}
 
         _second_listener_message_4 = '''            
@@ -5457,37 +5457,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -5515,15 +5515,15 @@ class TestDifferenceDepthQueue:
 
         pairs = config['instruments']['spot']
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId(pairs=pairs)
+        second_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId(pairs=pairs)
+        third_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
 
         _first_listener_message_1 = '''            
             {
@@ -5756,43 +5756,43 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == second_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
         assert difference_depth_queue._two_last_throws == {}
 
         _second_listener_message_4 = '''            
@@ -6026,37 +6026,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -6092,15 +6092,15 @@ class TestDifferenceDepthQueue:
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
         pairs = config['instruments']['spot']
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        second_stream_listener_id = StreamId(pairs=pairs)
+        second_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        third_stream_listener_id = StreamId(pairs=pairs)
+        third_stream_listener_id = StreamListenerId(pairs=pairs)
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id = first_stream_listener_id.id
+        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
 
         _first_listener_message_1 = '''            
             {
@@ -6333,43 +6333,43 @@ class TestDifferenceDepthQueue:
         _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
         _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=first_stream_listener_id,
             message=_first_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_1,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_2,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_3,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id == second_stream_listener_id.id
+        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
         assert difference_depth_queue._two_last_throws == {}
 
         _second_listener_message_4 = '''            
@@ -6603,37 +6603,37 @@ class TestDifferenceDepthQueue:
         _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
         _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=second_stream_listener_id,
             message=_second_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_4,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_5,
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue.put_difference_depth_message(
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
             stream_listener_id=third_stream_listener_id,
             message=_third_listener_message_6,
             timestamp_of_receive=mocked_timestamp_of_receive
@@ -6897,42 +6897,42 @@ class TestDifferenceDepthQueue:
         for _ in range(number_of_runs):
             difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
 
-            old_stream_listener_id = StreamId(pairs=pairs)
+            old_stream_listener_id = StreamListenerId(pairs=pairs)
             time.sleep(0.01)
-            new_stream_listener_id = StreamId(pairs=pairs)
+            new_stream_listener_id = StreamListenerId(pairs=pairs)
 
             mocked_timestamp_of_receive = 2115
 
-            difference_depth_queue.currently_accepted_stream_id = old_stream_listener_id.id
+            difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
 
             start_time = time.perf_counter()
 
-            difference_depth_queue.put_difference_depth_message(
+            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
                 stream_listener_id=old_stream_listener_id,
                 message=_old_listener_message_1,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_difference_depth_message(
+            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
                 stream_listener_id=old_stream_listener_id,
                 message=_old_listener_message_2,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_difference_depth_message(
+            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
                 stream_listener_id=old_stream_listener_id,
                 message=_old_listener_message_3,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_difference_depth_message(
+            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
                 stream_listener_id=new_stream_listener_id,
                 message=_new_listener_message_1,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_difference_depth_message(
+            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
                 stream_listener_id=new_stream_listener_id,
                 message=_new_listener_message_2,
                 timestamp_of_receive=mocked_timestamp_of_receive
             )
-            difference_depth_queue.put_difference_depth_message(
+            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
                 stream_listener_id=new_stream_listener_id,
                 message=_new_listener_message_3,
                 timestamp_of_receive=mocked_timestamp_of_receive

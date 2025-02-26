@@ -5,7 +5,7 @@ from queue import Queue
 import pytest
 
 from binance_archiver.enum_.market_enum import Market
-from binance_archiver.stream_id import StreamId
+from binance_archiver.stream_listener_id import StreamListenerId
 from binance_archiver.trade_queue import TradeQueue, ClassInstancesAmountLimitException
 
 
@@ -122,8 +122,8 @@ class TestTradeQueue:
     def test_given_trade_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
         global_queue = Queue()
         trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamId(pairs=['BTCUSDT'])
-        trade_queue.currently_accepted_stream_id = stream_listener_id
+        stream_listener_id = StreamListenerId(pairs=['BTCUSDT'])
+        trade_queue.currently_accepted_stream_id_keys = stream_listener_id
         message = format_message_string_that_is_pretty_to_binance_string_format('''
         {
             "e": "trade",
@@ -154,8 +154,8 @@ class TestTradeQueue:
     def test_given_trade_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
         global_queue = Queue()
         trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamId(pairs=['ETHUSDT'])
-        trade_queue.currently_accepted_stream_id = stream_listener_id
+        stream_listener_id = StreamListenerId(pairs=['ETHUSDT'])
+        trade_queue.currently_accepted_stream_id_keys = stream_listener_id
         message = format_message_string_that_is_pretty_to_binance_string_format('''
         {
             "e": "trade",
@@ -208,10 +208,10 @@ class TestTradeQueue:
 
         trade_queue: TradeQueue = TradeQueue(market=Market.SPOT)
 
-        first_stream_listener_id = StreamId(pairs=pairs)
+        first_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
 
-        trade_queue.currently_accepted_stream_id = first_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = first_stream_listener_id
         mocked_timestamp_of_receive = 2115
 
         _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(
@@ -267,16 +267,16 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
 
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {
@@ -463,7 +463,7 @@ class TestTradeQueue:
             timestamp_of_receive=2115
         )
 
-        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
         assert trade_queue.qsize() == 4
 
         trade_queue_content_list = []
@@ -525,16 +525,16 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
 
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {
@@ -721,7 +721,7 @@ class TestTradeQueue:
             timestamp_of_receive=2115
         )
 
-        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
         assert trade_queue.qsize() == 4
 
         trade_queue_content_list = []
@@ -760,16 +760,16 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
 
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {
@@ -955,7 +955,7 @@ class TestTradeQueue:
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
         assert trade_queue.qsize() == 4
 
         presumed_first_transaction = trade_queue.get_nowait()
@@ -982,16 +982,16 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
 
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {
@@ -1177,7 +1177,7 @@ class TestTradeQueue:
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
         assert trade_queue.qsize() == 4
 
         presumed_first_transaction = trade_queue.get()
@@ -1204,16 +1204,16 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
 
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {
@@ -1399,7 +1399,7 @@ class TestTradeQueue:
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
         assert trade_queue.qsize() == 4
 
         trade_queue.clear()
@@ -1426,16 +1426,16 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
 
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {
@@ -1621,7 +1621,7 @@ class TestTradeQueue:
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
         assert trade_queue.qsize() == 4
         assert trade_queue.empty() == False
 
@@ -1650,16 +1650,16 @@ class TestTradeQueue:
 
         pairs = config['instruments']['spot']
 
-        old_stream_listener_id = StreamId(pairs=pairs)
+        old_stream_listener_id = StreamListenerId(pairs=pairs)
         time.sleep(0.01)
-        new_stream_listener_id = StreamId(pairs=pairs)
+        new_stream_listener_id = StreamListenerId(pairs=pairs)
 
         assert old_stream_listener_id.pairs_amount == 3
         assert new_stream_listener_id.pairs_amount == 3
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id = old_stream_listener_id
+        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
 
         _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
         {
@@ -1845,7 +1845,7 @@ class TestTradeQueue:
             timestamp_of_receive=mocked_timestamp_of_receive
         )
 
-        assert trade_queue.currently_accepted_stream_id == new_stream_listener_id
+        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
         assert trade_queue.qsize() == 4
 
         trade_queue.clear()
