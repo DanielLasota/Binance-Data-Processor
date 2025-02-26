@@ -1534,11 +1534,11 @@ class TestDifferenceDepthQueue:
             ])
         }
 
-        assert difference_depth_queue._two_last_throws == expected_comparison_structure
-        assert old_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
-        assert new_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
-        assert len(difference_depth_queue._two_last_throws[old_stream_listener_id.id_keys]) == 3
-        assert len(difference_depth_queue._two_last_throws[new_stream_listener_id.id_keys]) == 2
+        assert difference_depth_queue.two_last_throws == expected_comparison_structure
+        assert old_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
+        assert new_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
+        assert len(difference_depth_queue.two_last_throws[old_stream_listener_id.id_keys]) == 3
+        assert len(difference_depth_queue.two_last_throws[new_stream_listener_id.id_keys]) == 2
 
         DifferenceDepthQueue.clear_instances()
 
@@ -1918,11 +1918,11 @@ class TestDifferenceDepthQueue:
             ], maxlen=new_stream_listener_id.pairs_amount)
         }
 
-        assert difference_depth_queue._two_last_throws == expected_comparison_structure
-        assert old_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
-        assert new_stream_listener_id.id_keys in difference_depth_queue._two_last_throws
-        assert len(difference_depth_queue._two_last_throws[old_stream_listener_id.id_keys]) == 3
-        assert len(difference_depth_queue._two_last_throws[new_stream_listener_id.id_keys]) == 3
+        assert difference_depth_queue.two_last_throws == expected_comparison_structure
+        assert old_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
+        assert new_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
+        assert len(difference_depth_queue.two_last_throws[old_stream_listener_id.id_keys]) == 3
+        assert len(difference_depth_queue.two_last_throws[new_stream_listener_id.id_keys]) == 3
 
         DifferenceDepthQueue.clear_instances()
 
@@ -2331,7 +2331,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue._two_last_throws = {
+        difference_depth_queue.two_last_throws = {
             old_stream_listener_id.id_keys:
                 deque(
                     [
@@ -2350,11 +2350,11 @@ class TestDifferenceDepthQueue:
                     maxlen=new_stream_listener_id.pairs_amount)
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
 
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
         assert do_they_match is True
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
         assert do_they_match is True
         DifferenceDepthQueue.clear_instances()
 
@@ -2608,7 +2608,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue._two_last_throws = {
+        difference_depth_queue.two_last_throws = {
             old_stream_listener_id.id_keys:
                 deque(
                     [
@@ -2627,13 +2627,13 @@ class TestDifferenceDepthQueue:
                     maxlen=new_stream_listener_id.pairs_amount)
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
 
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount,
-                                                                       two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount,
+                                                                      two_last_throws_comparison_structure)
         assert do_they_match is False
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount,
-                                                                       two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount,
+                                                                      two_last_throws_comparison_structure)
         assert do_they_match is False
         DifferenceDepthQueue.clear_instances()
 
@@ -2885,7 +2885,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue._two_last_throws = {
+        difference_depth_queue.two_last_throws = {
             old_stream_listener_id.id_keys:
                 deque(
                     [
@@ -2904,13 +2904,13 @@ class TestDifferenceDepthQueue:
                     maxlen=new_stream_listener_id.pairs_amount)
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
 
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount,
-                                                                       two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount,
+                                                                      two_last_throws_comparison_structure)
         assert do_they_match is False
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount,
-                                                                       two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount,
+                                                                      two_last_throws_comparison_structure)
         assert do_they_match is False
         DifferenceDepthQueue.clear_instances()
 
@@ -3162,7 +3162,7 @@ class TestDifferenceDepthQueue:
         _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
         _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
 
-        difference_depth_queue._two_last_throws = {
+        difference_depth_queue.two_last_throws = {
             old_stream_listener_id.id_keys:
                 deque(
                     [
@@ -3181,11 +3181,11 @@ class TestDifferenceDepthQueue:
                     maxlen=new_stream_listener_id.pairs_amount)
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue._two_last_throws
+        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
 
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
         assert do_they_match is False
-        do_they_match = DifferenceDepthQueue._do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
+        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
         assert do_they_match is False
         DifferenceDepthQueue.clear_instances()
 
@@ -4073,7 +4073,7 @@ class TestDifferenceDepthQueue:
         )
 
         assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue._two_last_throws == {}
+        assert difference_depth_queue.two_last_throws == {}
 
         _second_listener_message_4 = '''            
             {
@@ -4343,7 +4343,7 @@ class TestDifferenceDepthQueue:
         )
 
         assert difference_depth_queue.currently_accepted_stream_id_keys == third_stream_listener_id.id_keys
-        assert difference_depth_queue._two_last_throws == {}
+        assert difference_depth_queue.two_last_throws == {}
 
         difference_depth_queue_content_list = []
 
@@ -4649,7 +4649,7 @@ class TestDifferenceDepthQueue:
         )
 
         assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue._two_last_throws == {}
+        assert difference_depth_queue.two_last_throws == {}
 
         _second_listener_message_4 = '''            
             {
@@ -4919,7 +4919,7 @@ class TestDifferenceDepthQueue:
         )
 
         assert difference_depth_queue.currently_accepted_stream_id_keys == third_stream_listener_id.id_keys
-        assert difference_depth_queue._two_last_throws == {}
+        assert difference_depth_queue.two_last_throws == {}
 
         difference_depth_queue_content_list = []
 
@@ -5224,7 +5224,7 @@ class TestDifferenceDepthQueue:
         )
 
         assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue._two_last_throws == {}
+        assert difference_depth_queue.two_last_throws == {}
 
         _second_listener_message_4 = '''            
             {
@@ -5793,7 +5793,7 @@ class TestDifferenceDepthQueue:
         )
 
         assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue._two_last_throws == {}
+        assert difference_depth_queue.two_last_throws == {}
 
         _second_listener_message_4 = '''            
             {
@@ -6370,7 +6370,7 @@ class TestDifferenceDepthQueue:
         )
 
         assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue._two_last_throws == {}
+        assert difference_depth_queue.two_last_throws == {}
 
         _second_listener_message_4 = '''            
             {
