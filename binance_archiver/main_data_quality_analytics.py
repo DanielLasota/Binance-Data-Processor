@@ -1,6 +1,6 @@
 import os
 
-from binance_archiver import conduct_csv_files_data_quality_analysis, \
+from binance_archiver.scraper import conduct_csv_files_data_quality_analysis, \
     conduct_whole_directory_of_csvs_data_quality_analysis
 
 if __name__ == '__main__':
