@@ -22,7 +22,6 @@ class FastAPIManager:
         self.notify_cli = None
         self.server = None
 
-        # Allow CORS for all domains
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],

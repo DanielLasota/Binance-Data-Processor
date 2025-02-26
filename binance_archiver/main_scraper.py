@@ -17,8 +17,8 @@ if __name__ == '__main__':
 
     download_csv_data(
         # dump_path='C:/Users/defrg/binance_data_main/',
-        start_date='25-02-2025',
-        end_date='25-02-2025',
+        start_date='26-02-2025',
+        end_date='26-02-2025',
         backblaze_access_key_id=backblaze_access_key_id,
         backblaze_secret_access_key=backblaze_secret_access_key,
         backblaze_endpoint_url=backblaze_endpoint_url,
