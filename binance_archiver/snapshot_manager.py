@@ -10,7 +10,7 @@ import requests
 
 from binance_archiver import DataSinkConfig
 from binance_archiver.enum_.asset_parameters import AssetParameters
-from binance_archiver.stream_data_save_and_sender import StreamDataSaverAndSender
+from binance_archiver.stream_data_saver_and_sender import StreamDataSaverAndSender
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.timestamps_generator import TimestampsGenerator
 from binance_archiver.url_factory import URLFactory

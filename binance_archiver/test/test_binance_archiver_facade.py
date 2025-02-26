@@ -22,7 +22,7 @@ from ..snapshot_manager import DepthSnapshotStrategy, DataSinkDepthSnapshotStrat
     DepthSnapshotService
 from ..listener_observer_updater import ListenerObserverUpdater
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
-from ..stream_data_save_and_sender import StreamDataSaverAndSender
+from ..stream_data_saver_and_sender import StreamDataSaverAndSender
 from ..queue_pool import ListenerQueuePool, DataSinkQueuePool
 from ..stream_service import StreamService
 from ..command_line_interface import CommandLineInterface

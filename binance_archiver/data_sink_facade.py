@@ -7,7 +7,7 @@ import time
 from binance_archiver.command_line_interface import CommandLineInterface
 from binance_archiver.data_sink_config import DataSinkConfig
 from binance_archiver.fastapi_manager import FastAPIManager
-from binance_archiver.stream_data_save_and_sender import StreamDataSaverAndSender
+from binance_archiver.stream_data_saver_and_sender import StreamDataSaverAndSender
 from binance_archiver.logo import binance_archiver_logo
 from binance_archiver.queue_pool import DataSinkQueuePool
 from binance_archiver.setup_logger import setup_logger

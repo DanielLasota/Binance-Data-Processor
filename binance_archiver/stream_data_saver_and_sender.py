@@ -242,7 +242,6 @@ class StreamDataSaverAndSender:
         try:
             with open(file_save_path, "w") as f:
                 f.write(json_content)
-            self.logger.debug(f"Saved to JSON: {file_save_path}")
         except IOError as e:
             self.logger.error(f"IO Error whilst saving to file {file_save_path}: {e}")
 
@@ -252,7 +251,6 @@ class StreamDataSaverAndSender:
         try:
             with zipfile.ZipFile(file_save_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
                 zipf.writestr(f"{file_name}.json", json_content)
-            self.logger.debug(f"Saved to ZIP: {file_save_path}")
         except IOError as e:
             self.logger.error(f"IO Error whilst saving to zip: {file_save_path}: {e}")
 
@@ -292,7 +290,6 @@ class StreamDataSaverAndSender:
 
             blob_client = self.cloud_storage_client.get_blob_client(blob=f"{file_name}.zip")
             blob_client.upload_blob(zip_buffer, overwrite=True)
-            self.logger.debug(f"Successfully sent {file_name}.zip to Azure Blob container")
         except Exception as e:
             self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
@@ -302,9 +299,6 @@ class StreamDataSaverAndSender:
             data=json_content,
             file_name=file_name
         )
-
-        self.logger.debug(f"Successfully sent {file_name}.zip to Backblaze B2 bucket: "
-                          f"{self.data_sink_config.storage_connection_parameters.backblaze_bucket_name}")
 
     def send_existing_file_to_backblaze_bucket(self, file_path: str) -> None:
         self.cloud_storage_client.upload_existing_file(file_path=file_path)
