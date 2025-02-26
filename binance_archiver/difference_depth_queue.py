@@ -1,28 +1,96 @@
 import re
 import uuid
 import zlib
-
-import orjson
-import threading
 from queue import Queue
 from collections import deque
-from typing import final
+from typing import final, Tuple
+import threading
+from abc import ABC, abstractmethod
+
+import orjson
 
 from binance_archiver.exceptions import ClassInstancesAmountLimitException
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.stream_listener_id import StreamListenerId
 
 
-class DifferenceDepthQueue:
+class PutDepthMessageStrategy(ABC):
+    @abstractmethod
+    def put_difference_depth_message(
+        self,
+        stream_listener_id: StreamListenerId,
+        message: str,
+        timestamp_of_receive: int
+    ) -> None:
+        pass
 
+
+class ContinuousListeningStrategy(PutDepthMessageStrategy):
+    def __init__(
+            self,
+            context: 'DifferenceDepthQueue'
+    ):
+        self.context = context
+
+    def put_difference_depth_message(
+        self,
+        stream_listener_id: StreamListenerId,
+        message: str,
+        timestamp_of_receive: int
+    ) -> None:
+        with self.context.lock:
+            if stream_listener_id.id_keys == self.context.currently_accepted_stream_id_keys:
+                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
+                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
+                self.context.queue.put(compressed_message)
+
+
+class SwitchingWebsocketsStrategy(PutDepthMessageStrategy):
+    def __init__(
+            self,
+            context: 'DifferenceDepthQueue'
+    ):
+        self.context = context
+
+    def put_difference_depth_message(
+        self,
+        stream_listener_id: StreamListenerId,
+        message: str,
+        timestamp_of_receive: int
+    ) -> None:
+        with self.context.lock:
+            stream_listener_id_keys = stream_listener_id.id_keys
+
+            if stream_listener_id_keys == self.context.no_longer_accepted_stream_id_keys:
+                return
+
+            if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
+                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
+                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
+                self.context.queue.put(compressed_message)
+
+            self.context.append_message_to_compare_structure(stream_listener_id, message)
+
+            do_throws_match = self.context.do_last_two_throws_match(
+                stream_listener_id.pairs_amount,
+                self.context.two_last_throws
+            )
+
+            if do_throws_match:
+                self.context.set_new_stream_id_as_currently_accepted()
+
+            del message
+
+
+class DifferenceDepthQueue:
     __slots__ = [
         '_market',
         'lock',
         'currently_accepted_stream_id_keys',
         'no_longer_accepted_stream_id_keys',
         'did_websockets_switch_successfully',
-        '_two_last_throws',
-        'put_difference_depth_message',
+        'two_last_throws',
+        '_strategy',
         'queue'
     ]
 
@@ -34,8 +102,8 @@ class DifferenceDepthQueue:
     def __new__(cls, *args, **kwargs):
         with cls._lock:
             if len(cls._instances) >= cls._INSTANCES_AMOUNT_LIMIT:
-                raise ClassInstancesAmountLimitException(f"Cannot create more than {cls._INSTANCES_AMOUNT_LIMIT} "
-                                                         f"instances of DifferenceDepthQueue")
+                raise ClassInstancesAmountLimitException(
+                    f"Cannot create more than {cls._INSTANCES_AMOUNT_LIMIT} instances of DifferenceDepthQueue")
             instance = super(DifferenceDepthQueue, cls).__new__(cls)
             cls._instances.append(instance)
             return instance
@@ -50,18 +118,18 @@ class DifferenceDepthQueue:
             cls._instances.clear()
 
     def __init__(
-            self,
-            market: Market,
-            global_queue: Queue | None = None
+        self,
+        market: Market,
+        global_queue: Queue | None = None
     ):
         self._market = market
         self.lock = threading.Lock()
-        self.currently_accepted_stream_id_keys: tuple[int, 'uuid.UUID'] | None = None
-        self.no_longer_accepted_stream_id_keys: tuple[int, 'uuid.UUID'] | None = None
+        self.currently_accepted_stream_id_keys: Tuple[int, uuid.UUID] | None = None
+        self.no_longer_accepted_stream_id_keys: Tuple[int, uuid.UUID] = StreamListenerId(pairs=[]).id_keys
         self.did_websockets_switch_successfully = False
-        self._two_last_throws = {}
+        self.two_last_throws = {}
 
-        self.put_difference_depth_message = ...
+        self._strategy: PutDepthMessageStrategy = ContinuousListeningStrategy(self)
         self.set_continuous_listening_mode()
 
         self.queue = Queue() if global_queue is None else global_queue
@@ -71,66 +139,35 @@ class DifferenceDepthQueue:
     def market(self):
         return self._market
 
-    def set_continuous_listening_mode(self):
-        self.put_difference_depth_message = self._put_difference_depth_message_continuous_listening_mode
+    def set_continuous_listening_mode(self) -> None:
+        self._strategy = ContinuousListeningStrategy(self)
 
-    def set_switching_websockets_mode(self):
-        self.put_difference_depth_message = self._put_difference_depth_message_changing_websockets_mode
+    def set_switching_websockets_mode(self) -> None:
+        self._strategy = SwitchingWebsocketsStrategy(self)
 
-    def _put_difference_depth_message_continuous_listening_mode(
-            self,
-            stream_listener_id: StreamListenerId,
-            message: str,
-            timestamp_of_receive: int
-    ):
-        with self.lock:
-            if stream_listener_id.id_keys == self.currently_accepted_stream_id_keys:
-                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
-                self.queue.put(compressed_message)
-
-    def _put_difference_depth_message_changing_websockets_mode(
-            self,
-            stream_listener_id: StreamListenerId,
-            message: str,
-            timestamp_of_receive: int
+    def put_difference_depth_message(
+        self,
+        stream_listener_id: StreamListenerId,
+        message: str,
+        timestamp_of_receive: int
     ) -> None:
-        with self.lock:
-            stream_listener_id_keys = stream_listener_id.id_keys
+        self._strategy.put_difference_depth_message(stream_listener_id, message, timestamp_of_receive)
 
-            if stream_listener_id_keys == self.no_longer_accepted_stream_id_keys:
-                return
-
-            if stream_listener_id_keys == self.currently_accepted_stream_id_keys:
-                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
-                self.queue.put(compressed_message)
-
-            self._append_message_to_compare_structure(stream_listener_id, message)
-
-            do_throws_match = self._do_last_two_throws_match(stream_listener_id.pairs_amount, self._two_last_throws)
-
-            if do_throws_match is True:
-                self.set_new_stream_id_as_currently_accepted()
-
-            del message
-
-    def _append_message_to_compare_structure(
-            self,
-            stream_listener_id: StreamListenerId,
-            message: str
+    def append_message_to_compare_structure(
+        self,
+        stream_listener_id: StreamListenerId,
+        message: str
     ) -> None:
         id_index = stream_listener_id.id_keys
         message_str = self._remove_event_timestamp(message)
-        message_list = self._two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
+        message_list = self.two_last_throws.setdefault(id_index, deque(maxlen=stream_listener_id.pairs_amount))
         message_list.append(message_str)
 
     @staticmethod
-    def _do_last_two_throws_match(
-            amount_of_listened_pairs: int,
-            two_last_throws: dict
+    def do_last_two_throws_match(
+        amount_of_listened_pairs: int,
+        two_last_throws: dict
     ) -> bool:
-
         if len(two_last_throws) < 2:
             return False
 
@@ -144,17 +181,17 @@ class DifferenceDepthQueue:
         last_throw_streams_set = {orjson.loads(entry)['stream'] for entry in last_throw}
         second_last_throw_streams_set = {orjson.loads(entry)['stream'] for entry in second_last_throw}
 
-        if len(last_throw_streams_set) != amount_of_listened_pairs or len(
-                second_last_throw_streams_set) != amount_of_listened_pairs:
+        if (len(last_throw_streams_set) != amount_of_listened_pairs
+                or len(second_last_throw_streams_set) != amount_of_listened_pairs):
             return False
 
         return last_throw == second_last_throw
 
-    def set_new_stream_id_as_currently_accepted(self):
-        self.currently_accepted_stream_id_keys = max(self._two_last_throws.keys(), key=lambda x: x[0])
-        self.no_longer_accepted_stream_id_keys = min(self._two_last_throws.keys(), key=lambda x: x[0])
+    def set_new_stream_id_as_currently_accepted(self) -> None:
+        self.currently_accepted_stream_id_keys = max(self.two_last_throws.keys(), key=lambda x: x[0])
+        self.no_longer_accepted_stream_id_keys = min(self.two_last_throws.keys(), key=lambda x: x[0])
 
-        self._two_last_throws = {}
+        self.two_last_throws = {}
         self.did_websockets_switch_successfully = True
 
         self.set_continuous_listening_mode()
@@ -164,10 +201,10 @@ class DifferenceDepthQueue:
         return DifferenceDepthQueue._EVENT_TIMESTAMP_COMPILED_PATTERN.sub('', message)
 
     def update_deque_max_len(self, new_max_len: int) -> None:
-        for id_index in self._two_last_throws:
-            existing_deque = self._two_last_throws[id_index]
+        for id_index in self.two_last_throws:
+            existing_deque = self.two_last_throws[id_index]
             updated_deque = deque(existing_deque, maxlen=new_max_len)
-            self._two_last_throws[id_index] = updated_deque
+            self.two_last_throws[id_index] = updated_deque
 
     def get(self) -> any:
         entry = self.queue.get()
