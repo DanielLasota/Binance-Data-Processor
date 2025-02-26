@@ -17,7 +17,6 @@ from binance_archiver.url_factory import URLFactory
 
 
 class DepthSnapshotStrategy(ABC):
-
     __slots__ = ()
 
     @abstractmethod
@@ -31,11 +30,7 @@ class DepthSnapshotStrategy(ABC):
 
 
 class DataSinkDepthSnapshotStrategy(DepthSnapshotStrategy):
-
-    __slots__ = [
-        'data_saver',
-        'data_save_target'
-    ]
+    __slots__ = ['data_saver']
 
     def __init__(
         self,
@@ -49,7 +44,6 @@ class DataSinkDepthSnapshotStrategy(DepthSnapshotStrategy):
         file_save_catalog: str,
         file_name: str
     ) -> None:
-
         self.data_saver.save_data(
             json_content=json_content,
             file_save_catalog=file_save_catalog,
@@ -73,12 +67,16 @@ class ListenerDepthSnapshotStrategy(DepthSnapshotStrategy):
 
 
 class DepthSnapshotService:
+    REFRESH_INTERVAL = 4 * 3600
 
     __slots__ = [
         'logger',
         'snapshot_strategy',
         'data_sink_config',
-        'global_shutdown_flag'
+        'global_shutdown_flag',
+        '_session',
+        '_last_refresh_time',
+        '_threads'
     ]
 
     def __init__(
@@ -91,6 +89,9 @@ class DepthSnapshotService:
         self.snapshot_strategy = snapshot_strategy
         self.data_sink_config = data_sink_config
         self.global_shutdown_flag = global_shutdown_flag
+        self._session = requests.Session()
+        self._last_refresh_time = time()
+        self._threads = []
 
     def run(self) -> None:
         for market, pairs in self.data_sink_config.instruments.dict.items():
@@ -110,6 +111,7 @@ class DepthSnapshotService:
             args=[asset_parameters],
             name=f'snapshot_daemon: market: {asset_parameters.market}'
         )
+        self._threads.append(thread)
         thread.start()
 
     def _snapshot_daemon(
@@ -122,9 +124,7 @@ class DepthSnapshotService:
                     message = self._request_snapshot_with_timestamps(asset_parameters=asset_parameters)
 
                     file_name = StreamDataSaverAndSender.get_file_name(
-                        asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(
-                            pair=pair
-                        )
+                        asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
                     )
 
                     self.snapshot_strategy.handle_snapshot(
@@ -140,23 +140,28 @@ class DepthSnapshotService:
 
         self.logger.info(f"{asset_parameters.market}: snapshot daemon has ended")
 
-    def _sleep_with_flag_check(
-            self,
-            duration: int
-    ) -> None:
+    def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 1
         for _ in range(0, duration, interval):
             if self.global_shutdown_flag.is_set():
                 break
             time.sleep(interval)
 
-    @staticmethod
-    def _request_snapshot_with_timestamps(asset_parameters: AssetParameters) -> str:
+    def _refresh_session_if_needed(self) -> None:
+        current_time = time()
+        if current_time - self._last_refresh_time > self.REFRESH_INTERVAL:
+            self._session.close()
+            self._session = requests.Session()
+            self._last_refresh_time = current_time
+            self.logger.info("HTTP session refreshed")
+
+    def _request_snapshot_with_timestamps(self, asset_parameters: AssetParameters) -> str:
+        self._refresh_session_if_needed()
         url = URLFactory.get_difference_depth_snapshot_url(asset_parameters)
 
         try:
             request_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
-            response = requests.get(url, timeout=5)
+            response = self._session.get(url, timeout=5)
             receive_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
             response.raise_for_status()
 
@@ -165,8 +170,17 @@ class DepthSnapshotService:
                          f',"_rc":{receive_timestamp}'
                          f'}}'
                        )
-
             return message
 
         except Exception as e:
             raise Exception(f"Error whilst fetching snapshot: {e}")
+        finally:
+            response.close()
+
+    def shutdown(self) -> None:
+        self.global_shutdown_flag.set()
+        for thread in self._threads:
+            if thread.is_alive():
+                thread.join(timeout=5)
+        self._session.close()
+        self.logger.info("DepthSnapshotService shut down")
