@@ -76,7 +76,7 @@ class DepthSnapshotService:
         'global_shutdown_flag',
         '_session',
         '_last_refresh_time',
-        '_threads'
+        '_thread'
     ]
 
     def __init__(
@@ -90,55 +90,44 @@ class DepthSnapshotService:
         self.data_sink_config = data_sink_config
         self.global_shutdown_flag = global_shutdown_flag
         self._session = requests.Session()
-        self._last_refresh_time = time()
-        self._threads = []
+        self._last_refresh_time = time.time()
+        self._thread = None
 
     def run(self) -> None:
-        for market, pairs in self.data_sink_config.instruments.dict.items():
-            asset_parameters = AssetParameters(
-                market=market,
-                stream_type=StreamType.DEPTH_SNAPSHOT,
-                pairs=pairs
-            )
-            self.start_snapshot_daemon(asset_parameters=asset_parameters)
-
-    def start_snapshot_daemon(
-        self,
-        asset_parameters: AssetParameters
-    ) -> None:
-        thread = threading.Thread(
+        self._thread = threading.Thread(
             target=self._snapshot_daemon,
-            args=[asset_parameters],
-            name=f'snapshot_daemon: market: {asset_parameters.market}'
+            name='snapshot_daemon_all_markets'
         )
-        self._threads.append(thread)
-        thread.start()
+        self._thread.start()
 
-    def _snapshot_daemon(
-        self,
-        asset_parameters: AssetParameters
-    ) -> None:
+    def _snapshot_daemon(self) -> None:
         while not self.global_shutdown_flag.is_set():
-            for pair in asset_parameters.pairs:
-                try:
-                    message = self._request_snapshot_with_timestamps(asset_parameters=asset_parameters)
+            for market, pairs in self.data_sink_config.instruments.dict.items():
+                asset_parameters = AssetParameters(
+                    market=market,
+                    stream_type=StreamType.DEPTH_SNAPSHOT,
+                    pairs=pairs
+                )
+                for pair in asset_parameters.pairs:
+                    try:
+                        message = self._request_snapshot_with_timestamps(asset_parameters=asset_parameters)
 
-                    file_name = StreamDataSaverAndSender.get_file_name(
-                        asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
-                    )
+                        file_name = StreamDataSaverAndSender.get_file_name(
+                            asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
+                        )
 
-                    self.snapshot_strategy.handle_snapshot(
-                        json_content=message,
-                        file_name=file_name,
-                        file_save_catalog=self.data_sink_config.file_save_catalog
-                    )
+                        self.snapshot_strategy.handle_snapshot(
+                            json_content=message,
+                            file_name=file_name,
+                            file_save_catalog=self.data_sink_config.file_save_catalog
+                        )
 
-                except Exception as e:
-                    self.logger.error(f"Error whilst fetching snapshot: {pair} {asset_parameters.market}: {e}")
+                    except Exception as e:
+                        self.logger.error(f"Error whilst fetching snapshot: {pair} {asset_parameters.market}: {e}")
 
             self._sleep_with_flag_check(self.data_sink_config.time_settings.snapshot_fetcher_interval_seconds)
 
-        self.logger.info(f"{asset_parameters.market}: snapshot daemon has ended")
+        self.logger.info("Snapshot daemon for all markets has ended")
 
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 1
@@ -148,7 +137,7 @@ class DepthSnapshotService:
             time.sleep(interval)
 
     def _refresh_session_if_needed(self) -> None:
-        current_time = time()
+        current_time = time.time()
         if current_time - self._last_refresh_time > self.REFRESH_INTERVAL:
             self._session.close()
             self._session = requests.Session()
@@ -179,8 +168,7 @@ class DepthSnapshotService:
 
     def shutdown(self) -> None:
         self.global_shutdown_flag.set()
-        for thread in self._threads:
-            if thread.is_alive():
-                thread.join(timeout=5)
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=5)
         self._session.close()
         self.logger.info("DepthSnapshotService shut down")

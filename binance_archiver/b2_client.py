@@ -5,7 +5,7 @@ import base64
 import hashlib
 import os
 from typing import Tuple, Dict, Any, Optional
-from time import time
+import time
 
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 
@@ -33,11 +33,11 @@ class B2Client:
         self._api_url: str | None = None
         self._account_id: str | None = None
         self._session = requests.Session()
-        self._last_refresh_time = time()
+        self._last_refresh_time = time.time()
         self._authenticate()
 
     def _refresh_session_if_needed(self) -> None:
-        current_time = time()
+        current_time = time.time()
         if current_time - self._last_refresh_time > self.REFRESH_INTERVAL:
             self._session.close()
             self._session = requests.Session()
