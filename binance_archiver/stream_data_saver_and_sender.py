@@ -87,7 +87,7 @@ class StreamDataSaverAndSender:
                     self.send_existing_file_to_backblaze_bucket(file_path=zip_file_path)
                     os.remove(zip_file_path)
                 except Exception as e:
-                    self.logger.error(f"Error retrying file send: {zip_file_filename}:\n {e} trying again soon")
+                    self.logger.debug(f"Error retrying file send: {zip_file_filename}:\n {e} trying again soon")
 
     def _setup_cloud_storage_client(self):
 
@@ -266,17 +266,24 @@ class StreamDataSaverAndSender:
         saver = cloud_data_savers.get(self.data_sink_config.data_save_target)
 
         if saver:
-            try:
-                saver()
+            max_retries = 5
+            retry_delay_seconds = 3
 
-            except Exception as e:
-                self.logger.error(f'error whilst sending to blob {file_name} To be sent later: \n{e} \n')
-
-                self.write_data_to_zip_file(
-                    json_content=json_content,
-                    file_name=file_name,
-                    file_save_catalog=file_save_catalog
-                )
+            for attempt in range(1, max_retries + 1):
+                try:
+                    saver()
+                    break
+                except Exception as e:
+                    self.logger.debug(f'Attempt {attempt}/{max_retries}: error while sending to blob {file_name}, error: {e}')
+                    if attempt < max_retries:
+                        time.sleep(retry_delay_seconds)
+                    else:
+                        self.logger.debug(f'Max retries reached for {file_name}. Saving locally.')
+                        self.write_data_to_zip_file(
+                            json_content=json_content,
+                            file_save_catalog=file_save_catalog,
+                            file_name=file_name
+                        )
 
     def send_zipped_json_to_azure_container(self, json_content: str, file_name: str) -> None:
 
@@ -302,7 +309,7 @@ class StreamDataSaverAndSender:
 
     def send_existing_file_to_backblaze_bucket(self, file_path: str) -> None:
         self.cloud_storage_client.upload_existing_file(file_path=file_path)
-        self.logger.info(f'Successfully sent  missing file: {file_path} \n')
+        # self.logger.info(f'Successfully sent  missing file: {file_path} \n')
 
     @staticmethod
     def get_file_name(asset_parameters: AssetParameters) -> str:
