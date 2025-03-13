@@ -1,29 +1,25 @@
-import os
 from dotenv import load_dotenv
 
+from binance_archiver.data_quality_checker import conduct_csv_files_data_quality_analysis
+from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 from binance_archiver.scraper import download_csv_data
 
 
 if __name__ == '__main__':
+    load_dotenv('binance-archiver-1.env')
 
-    # env_path = os.path.join(os.path.expanduser("~"), 'binance-archiver-1.env')
-    # load_dotenv(env_path)
-    load_dotenv('binance-archiver-2.env')
-
-    backblaze_access_key_id = os.environ.get('BACKBLAZE_ACCESS_KEY_ID')
-    backblaze_secret_access_key = os.environ.get('BACKBLAZE_SECRET_ACCESS_KEY')
-    backblaze_endpoint_url = os.environ.get('BACKBLAZE_ENDPOINT_URL')
-    backblaze_bucket_name = os.environ.get('BACKBLAZE_BUCKET_NAME')
+    storage_connection_parameters = StorageConnectionParameters()
 
     download_csv_data(
-        # dump_path='C:/Users/defrg/binance_data_main/',
-        start_date='26-02-2025',
-        end_date='26-02-2025',
-        backblaze_access_key_id=backblaze_access_key_id,
-        backblaze_secret_access_key=backblaze_secret_access_key,
-        backblaze_endpoint_url=backblaze_endpoint_url,
-        backblaze_bucket_name=backblaze_bucket_name,
-        pairs=['BTCUSDT', 'XRPUSDT', 'ETHUSDT'],
-        markets=['SPOT'],
-        stream_types=['DIFFERENCE_DEPTH_STREAM']
+        date_range=['08-03-2025', '08-03-2025'],
+        storage_connection_parameters=storage_connection_parameters,
+        pairs=['TRXUSDT'],
+        markets=['USD_M_FUTURES', 'COIN_M_FUTURES'],
+        stream_types=['TRADE_STREAM', 'DIFFERENCE_DEPTH_STREAM']
+    )
+
+    conduct_csv_files_data_quality_analysis(
+        csv_paths=[
+            'C:/Users/daniel/Documents/binance_archival_data/binance_trade_stream_usd_m_futures_trxusdt_08-03-2025.csv',
+        ]
     )

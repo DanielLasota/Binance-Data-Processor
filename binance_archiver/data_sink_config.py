@@ -3,11 +3,8 @@ import os
 
 from binance_archiver.enum_.data_save_target_enum import DataSaveTarget
 from binance_archiver.enum_.instruments_matrix import InstrumentsMatrix
-from binance_archiver.enum_.storage_connection_parameters import (
-    StorageConnectionParameters,
-    load_storage_connection_parameters_from_environ
-)
 from binance_archiver.enum_.interval_settings import IntervalSettings
+from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 
 
 @dataclass(slots=True)
@@ -51,7 +48,7 @@ class DataSinkConfig:
             raise ValueError("Storage connection parameters must be provided.")
 
         if not isinstance(self.time_settings, IntervalSettings):
-            raise ValueError("time_settings must be an instance of TimeSettings.")
+            raise ValueError("time_settings must be an instance of IntervalSettings.")
 
     def __post_init__(self):
         if isinstance(self.instruments, dict):
@@ -67,7 +64,7 @@ class DataSinkConfig:
         if isinstance(self.storage_connection_parameters, dict):
             self.storage_connection_parameters = StorageConnectionParameters(**self.storage_connection_parameters)
         elif self.storage_connection_parameters is None:
-            self.storage_connection_parameters = load_storage_connection_parameters_from_environ()
+            self.storage_connection_parameters = StorageConnectionParameters()
 
         if isinstance(self.data_save_target, str):
             try:
