@@ -8,7 +8,7 @@ from binance_archiver.enum_.storage_connection_parameters import StorageConnecti
 if __name__ == "__main__":
 
     load_dotenv('binance-archiver-2.env')
-    config_from_json = load_config_from_json(json_filename='almost_production_config.json')
+    config_from_json = load_config_from_json(json_filename='production_config.json')
 
     data_sink_config = DataSinkConfig(
         instruments={
