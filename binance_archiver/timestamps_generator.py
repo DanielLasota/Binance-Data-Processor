@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 
 
@@ -12,8 +13,5 @@ class TimestampsGenerator:
 
     @staticmethod
     def get_utc_timestamp_epoch_milliseconds() -> int:
-        return round(datetime.now(timezone.utc).timestamp() * 1000)
-
-    @staticmethod
-    def get_utc_timestamp_epoch_seconds() -> int:
-        return round(datetime.now(timezone.utc).timestamp())
+        raw_timestamp_of_receive_ns = time.time_ns()
+        return (raw_timestamp_of_receive_ns + 500_000) // 1_000_000

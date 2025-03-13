@@ -1,0 +1,268 @@
+from __future__ import annotations
+
+import pandas as pd
+import numpy as np
+
+from binance_archiver.data_quality_report import DataQualityReport
+from binance_archiver.enum_.asset_parameters import AssetParameters
+from binance_archiver.enum_.epoch_time_unit import EpochTimeUnit
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.enum_.stream_type_enum import StreamType
+from binance_archiver.individual_column_checker import IndividualColumnChecker
+
+
+def conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory: str) -> None:
+    data_checker = DataQualityChecker()
+    data_checker.conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory)
+
+
+def conduct_csv_files_data_quality_analysis(csv_paths: list[str]) -> None:
+    for csv_path in csv_paths:
+        data_checker = DataQualityChecker()
+        data_quality_report = data_checker.conduct_csv_data_quality_analysis(csv_path)
+        print(data_quality_report)
+
+def get_dataframe_quality_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+    data_checker = DataQualityChecker()
+    return data_checker.get_dataframe_quality_report(
+        dataframe=dataframe,
+        asset_parameters=asset_parameters
+    )
+
+class DataQualityChecker:
+    __slots__ = ()
+
+    def __init__(self):
+        ...
+
+    def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
+        ...
+
+    def conduct_csv_data_quality_analysis(self, csv_path: str):
+        csv_name = csv_path.split('/')[-1]
+        asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
+        dataframe = pd.read_csv(csv_path, comment='#')
+        dataframe_quality_report = self.get_dataframe_quality_report(dataframe=dataframe, asset_parameters=asset_parameters)
+        return dataframe_quality_report
+
+    @staticmethod
+    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
+        _csv_name = csv_name.replace('.csv', '')
+
+        market_mapping = {
+            'spot': Market.SPOT,
+            'usd_m_futures': Market.USD_M_FUTURES,
+            'coin_m_futures': Market.COIN_M_FUTURES,
+        }
+
+        stream_type_mapping = {
+            'difference_depth': StreamType.DIFFERENCE_DEPTH_STREAM,
+            'trade': StreamType.TRADE_STREAM,
+            'binance_snapshot': StreamType.DEPTH_SNAPSHOT,
+        }
+
+        market = next((value for key, value in market_mapping.items() if key in _csv_name), None)
+        if market is None:
+            raise ValueError(f"Unknown market in CSV name: {_csv_name}")
+
+        stream_type = next((value for key, value in stream_type_mapping.items() if key in _csv_name), None)
+        if stream_type is None:
+            raise ValueError(f"Unknown stream type in CSV name: {_csv_name}")
+
+        pair = (
+            f"{_csv_name.split('_')[-3]}_{_csv_name.split('_')[-2]}"
+            if market is Market.COIN_M_FUTURES
+            else _csv_name.split('_')[-2]
+        )
+
+        return AssetParameters(
+            market=market,
+            stream_type=stream_type,
+            pairs=[pair]
+        )
+
+    def get_dataframe_quality_report(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+        stream_type_handlers = {
+            StreamType.DIFFERENCE_DEPTH_STREAM: self._analyse_difference_depth_dataframe,
+            StreamType.TRADE_STREAM: self._analyse_trade_dataframe,
+            StreamType.DEPTH_SNAPSHOT: self._analyse_difference_depth_snapshot_dataframe
+        }
+        handler = stream_type_handlers.get(asset_parameters.stream_type)
+        return handler(dataframe=dataframe, asset_parameters=asset_parameters)
+
+    @staticmethod
+    def _analyse_trade_dataframe(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+        report = DataQualityReport(asset_parameters=asset_parameters)
+
+        epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
+
+        is_timestamp_of_receive_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TimestampOfReceive'])
+        is_timestamp_of_receive_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
+        are_event_time_within_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
+        report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_non_decreasing)
+        report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_epoch_valid)
+        report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_event_time_within_day_range)
+
+        is_stream_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Stream'])
+        is_stream_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Stream'], f"{asset_parameters.pairs[0]}@trade")
+        report.add_test_result("Stream", "is_there_only_one_unique_value_in_series", is_stream_unique)
+        report.add_test_result("Stream", "is_whole_series_made_of_only_one_expected_value", is_stream_expected_value)
+
+        is_event_type_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['EventType'])
+        is_event_type_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['EventType'], "trade")
+        report.add_test_result("EventType", "is_there_only_one_unique_value_in_series", is_event_type_unique)
+        report.add_test_result("EventType", "is_whole_series_made_of_only_one_expected_value", is_event_type_expected_value)
+
+        is_event_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['EventTime'])
+        is_event_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['EventTime'])
+        is_event_time_close_to_receive = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(dataframe['EventTime'], dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
+        report.add_test_result("EventTime", "is_series_non_decreasing", is_event_time_non_decreasing)
+        report.add_test_result("EventTime", "is_whole_series_epoch_valid", is_event_time_epoch_valid)
+        report.add_test_result("EventTime", "is_event_time_column_close_to_receive_time_column_by_100_ms", is_event_time_close_to_receive)
+
+        is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
+        is_transaction_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TransactionTime'])
+        is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(dataframe['TransactionTime'], dataframe['EventTime'])
+        report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
+        report.add_test_result("TransactionTime", "is_whole_series_epoch_valid", is_transaction_time_epoch_valid)
+        report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time",is_transaction_time_lower_or_equal_event)
+
+        is_symbol_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Symbol'])
+        is_symbol_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Symbol'], asset_parameters.pairs[0].upper())
+        report.add_test_result("Symbol", "is_there_only_one_unique_value_in_series", is_symbol_unique)
+        report.add_test_result("Symbol", "is_whole_series_made_of_only_one_expected_value", is_symbol_expected_value)
+
+        are_trade_id_increasing = IndividualColumnChecker.are_series_values_increasing(dataframe['TradeId'])
+        is_trade_id_bigger_by_one = IndividualColumnChecker.is_each_trade_id_bigger_by_one_than_previous(dataframe['TradeId'])
+        report.add_test_result("TradeId", "are_series_values_increasing", are_trade_id_increasing)
+        report.add_test_result("TradeId", "is_each_trade_id_bigger_by_one_than_previous", is_trade_id_bigger_by_one)
+
+        are_price_types_correct = IndividualColumnChecker.are_values_with_specified_type(dataframe['Price'], float)
+        are_prices_non_negative = IndividualColumnChecker.are_values_non_negative(dataframe['Price'])
+        are_price_in_range = IndividualColumnChecker.are_values_within_reasonable_range(dataframe['Price'], 0.0, 1e9)
+        report.add_test_result("Price", "are_values_with_specified_type", are_price_types_correct)
+        report.add_test_result("Price", "are_values_non_negative", are_prices_non_negative)
+        report.add_test_result("Price", "are_values_within_reasonable_range", are_price_in_range)
+
+        if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+            are_prices_positive_with_x_equals_market = IndividualColumnChecker.are_values_positive(dataframe[dataframe['XUnknownParameter'] == 'MARKET']['Price'])
+            is_price_no_abnormal_tick = IndividualColumnChecker.is_there_no_abnormal_price_tick_higher_than_2_percent(dataframe[dataframe['XUnknownParameter'] == 'MARKET']['Price'])
+            report.add_test_result("Price", "are_values_positive_x_column_filtered_to_market", are_prices_positive_with_x_equals_market)
+            report.add_test_result("Price", "is_there_no_abnormal_price_tick_higher_than_2_percent", is_price_no_abnormal_tick)
+
+        if asset_parameters.market in [Market.SPOT]:
+            is_price_no_abnormal_tick = IndividualColumnChecker.is_there_no_abnormal_price_tick_higher_than_2_percent(dataframe['Price'])
+            report.add_test_result("Price", "is_there_no_abnormal_price_tick_higher_than_2_percent", is_price_no_abnormal_tick)
+
+
+        are_quantity_types_correct = IndividualColumnChecker.are_values_with_specified_type(dataframe['Quantity'], float)
+        are_quantity_non_negative = IndividualColumnChecker.are_values_non_negative(dataframe['Quantity'])
+        are_quantity_in_range = IndividualColumnChecker.are_values_within_reasonable_range(dataframe['Quantity'], 0.0, 1e9)
+        report.add_test_result("Quantity", "are_values_with_specified_type", are_quantity_types_correct)
+        report.add_test_result("Quantity", "are_values_non_negative", are_quantity_non_negative)
+        report.add_test_result("Quantity", "are_values_within_reasonable_range", are_quantity_in_range)
+
+        if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+            are_quantities_positive_with_x_equals_market = IndividualColumnChecker.are_values_positive(dataframe[dataframe['XUnknownParameter'] == 'MARKET']['Quantity'])
+            report.add_test_result("Quantity", "are_values_positive_x_column_filtered_to_market", are_quantities_positive_with_x_equals_market)
+
+        are_is_buyer_market_maker_zero_or_one = IndividualColumnChecker.are_values_zero_or_one(dataframe['IsBuyerMarketMaker'])
+        report.add_test_result("IsBuyerMarketMaker", "are_values_zero_or_one", are_is_buyer_market_maker_zero_or_one)
+
+        if asset_parameters.market == Market.SPOT:
+            is_m_unknown_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['MUnknownParameter'], True)
+            report.add_test_result("MUnknownParameter", "is_whole_series_made_of_only_one_expected_value", is_m_unknown_expected_value)
+
+        if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+            is_x_unknown_set_expected_value = IndividualColumnChecker.is_whole_series_made_of_set_of_expected_values(dataframe['XUnknownParameter'], {"MARKET", "INSURANCE_FUND", 'NA', np.nan})
+            report.add_test_result("XUnknownParameter", "is_whole_series_made_of_set_of_expected_values", is_x_unknown_set_expected_value)
+
+        return report
+
+    @staticmethod
+    def _analyse_difference_depth_dataframe(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+        report = DataQualityReport(asset_parameters=asset_parameters)
+        epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
+
+        is_timestamp_of_receive_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TimestampOfReceive'])
+        is_timestamp_of_receive_column_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
+        are_all_event_time_within_utc_z_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
+        report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_column_non_decreasing)
+        report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_column_epoch_valid)
+        report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_all_event_time_within_utc_z_day_range)
+
+        is_there_only_one_unique_value_in_stream_column = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Stream'])
+        is_whole_stream_column_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Stream'], f"{asset_parameters.pairs[0]}@depth@100ms")
+        report.add_test_result("Stream", "is_there_only_one_unique_value_in_series", is_there_only_one_unique_value_in_stream_column)
+        report.add_test_result("Stream", "is_whole_series_made_of_only_one_expected_value", is_whole_stream_column_made_of_only_one_expected_value)
+
+        is_there_only_one_unique_value_in_event_type_column = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['EventType'])
+        is_whole_event_type_column_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['EventType'], "depthUpdate")
+        report.add_test_result("EventType", "is_there_only_one_unique_value_in_series", is_there_only_one_unique_value_in_event_type_column)
+        report.add_test_result("EventType", "is_whole_series_made_of_only_one_expected_value", is_whole_event_type_column_made_of_only_one_expected_value)
+
+        is_event_time_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['EventTime'])
+        is_event_time_column_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['EventTime'])
+        is_event_time_close_to_receive_time_by_100_ms = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(dataframe['EventTime'], dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
+        report.add_test_result("EventTime", "is_series_non_decreasing", is_event_time_column_non_decreasing)
+        report.add_test_result("EventTime", "is_whole_series_epoch_valid", is_event_time_column_epoch_valid)
+        report.add_test_result("EventTime", "is_event_time_column_close_to_receive_time_column_by_100_ms", is_event_time_close_to_receive_time_by_100_ms)
+
+        if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+            is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
+            is_transaction_time_lower_or_equal_event_time = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(dataframe['TransactionTime'], dataframe['EventTime'])
+            report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
+            report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time", is_transaction_time_lower_or_equal_event_time)
+
+        is_there_only_one_unique_value_in_symbol_column = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Symbol'])
+        is_whole_symbol_column_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Symbol'], asset_parameters.pairs[0].upper())
+        report.add_test_result("Symbol", "is_there_only_one_unique_value_in_series", is_there_only_one_unique_value_in_symbol_column)
+        report.add_test_result("Symbol", "is_whole_series_made_of_only_one_expected_value", is_whole_symbol_column_made_of_only_one_expected_value)
+
+        are_first_update_id_values_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['FirstUpdateId'])
+        report.add_test_result("FirstUpdateId", "is_series_non_decreasing", are_first_update_id_values_non_decreasing)
+
+        if asset_parameters.market is Market.SPOT:
+            is_first_update_id_bigger_by_one_than_previous_final = IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(dataframe['FirstUpdateId'], dataframe['FinalUpdateId'])
+            report.add_test_result("FirstUpdateId", "is_first_update_id_bigger_by_one_than_previous_entry_final_update_id", is_first_update_id_bigger_by_one_than_previous_final)
+
+        are_final_update_id_values_increasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['FinalUpdateId'])
+        report.add_test_result("FinalUpdateId", "is_series_non_decreasing", are_final_update_id_values_increasing)
+
+        if asset_parameters.market is Market.SPOT:
+            is_final_update_id_bigger_by_one_than_previous = IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(dataframe['FirstUpdateId'], dataframe['FinalUpdateId'])
+            report.add_test_result("FinalUpdateId", "is_first_update_id_bigger_by_one_than_previous_entry_final_update_id", is_final_update_id_bigger_by_one_than_previous)
+
+        if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+            are_final_update_id_in_last_stream_values_increasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['FinalUpdateIdInLastStream'])
+            is_final_update_id_in_last_stream_equal_to_previous = IndividualColumnChecker.is_final_update_id_equal_to_previous_entry_final_update(dataframe['FinalUpdateId'], dataframe['FinalUpdateIdInLastStream'])
+            report.add_test_result("FinalUpdateIdInLastStream", "is_series_non_decreasing", are_final_update_id_in_last_stream_values_increasing)
+            report.add_test_result("FinalUpdateIdInLastStream", "is_final_update_id_to_previous_entry_final_update", is_final_update_id_in_last_stream_equal_to_previous)
+
+        are_is_ask_values_zero_or_one = IndividualColumnChecker.are_values_zero_or_one(dataframe['IsAsk'])
+        report.add_test_result("IsAsk", "are_values_zero_or_one", are_is_ask_values_zero_or_one)
+        are_price_values_with_specified_type = IndividualColumnChecker.are_values_with_specified_type(dataframe['Price'], float)
+        are_price_values_positive = IndividualColumnChecker.are_values_positive(dataframe['Price'])
+        are_price_values_within_reasonable_range = IndividualColumnChecker.are_values_within_reasonable_range(dataframe['Price'], 0.0, 1e9)
+        report.add_test_result("Price", "are_values_with_specified_type", are_price_values_with_specified_type)
+        report.add_test_result("Price", "are_values_positive", are_price_values_positive)
+        report.add_test_result("Price", "are_values_within_reasonable_range", are_price_values_within_reasonable_range)
+
+        if asset_parameters.market == Market.COIN_M_FUTURES:
+            is_there_only_one_unique_value_in_ps_unknown_field = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['PSUnknownField'])
+            is_whole_ps_unknown_field_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['PSUnknownField'], asset_parameters.pairs[0].replace('_perp', '').upper())
+            report.add_test_result("PSUnknownField", "is_there_only_one_unique_value_in_series", is_there_only_one_unique_value_in_ps_unknown_field)
+            report.add_test_result("PSUnknownField", "is_whole_series_made_of_only_one_expected_value", is_whole_ps_unknown_field_made_of_only_one_expected_value)
+
+        are_quantity_values_with_specified_type = IndividualColumnChecker.are_values_with_specified_type(dataframe['Quantity'], float)
+        are_quantity_values_positive = IndividualColumnChecker.are_values_non_negative(dataframe['Quantity'])
+        are_quantity_values_within_reasonable_range = IndividualColumnChecker.are_values_within_reasonable_range(dataframe['Quantity'], 0.0, 1e9)
+        report.add_test_result("Quantity", "are_values_with_specified_type", are_quantity_values_with_specified_type)
+        report.add_test_result("Quantity", "are_values_non_negative", are_quantity_values_positive)
+        report.add_test_result("Quantity", "are_values_within_reasonable_range", are_quantity_values_within_reasonable_range)
+
+        return report
+
+    @staticmethod
+    def _analyse_difference_depth_snapshot_dataframe(df: pd.DataFrame) -> None:
+        ...
