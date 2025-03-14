@@ -11,6 +11,7 @@ class AssetParameters:
     market: Market
     stream_type: StreamType
     pairs: list[str]
+    date: str | None = None
 
     def get_asset_parameter_with_specified_pair(self, pair: str) -> AssetParameters:
         return AssetParameters(
