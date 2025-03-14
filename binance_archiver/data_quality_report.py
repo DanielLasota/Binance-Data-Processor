@@ -12,7 +12,8 @@ class DataQualityReport:
     __slots__ = [
         'tests_results_register',
         'asset_parameters',
-        'informational_data'
+        'informational_data',
+        'file_name'
     ]
 
     def __init__(
@@ -22,6 +23,10 @@ class DataQualityReport:
         self.tests_results_register: {str, {str, bool | str}} = {}
         self.asset_parameters = asset_parameters
         self.informational_data = []
+        self.file_name = ...
+
+    def set_file_name(self, file_name) -> None:
+        self.file_name = file_name
 
     def is_data_quality_report_positive(self) -> bool:
         return all(
@@ -44,8 +49,8 @@ class DataQualityReport:
 
         lines = [
             f"#################################################################",
-            f"# Data Quality Report for {self.asset_parameters.stream_type} {self.asset_parameters.market.value} {self.asset_parameters.pairs[0]}",
-            f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-3]}"
+            f"# Data Quality Report for {self.asset_parameters.stream_type.value} {self.asset_parameters.market.value} {self.asset_parameters.pairs[0]}",
+            f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-4]}Z"
         ]
 
         if len(self.informational_data) > 0:

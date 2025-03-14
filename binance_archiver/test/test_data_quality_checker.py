@@ -132,52 +132,114 @@ class TestIndividualColumnChecker:
 
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
         series = pd.Series([1718150400000, 1718193600000, 1718236799999])
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series) == True
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series, "12-06-2024", EpochTimeUnit.MILLISECONDS) == True
 
     def test_are_all_within_utc_z_day_range_milliseconds_negative(self):
         series1 = pd.Series([1718150400000, 1718193600000, 1718236800000])
         series2 = pd.Series([1718150399999, 1718193600000, 1718236799999])
         series3 = pd.Series([1718150399999, 1718193600000, 1718236799999])
 
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series1) == False
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series2) == False
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series3) == False
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series1, "12-06-2024", EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series2, "12-06-2024", EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series3, "12-06-2024", EpochTimeUnit.MILLISECONDS) == False
 
     def test_are_all_within_utc_z_day_range_microseconds_positive(self):
         series = pd.Series([1718150400000_000, 1718193600000_000, 1718236799999_999])
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
 
     def test_are_all_within_utc_z_day_range_microseconds_negative(self):
         series1 = pd.Series([1718150400000_000, 1718193600000_000, 1718236800000_000])
         series2 = pd.Series([1718150399999_999, 1718193600000_000, 1718236799999_999])
         series3 = pd.Series([1718150399999_999, 1718193600000_000, 1718236800000_000])
 
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series1, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series2, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
-        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series3, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series1, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series2, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.are_all_within_utc_z_day_range(series3, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
 
     ##### is_event_time_column_close_to_receive_time_column_by_100_ms
 
     def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
         event = pd.Series([1718196460_656, 1718196461_280, 1718196460_656])
         receive = pd.Series([1718196460_660, 1718196461_290, 1718196460_660])
-        assert IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(event, receive) == True
+        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event) == True
 
     def test_are_event_times_close_to_receive_times_positive_microseconds(self):
         event = pd.Series([1718196460_656_000, 1718196461_280_000, 1718196460_656_000])
         receive = pd.Series([1718196460_660_000, 1718196461_290_000, 1718196460_660_000])
-        assert IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(event, receive, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
+        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
 
     def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
         event = pd.Series([1718196460_656, 1718196461_280])
         receive = pd.Series([1718196465_660, 1718196466_381])
-        assert IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(event, receive) == False
+        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event) == False
 
     def test_are_event_times_close_to_receive_times_negative_microseconds(self):
 
         event = pd.Series([1718196460_656_000, 1718196461_280_000])
         receive = pd.Series([1718196466_656_000, 1718196467_280_000])
-        assert IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(event, receive, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+
+    #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_milliseconds(self):
+        series = pd.Series([
+            1718150460000,  # 00:01:00
+            1718193600000,  # 12:00:00
+            1718236740000  # 23:59:00
+        ])
+        result = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS)
+        assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in milliseconds"
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_microseconds(self):
+        series = pd.Series([
+            1718150460000_000,  # 00:01:00
+            1718193600000_000,  # 12:00:00
+            1718236740000_000  # 23:59:00
+        ])
+        result = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS)
+        assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in microseconds"
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_milliseconds(self):
+        series1 = pd.Series([
+            1718150461000,  # 00:01:01 (poza 60s)
+            1718193600000,
+            1718236740000
+        ])
+        series2 = pd.Series([
+            1718150460000,
+            1718193600000,
+            1718236739000  # 23:58:59 (poza 60s)
+        ])
+        series3 = pd.Series([
+            1718150461000,  # poza
+            1718193600000,
+            1718236739000  # poza
+        ])
+
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series1, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when first timestamp is too late in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series2, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when last timestamp is too early in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series3, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when both timestamps are out of range in milliseconds"
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_microseconds(self):
+        series1 = pd.Series([
+            1718150461000_000,  # 00:01:01 (poza 60s)
+            1718193600000_000,
+            1718236740000_000
+        ])
+        series2 = pd.Series([
+            1718150460000_000,
+            1718193600000_000,
+            1718236739000_000  # 23:58:59 (poza 60s)
+        ])
+        series3 = pd.Series([
+            1718150461000_000,  # poza
+            1718193600000_000,
+            1718236739000_000  # poza
+        ])
+
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series1, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when first timestamp is too late in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series2, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when last timestamp is too early in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series3, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when both timestamps are out of range in microseconds"
 
     ####    is_transaction_time_lower_or_equal_event_time
 
@@ -519,60 +581,132 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'])
+        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025')
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_milliseconds_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'])
+        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025')
         assert result_of_check == False
 
     def test_are_all_within_utc_z_day_range_microseconds_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'], epoch_time_unit=EpochTimeUnit.MICROSECONDS)
+        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MICROSECONDS)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_microseconds_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'], epoch_time_unit=EpochTimeUnit.MICROSECONDS)
+        result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MICROSECONDS)
         assert result_of_check == False
 
     ##### is_event_time_column_close_to_receive_time_column_by_100_ms
 
     def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(
-            event_time_column=df['EventTime'],
-            receive_time_column=df['TimestampOfReceive']
+        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
+            receive_time_column=df['TimestampOfReceive'],
+            event_time_column=df['EventTime']
         )
         assert result_of_check == True
 
     def test_are_event_times_close_to_receive_times_positive_microseconds(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
 
-        result_of_check = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(
-            event_time_column=df['EventTime'],
+        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
             receive_time_column=df['TimestampOfReceive'],
+            event_time_column=df['EventTime'],
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
         assert result_of_check == True
 
     def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(
-            event_time_column=df['EventTime'],
-            receive_time_column=df['TimestampOfReceive']
+        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
+            receive_time_column=df['TimestampOfReceive'],
+            event_time_column=df['EventTime']
         )
         assert result_of_check == False
 
     def test_are_event_times_close_to_receive_times_negative_microseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(
-            event_time_column=df['EventTime'],
+        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
             receive_time_column=df['TimestampOfReceive'],
+            event_time_column=df['EventTime'],
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
         assert result_of_check == False
+
+    #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_milliseconds(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
+            usecols=['TimestampOfReceive']
+        )
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+            series=df['TimestampOfReceive'],
+            date='04-03-2025',
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result_of_check == True, "Expected first and last timestamps to be within 5 seconds from day borders in milliseconds"
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_microseconds(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
+            usecols=['TimestampOfReceive']
+        )
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+            series=df['TimestampOfReceive'],
+            date='04-03-2025',
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        )
+        assert result_of_check == True, "Expected first and last timestamps to be within 5 seconds from day borders in microseconds"
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_milliseconds(self):
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
+            usecols=['TimestampOfReceive']
+        )
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+            series=df['TimestampOfReceive'],
+            date='04-03-2025',
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in milliseconds"
+
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
+            usecols=['TimestampOfReceive']
+        )
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+            series=df['TimestampOfReceive'],
+            date='04-03-2025',
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in milliseconds"
+
+    def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_microseconds(self):
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
+            usecols=['TimestampOfReceive']
+        )
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+            series=df['TimestampOfReceive'],
+            date='04-03-2025',
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        )
+        assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
+
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_trade_stream_spot_trxusdt_04-03-2025.csv',
+            usecols=['TimestampOfReceive']
+        )
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+            series=df['TimestampOfReceive'],
+            date='04-03-2025',
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        )
+        assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
 
     #### is_transaction_time_lower_or_equal_event_time
 
