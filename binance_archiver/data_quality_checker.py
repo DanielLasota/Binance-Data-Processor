@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pandas as pd
 import numpy as np
+import os
+from alive_progress import alive_bar
 
 from binance_archiver.data_quality_report import DataQualityReport
 from binance_archiver.enum_.asset_parameters import AssetParameters
@@ -9,18 +11,16 @@ from binance_archiver.enum_.epoch_time_unit import EpochTimeUnit
 from binance_archiver.enum_.market_enum import Market
 from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.individual_column_checker import IndividualColumnChecker
+from binance_archiver.logo import binance_archiver_logo
 
 
-def conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory: str) -> None:
+def conduct_data_quality_analysis_on_whole_directory(csv_nest_directory: str) -> None:
     data_checker = DataQualityChecker()
     data_checker.conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory)
 
-
-def conduct_csv_files_data_quality_analysis(csv_paths: list[str]) -> None:
-    for csv_path in csv_paths:
-        data_checker = DataQualityChecker()
-        data_quality_report = data_checker.conduct_csv_data_quality_analysis(csv_path)
-        print(data_quality_report)
+def conduct_data_quality_analysis_on_specified_csv_list(csv_paths: list[str]) -> None:
+    data_checker = DataQualityChecker()
+    data_checker.conduct_csv_files_data_quality_analysis(csv_paths)
 
 def get_dataframe_quality_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
     data_checker = DataQualityChecker()
@@ -33,17 +33,75 @@ class DataQualityChecker:
     __slots__ = ()
 
     def __init__(self):
-        ...
+        print(f'\033[35m{binance_archiver_logo}')
+        print(f'\033[36m')
 
     def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
-        ...
+        local_files = self.list_files_in_local_directory(csv_nest_directory)
+        local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
+        print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files")
 
-    def conduct_csv_data_quality_analysis(self, csv_path: str):
-        csv_name = csv_path.split('/')[-1]
-        asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
-        dataframe = pd.read_csv(csv_path, comment='#')
-        dataframe_quality_report = self.get_dataframe_quality_report(dataframe=dataframe, asset_parameters=asset_parameters)
-        return dataframe_quality_report
+        self._conduct_quality_analysis_from_csv_paths_list(csv_paths=local_csv_file_paths)
+
+    def conduct_csv_files_data_quality_analysis(self, csv_paths: list[str]):
+        self._conduct_quality_analysis_from_csv_paths_list(csv_paths=csv_paths)
+
+    def _conduct_quality_analysis_from_csv_paths_list(self, csv_paths: list[str]) -> None:
+        data_quality_report_list = []
+        with alive_bar(len(csv_paths), force_tty=True, spinner='dots_waves') as bar:
+            for csv_path in csv_paths:
+                try:
+                    csv_name = csv_path.split('/')[-1]
+                    asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
+                    dataframe = pd.read_csv(csv_path, comment='#')
+                    dataframe_quality_report = self.get_dataframe_quality_report(
+                        dataframe=dataframe,
+                        asset_parameters=asset_parameters
+                    )
+                    file_name = csv_path.split('/')[-1]
+                    dataframe_quality_report.set_file_name(file_name)
+                    data_quality_report_list.append(dataframe_quality_report)
+                except Exception as e:
+                    print(e)
+                finally:
+                    bar()
+
+        data_quality_positive_report_list = [
+            report for report
+            in data_quality_report_list
+            if report.is_data_quality_report_positive()
+        ]
+
+        positive_reports_percentage = len(data_quality_positive_report_list)/len(data_quality_report_list)*100
+        print(f'Positive/All: {len(data_quality_positive_report_list)}/{len(data_quality_report_list)} ({positive_reports_percentage}%)')
+
+        i = 1
+        for report in data_quality_report_list:
+            print(f'{i}. {report.get_data_report_status()}: {report.file_name}')
+            i+=1
+
+        while True:
+            try:
+                user_input = input('\n(n/exit): ').strip().lower()
+                if user_input == 'exit':
+                    break
+                print(data_quality_report_list[int(user_input)-1])
+            except Exception as e:
+                print(e)
+
+    @staticmethod
+    def list_files_in_local_directory(directory_path: str) -> list:
+        try:
+            files = []
+            for root, _, filenames in os.walk(directory_path):
+                for filename in filenames:
+                    full_path = os.path.join(root, filename)
+                    files.append(full_path)
+            return files
+
+        except Exception as e:
+            print(f"Error whilst listing files: {e}")
+            return []
 
     @staticmethod
     def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
@@ -75,10 +133,13 @@ class DataQualityChecker:
             else _csv_name.split('_')[-2]
         )
 
+        date = _csv_name.split('_')[-1]
+
         return AssetParameters(
             market=market,
             stream_type=stream_type,
-            pairs=[pair]
+            pairs=[pair],
+            date=date
         )
 
     def get_dataframe_quality_report(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
@@ -98,10 +159,14 @@ class DataQualityChecker:
 
         is_timestamp_of_receive_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TimestampOfReceive'])
         is_timestamp_of_receive_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
-        are_event_time_within_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
+        are_event_time_within_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
+        is_event_time_close_to_receive_time_by_5_s = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(dataframe['TimestampOfReceive'], dataframe['EventTime'], epoch_time_unit=epoch_time_unit)
+        are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_epoch_valid)
         report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_event_time_within_day_range)
+        report.add_test_result("TimestampOfReceive", "is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s", is_event_time_close_to_receive_time_by_5_s)
+        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders)
 
         is_stream_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Stream'])
         is_stream_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Stream'], f"{asset_parameters.pairs[0]}@trade")
@@ -115,10 +180,8 @@ class DataQualityChecker:
 
         is_event_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['EventTime'])
         is_event_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['EventTime'])
-        is_event_time_close_to_receive = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(dataframe['EventTime'], dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
         report.add_test_result("EventTime", "is_series_non_decreasing", is_event_time_non_decreasing)
         report.add_test_result("EventTime", "is_whole_series_epoch_valid", is_event_time_epoch_valid)
-        report.add_test_result("EventTime", "is_event_time_column_close_to_receive_time_column_by_100_ms", is_event_time_close_to_receive)
 
         is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
         is_transaction_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TransactionTime'])
@@ -186,10 +249,14 @@ class DataQualityChecker:
 
         is_timestamp_of_receive_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TimestampOfReceive'])
         is_timestamp_of_receive_column_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
-        are_all_event_time_within_utc_z_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
+        are_all_event_time_within_utc_z_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
+        is_event_time_close_to_receive_time_by_5_s = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(dataframe['TimestampOfReceive'], dataframe['EventTime'], epoch_time_unit=epoch_time_unit)
+        are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_column_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_column_epoch_valid)
         report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_all_event_time_within_utc_z_day_range)
+        report.add_test_result("TimestampOfReceive", "is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s", is_event_time_close_to_receive_time_by_5_s)
+        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders)
 
         is_there_only_one_unique_value_in_stream_column = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Stream'])
         is_whole_stream_column_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Stream'], f"{asset_parameters.pairs[0]}@depth@100ms")
@@ -203,10 +270,8 @@ class DataQualityChecker:
 
         is_event_time_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['EventTime'])
         is_event_time_column_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['EventTime'])
-        is_event_time_close_to_receive_time_by_100_ms = IndividualColumnChecker.is_event_time_column_close_to_receive_time_column_by_5_seconds(dataframe['EventTime'], dataframe['TimestampOfReceive'], epoch_time_unit=epoch_time_unit)
         report.add_test_result("EventTime", "is_series_non_decreasing", is_event_time_column_non_decreasing)
         report.add_test_result("EventTime", "is_whole_series_epoch_valid", is_event_time_column_epoch_valid)
-        report.add_test_result("EventTime", "is_event_time_column_close_to_receive_time_column_by_100_ms", is_event_time_close_to_receive_time_by_100_ms)
 
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
