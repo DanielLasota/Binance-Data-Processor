@@ -49,7 +49,8 @@ class DataQualityReport:
 
         lines = [
             f"#################################################################",
-            f"# Data Quality Report for {self.asset_parameters.stream_type.value} {self.asset_parameters.market.value} {self.asset_parameters.pairs[0]}",
+            f"# Unfazed Binance Archiver. All Copyrights 2025 Matheus Pokora ©®",
+            f"# Data Quality Report for {self.asset_parameters}",
             f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-4]}Z"
         ]
 
@@ -82,8 +83,11 @@ class DataQualityReport:
                         aligned_line = f"# {column.ljust(max_column_length)} {test_name.ljust(max_test_name_length)} {status.ljust(max_status_length)}"
                         lines.append(aligned_line)
 
+        hashtag_line = '#' * len(lines[-1])
+        lines[0] = hashtag_line
         lines.append("# End of Quality Report")
-        lines.append(f"#################################################################")
+        lines.append(hashtag_line)
+
         return "\n".join(lines)
 
     def add_test_result(self, column: str, test_name: str, result: bool) -> None:
