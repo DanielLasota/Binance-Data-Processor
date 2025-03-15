@@ -13,6 +13,15 @@ class AssetParameters:
     pairs: list[str]
     date: str | None = None
 
+    def __str__(self):
+        return (
+            f""
+            f"{self.stream_type.name} "
+            f"{self.market.name} "
+            f"{self.pairs[0].upper() if len(self.pairs) == 1 else self.pairs} "
+            f"{self.date if not None else ''}"
+        )
+
     def get_asset_parameter_with_specified_pair(self, pair: str) -> AssetParameters:
         return AssetParameters(
             market=self.market,

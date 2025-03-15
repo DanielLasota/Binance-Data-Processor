@@ -9,7 +9,7 @@ import orjson
 from alive_progress import alive_bar
 import pandas as pd
 
-from binance_archiver.data_quality_checker import get_dataframe_quality_report
+from binance_archiver.data_quality_checker import get_dataframe_quality_report, DataQualityChecker
 from binance_archiver.data_quality_report import DataQualityReport
 from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.enum_.epoch_time_unit import EpochTimeUnit
@@ -20,8 +20,6 @@ from typing import List
 
 from binance_archiver.logo import binance_archiver_logo
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
-
-BINANCE_ARCHIVER_LOGO = binance_archiver_logo
 
 
 __all__ = [
@@ -35,7 +33,8 @@ def download_csv_data(
         dump_path: str | None = None,
         pairs: list[str] | None = None,
         markets: list[str] | None = None,
-        stream_types: list[str] | None = None
+        stream_types: list[str] | None = None,
+        skip_existing: bool = False
         ) -> None:
 
     data_scraper = DataScraper(storage_connection_parameters)
@@ -45,7 +44,8 @@ def download_csv_data(
         stream_types=stream_types,
         pairs=pairs,
         date_range=date_range,
-        dump_path=dump_path
+        dump_path=dump_path,
+        skip_existing=skip_existing
     )
 
 
@@ -81,22 +81,25 @@ class DataScraper:
             stream_types: list[str],
             pairs: list[str],
             date_range: list[str],
-            dump_path: str | None
+            dump_path: str | None,
+            skip_existing: bool = True
     ) -> None:
 
-        start_date, end_date = date_range
-
-        print(f'\033[35m{BINANCE_ARCHIVER_LOGO}')
+        print(f'\033[35m{binance_archiver_logo}')
 
         dump_path = self._prepare_dump_path_catalog(dump_path=dump_path)
 
-        asset_parameters_data_class_list_to_be_downloaded = self._generate_asset_parameters_data_classes_list(
+        dates_to_be_downloaded = self._generate_dates_string_list_from_range(date_range)
+
+        asset_parameters_to_be_downloaded = self._get_asset_parameters_to_be_downloaded(
             markets=markets,
             stream_types=stream_types,
-            pairs=pairs
+            pairs=pairs,
+            dates_to_be_downloaded=dates_to_be_downloaded,
+            dump_path=dump_path,
+            skip_existing=skip_existing
         )
-        dates_to_be_downloaded = self._generate_dates_string_list_from_range(start_date, end_date)
-        amount_of_files_to_be_made = len(asset_parameters_data_class_list_to_be_downloaded) * len(dates_to_be_downloaded)
+        amount_of_files_to_be_made = len(asset_parameters_to_be_downloaded) * len(dates_to_be_downloaded)
 
         print(
             f'\033[36m'
@@ -104,12 +107,41 @@ class DataScraper:
         )
 
         self._main_download_loop(
-            asset_parameters_list=asset_parameters_data_class_list_to_be_downloaded,
+            asset_parameters_list=asset_parameters_to_be_downloaded,
             dates=dates_to_be_downloaded,
             dump_path=dump_path
         )
 
         print(f'\nFinished: {dump_path}')
+
+    def _get_asset_parameters_to_be_downloaded(self, markets: list[str], stream_types: list[str], pairs: list[str], dates_to_be_downloaded: list[str], dump_path: str, skip_existing: bool) -> list[AssetParameters]:
+        selected_asset_parameters = self._generate_asset_parameters_data_classes_list(
+            markets=markets,
+            stream_types=stream_types,
+            pairs=pairs,
+            dates=dates_to_be_downloaded
+        )
+
+        if skip_existing is True:
+            asset_parameters_of_existing_files = self._get_existing_files_asset_parameters_list(csv_nest=dump_path)
+            final_asset_parameters_to_be_downloaded = [
+                asset for asset
+                in selected_asset_parameters
+                if asset not in asset_parameters_of_existing_files
+            ]
+            selected_and_existing_to_be_skipped = [
+                asset for asset
+                in selected_asset_parameters
+                if asset in asset_parameters_of_existing_files
+            ]
+
+            print(f'skipping existing assets:')
+            for asset in selected_and_existing_to_be_skipped:
+                print(asset)
+        else:
+            final_asset_parameters_to_be_downloaded = selected_asset_parameters
+
+        return final_asset_parameters_to_be_downloaded
 
     @staticmethod
     def _prepare_dump_path_catalog(dump_path) -> str:
@@ -126,8 +158,23 @@ class DataScraper:
         return dump_path
 
     @staticmethod
-    def _generate_dates_string_list_from_range(start_date_str: str, end_date_str: str) -> list[str]:
+    def _get_existing_files_asset_parameters_list(csv_nest: str) -> list[AssetParameters]:
+        local_files = DataQualityChecker.list_files_in_local_directory(csv_nest)
+        local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
+        print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files")
+
+        found_asset_parameter_list = []
+
+        for csv in local_csv_file_paths:
+            asset_parameters = DataQualityChecker.decode_asset_parameters_from_csv_name(csv)
+            found_asset_parameter_list.append(asset_parameters)
+
+        return found_asset_parameter_list
+
+    @staticmethod
+    def _generate_dates_string_list_from_range(date_range: list[str]) -> list[str]:
         date_format = "%d-%m-%Y"
+        start_date_str, end_date_str = date_range
 
         try:
             start_date = datetime.strptime(start_date_str, date_format)
@@ -150,20 +197,22 @@ class DataScraper:
         return date_list
 
     @staticmethod
-    def _generate_asset_parameters_data_classes_list(markets: list[str], stream_types: list[str], pairs: list[str]) -> list[AssetParameters]:
-        markets = [Market(_.lower()) for _ in markets]
-        stream_types = [StreamType[_.upper()] for _ in stream_types]
-        pairs = [_.lower() for _ in pairs]
+    def _generate_asset_parameters_data_classes_list(markets: list[str], stream_types: list[str], pairs: list[str], dates: list[str]) -> list[AssetParameters]:
+        markets = [Market(market.lower()) for market in markets]
+        stream_types = [StreamType[stream_type.upper()] for stream_type in stream_types]
+        pairs = [pair.lower() for pair in pairs]
 
         return [
             AssetParameters(
                 market=market,
                 stream_type=stream_type,
-                pairs=[(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)]
+                pairs=[(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)],
+                date=date
             )
             for market in markets
             for stream_type in stream_types
             for pair in pairs
+            for date in dates
         ]
 
     def _main_download_loop(self, asset_parameters_list: list[AssetParameters], dates: list[str], dump_path: str) -> None:
@@ -174,7 +223,7 @@ class DataScraper:
 
                 dataframe_quality_report = get_dataframe_quality_report(
                     dataframe=dataframe,
-                    asset_parameters=asset_parameters
+                    asset_parameters=asset_parameters,
                 )
                 print(f'data report status: {dataframe_quality_report.get_data_report_status().value}')
 

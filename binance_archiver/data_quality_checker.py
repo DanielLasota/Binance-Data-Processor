@@ -14,6 +14,13 @@ from binance_archiver.individual_column_checker import IndividualColumnChecker
 from binance_archiver.logo import binance_archiver_logo
 
 
+def get_dataframe_quality_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+    data_checker = DataQualityChecker()
+    return data_checker.get_dataframe_quality_report(
+        dataframe=dataframe,
+        asset_parameters=asset_parameters
+    )
+
 def conduct_data_quality_analysis_on_whole_directory(csv_nest_directory: str) -> None:
     data_checker = DataQualityChecker()
     data_checker.conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory)
@@ -22,21 +29,29 @@ def conduct_data_quality_analysis_on_specified_csv_list(csv_paths: list[str]) ->
     data_checker = DataQualityChecker()
     data_checker.conduct_csv_files_data_quality_analysis(csv_paths)
 
-def get_dataframe_quality_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
-    data_checker = DataQualityChecker()
-    return data_checker.get_dataframe_quality_report(
-        dataframe=dataframe,
-        asset_parameters=asset_parameters
-    )
 
 class DataQualityChecker:
     __slots__ = ()
 
     def __init__(self):
+        ...
+
+    @staticmethod
+    def print_logo():
         print(f'\033[35m{binance_archiver_logo}')
         print(f'\033[36m')
 
+    def get_dataframe_quality_report(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+        stream_type_handlers = {
+            StreamType.DIFFERENCE_DEPTH_STREAM: self._analyse_difference_depth_dataframe,
+            StreamType.TRADE_STREAM: self._analyse_trade_dataframe,
+            StreamType.DEPTH_SNAPSHOT: self._analyse_difference_depth_snapshot_dataframe
+        }
+        handler = stream_type_handlers.get(asset_parameters.stream_type)
+        return handler(dataframe=dataframe, asset_parameters=asset_parameters)
+
     def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
+        self.print_logo()
         local_files = self.list_files_in_local_directory(csv_nest_directory)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
         print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files")
@@ -44,6 +59,7 @@ class DataQualityChecker:
         self._conduct_quality_analysis_from_csv_paths_list(csv_paths=local_csv_file_paths)
 
     def conduct_csv_files_data_quality_analysis(self, csv_paths: list[str]):
+        self.print_logo()
         self._conduct_quality_analysis_from_csv_paths_list(csv_paths=csv_paths)
 
     def _conduct_quality_analysis_from_csv_paths_list(self, csv_paths: list[str]) -> None:
@@ -52,7 +68,7 @@ class DataQualityChecker:
             for csv_path in csv_paths:
                 try:
                     csv_name = csv_path.split('/')[-1]
-                    asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
+                    asset_parameters = self.decode_asset_parameters_from_csv_name(csv_name)
                     dataframe = pd.read_csv(csv_path, comment='#')
                     dataframe_quality_report = self.get_dataframe_quality_report(
                         dataframe=dataframe,
@@ -104,7 +120,7 @@ class DataQualityChecker:
             return []
 
     @staticmethod
-    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
+    def decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
         _csv_name = csv_name.replace('.csv', '')
 
         market_mapping = {
@@ -141,15 +157,6 @@ class DataQualityChecker:
             pairs=[pair],
             date=date
         )
-
-    def get_dataframe_quality_report(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
-        stream_type_handlers = {
-            StreamType.DIFFERENCE_DEPTH_STREAM: self._analyse_difference_depth_dataframe,
-            StreamType.TRADE_STREAM: self._analyse_trade_dataframe,
-            StreamType.DEPTH_SNAPSHOT: self._analyse_difference_depth_snapshot_dataframe
-        }
-        handler = stream_type_handlers.get(asset_parameters.stream_type)
-        return handler(dataframe=dataframe, asset_parameters=asset_parameters)
 
     @staticmethod
     def _analyse_trade_dataframe(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
@@ -302,7 +309,7 @@ class DataQualityChecker:
             are_final_update_id_in_last_stream_values_increasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['FinalUpdateIdInLastStream'])
             is_final_update_id_in_last_stream_equal_to_previous = IndividualColumnChecker.is_final_update_id_equal_to_previous_entry_final_update(dataframe['FinalUpdateId'], dataframe['FinalUpdateIdInLastStream'])
             report.add_test_result("FinalUpdateIdInLastStream", "is_series_non_decreasing", are_final_update_id_in_last_stream_values_increasing)
-            report.add_test_result("FinalUpdateIdInLastStream", "is_final_update_id_to_previous_entry_final_update", is_final_update_id_in_last_stream_equal_to_previous)
+            report.add_test_result("FinalUpdateIdInLastStream", "is_final_update_id_equal_to_previous_entry_final_update", is_final_update_id_in_last_stream_equal_to_previous)
 
         are_is_ask_values_zero_or_one = IndividualColumnChecker.are_values_zero_or_one(dataframe['IsAsk'])
         report.add_test_result("IsAsk", "are_values_zero_or_one", are_is_ask_values_zero_or_one)
