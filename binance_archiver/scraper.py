@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import io
 import os
 import queue
@@ -228,8 +229,7 @@ class DataScraper:
         for date in dates:
             for asset_parameters in asset_parameters_list:
                 print(f'Downloading: {asset_parameters}')
-                dataframe = self._get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(asset_parameters, date)
-
+                dataframe = self._get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(asset_parameters)
                 dataframe_quality_report = get_dataframe_quality_report(
                     dataframe=dataframe,
                     asset_parameters=asset_parameters,
@@ -238,7 +238,7 @@ class DataScraper:
 
                 # minimal_dataframe = self._get_minimal_dataframe(df=rough_dataframe_for_quality_check)
 
-                target_file_name = DataScraper._get_base_of_filename(asset_parameters=asset_parameters, date=date)
+                target_file_name = DataScraper._get_base_of_filename(asset_parameters=asset_parameters)
 
                 self._save_df_to_csv_with_data_quality_report(
                     dataframe=dataframe,
@@ -250,12 +250,9 @@ class DataScraper:
                 del dataframe_quality_report
                 del dataframe
 
-    def _get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(self, asset_parameters: AssetParameters, date: str) -> pd.DataFrame:
+    def _get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(self, asset_parameters: AssetParameters) -> pd.DataFrame:
         list_of_files_with_specified_prefixes_that_should_be_downloaded = (
-            self._get_prefix_of_files_that_should_be_downloaded_for_specified_single_date(
-                asset_parameters=asset_parameters,
-                date=date
-            )
+            self._get_prefix_of_files_that_should_be_downloaded_for_specified_single_date(asset_parameters=asset_parameters)
         )
 
         list_of_files_to_be_downloaded = self.storage_client.list_files_with_prefixes(list_of_files_with_specified_prefixes_that_should_be_downloaded)
@@ -265,13 +262,13 @@ class DataScraper:
 
         epoch_time_unit = (
             EpochTimeUnit.MICROSECONDS
-            if asset_parameters.market is Market.SPOT
+            if asset_parameters.market is Market.SPOT and asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT
             else EpochTimeUnit.MILLISECONDS
         )
 
         dataframe = self._cut_dataframe_to_the_range_of_single_day(
             dataframe=dataframe,
-            target_day=date,
+            target_day=asset_parameters.date,
             epoch_time_unit=epoch_time_unit
         )
 
@@ -313,29 +310,30 @@ class DataScraper:
         )
 
     @staticmethod
-    def _get_base_of_filename(asset_parameters: AssetParameters, date: str) -> str:
-        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{date}"
+    def _get_base_of_filename(asset_parameters: AssetParameters) -> str:
+        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{asset_parameters.date}"
 
     @staticmethod
-    def _get_prefix_of_files_that_should_be_downloaded_for_specified_single_date(asset_parameters: AssetParameters, date: str) -> list[str]:
-        one_date_after = (datetime.strptime(date, '%d-%m-%Y') + timedelta(days=1)).strftime('%d-%m-%Y')
+    def _get_prefix_of_files_that_should_be_downloaded_for_specified_single_date(asset_parameters: AssetParameters) -> list[str]:
+        one_date_after = (datetime.strptime(asset_parameters.date, '%d-%m-%Y') + timedelta(days=1)).strftime('%d-%m-%Y')
 
-        target_day_date_prefix = DataScraper._get_base_of_filename(asset_parameters=asset_parameters, date=date)
-        day_date_one_after_prefix = DataScraper._get_base_of_filename(asset_parameters=asset_parameters, date=one_date_after) + 'T00-0'
+        asset_parameters_for_the_next_day = copy.copy(asset_parameters)
+        asset_parameters_for_the_next_day.date = one_date_after
 
-        prefixes_list = [target_day_date_prefix, day_date_one_after_prefix]
+        target_day_date_prefix = DataScraper._get_base_of_filename(asset_parameters=asset_parameters)
+        day_date_one_after_prefix = DataScraper._get_base_of_filename(asset_parameters=asset_parameters_for_the_next_day) + 'T00-0'
 
-        return prefixes_list
+        return [target_day_date_prefix, day_date_one_after_prefix]
 
     def _get_stream_type_download_handler(self, stream_type: StreamType) -> callable:
         handler_lookup = {
-            StreamType.DIFFERENCE_DEPTH_STREAM: self._difference_depth_stream_type_download_handler,
+            StreamType.DIFFERENCE_DEPTH_STREAM: self._difference_depth_stream_download_handler,
             StreamType.TRADE_STREAM: self._trade_stream_type_download_handler,
-            StreamType.DEPTH_SNAPSHOT: self._difference_depth_snapshot_stream_type_download_handler
+            StreamType.DEPTH_SNAPSHOT: self._depth_snapshot_stream_type_download_handler
         }
         return handler_lookup[stream_type]
 
-    def _difference_depth_stream_type_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
+    def _difference_depth_stream_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
 
         len_of_files_to_be_downloaded = len(list_of_file_to_be_downloaded)
 
@@ -641,8 +639,127 @@ class DataScraper:
 
             return pd.DataFrame(data=records, columns=columns)
 
-    def _difference_depth_snapshot_stream_type_download_handler(self, files_list_to_download: list[str]) -> pd.DataFrame:
-        ...
+    def _depth_snapshot_stream_type_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
+        len_of_files_to_be_downloaded = len(list_of_file_to_be_downloaded)
+
+        records = []
+        with alive_bar(len_of_files_to_be_downloaded, force_tty=True, spinner='dots_waves', title='') as bar:
+            for i in range(0, len_of_files_to_be_downloaded, self.amount_of_files_to_be_downloaded_at_once):
+                batch = list_of_file_to_be_downloaded[i:i + self.amount_of_files_to_be_downloaded_at_once]
+                result_queue = queue.Queue()
+                threads_list = []
+
+                for idx, file_name in enumerate(batch, start=i):
+                    thread = threading.Thread(target=self.download_file_and_put_json_into_queue,
+                                              args=(file_name, result_queue, idx))
+                    threads_list.append(thread)
+                    thread.start()
+
+                for thread in threads_list:
+                    thread.join()
+
+                batch_results = [result_queue.get() for _ in range(len(batch))]
+                batch_results.sort(key=lambda x: x[0])
+
+                for index, json_dict in batch_results:
+                    record = json_dict
+                    last_update_id = record["lastUpdateId"]
+
+                    if market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+                        message_output_time = record["E"]
+                        transaction_time = record["T"]
+                    if market is Market.COIN_M_FUTURES:
+                        symbol = record['symbol']
+                        pair = record['pair']
+
+                    snapshot_request_timestamp = record["_rq"]
+                    snapshot_receive_timestamp = record["_rc"]
+
+                    if market is Market.SPOT:
+                        for side in ['bids', 'asks']:
+                            for price_level in record[side]:
+                                is_ask = 0 if side == 'bids' else 1
+                                records.append(
+                                    [
+                                        snapshot_receive_timestamp,
+                                        snapshot_request_timestamp,
+                                        last_update_id,
+                                        is_ask,
+                                        str(price_level[0]),
+                                        str(price_level[1])
+                                    ]
+                                )
+                    if market is Market.USD_M_FUTURES:
+                        for side in ['bids', 'asks']:
+                            for price_level in record[side]:
+                                is_ask = 0 if side == 'bids' else 1
+                                records.append(
+                                    [
+                                        snapshot_receive_timestamp,
+                                        snapshot_request_timestamp,
+                                        message_output_time,
+                                        transaction_time,
+                                        last_update_id,
+                                        is_ask,
+                                        str(price_level[0]),
+                                        str(price_level[1])
+                                    ]
+                                )
+                    if market is Market.COIN_M_FUTURES:
+                        for side in ['bids', 'asks']:
+                            for price_level in record[side]:
+                                is_ask = 0 if side == 'bids' else 1
+                                records.append(
+                                    [
+                                        snapshot_receive_timestamp,
+                                        snapshot_request_timestamp,
+                                        message_output_time,
+                                        transaction_time,
+                                        last_update_id,
+                                        symbol,
+                                        pair,
+                                        is_ask,
+                                        str(price_level[0]),
+                                        str(price_level[1])
+                                    ]
+                                )
+                    bar()
+
+        if market == Market.SPOT:
+            columns = [
+                "TimestampOfReceive",
+                "TimestampOfRequest",
+                "LastUpdateId",
+                "IsAsk",
+                "Price",
+                "Quantity"
+            ]
+        elif market == Market.USD_M_FUTURES:
+            columns = [
+                "TimestampOfReceive",
+                "TimestampOfRequest",
+                "MessageOutputTime",
+                "TransactionTime",
+                "LastUpdateId",
+                "IsAsk",
+                "Price",
+                "Quantity"
+            ]
+        elif market == Market.COIN_M_FUTURES:
+            columns = [
+                "TimestampOfReceive",
+                "TimestampOfRequest",
+                "MessageOutputTime",
+                "TransactionTime",
+                "LastUpdateId",
+                "Symbol",
+                "Pair",
+                "IsAsk",
+                "Price",
+                "Quantity"
+            ]
+
+        return pd.DataFrame(data=records, columns=columns)
 
     def download_file_and_put_json_into_queue(self, file_name: str, result_queue: queue.Queue, index: int) -> None:
         try:

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pandas as pd
 
+from binance_archiver.enum_.asset_parameters import AssetParameters
 from binance_archiver.enum_.epoch_time_unit import EpochTimeUnit
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.enum_.stream_type_enum import StreamType
 
 
 class IndividualColumnChecker:
@@ -57,6 +60,22 @@ class IndividualColumnChecker:
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
         day_end_ms = day_start_ms + day_length - 1
         sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * 60
+
+        first_timestamp = series.iloc[0]
+        last_timestamp = series.iloc[-1]
+
+        first_within_range = day_start_ms <= first_timestamp <= day_start_ms + sixty_seconds
+        last_within_range = day_end_ms - sixty_seconds <= last_timestamp <= day_end_ms
+
+        return first_within_range and last_within_range
+
+    @staticmethod
+    def are_first_and_last_timestamps_within_10_minutes_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+        day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
+        day_length = 86_400 * epoch_time_unit.multiplier_of_second
+        day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
+        day_end_ms = day_start_ms + day_length - 1
+        sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * 60 * 10
 
         first_timestamp = series.iloc[0]
         last_timestamp = series.iloc[-1]
@@ -123,6 +142,23 @@ class IndividualColumnChecker:
     @staticmethod
     def is_each_trade_id_bigger_by_one_than_previous(series: pd.Series) -> bool:
         return series.diff()[1:].eq(1).all()
+
+    @staticmethod
+    def is_each_snapshot_price_level_amount_accurate_to_market(df: pd.DataFrame, asset_parameters: AssetParameters) -> bool:
+        if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT:
+            raise Exception('is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT')
+
+        limits_per_side = {
+            Market.SPOT: 5000,
+            Market.USD_M_FUTURES: 1000,
+            Market.COIN_M_FUTURES: 1000
+        }
+        limit_per_side = limits_per_side[asset_parameters.market]
+
+        price_level_counts = df.groupby(['LastUpdateId', 'IsAsk']).size()
+
+        return (price_level_counts == limit_per_side).all()
+
 
 '''
     # TRADES CHECK
@@ -210,6 +246,7 @@ class IndividualColumnChecker:
 
     ::["data"]["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
+            is_whole_series_epoch_valid
             is_transaction_time_lower_or_equal_event_time
 
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
@@ -246,6 +283,68 @@ class IndividualColumnChecker:
             are_values_with_specified_type
             are_values_non_negative
             are_values_within_reasonable_range
+'''
+
+'''
+    # DEPTH SNAPSHOT CHECK
+
+    ::["_rc"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_whole_series_epoch_valid
+            are_all_within_utc_z_day_range
+            are_first_and_last_timestamp_within_60_seconds_from_the_borders
+    ::["_rc"] 'TimestampOfReceive' [USD_M_FUTURES, COIN_M_FUTURES]
+        is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
+
+    ::["_rq"] 'TimestampOfRequest' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_whole_series_epoch_valid           
+
+    ::["E"] 'MessageOutputTime' [USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_whole_series_epoch_valid
+
+    ::["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_whole_series_epoch_valid
+            is_transaction_time_lower_or_equal_event_time
+
+    ::["lastUpdateId"] 'LastUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+
+    ::["symbol"] 'Symbol' [COIN_M_FUTURES]
+            is_there_only_one_unique_value_in_series
+            is_whole_series_made_of_only_one_expected_value
+
+    ::["pair"] 'Pair' [COIN_M_FUTURES]
+            is_there_only_one_unique_value_in_series
+            is_whole_series_made_of_only_one_expected_value
+
+    ::["bids"][0]/["asks"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_with_specified_type
+            are_values_positive
+            are_values_within_reasonable_range
+
+    ::["bids"][1]/["asks"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_with_specified_type
+            are_values_non_negative
+            are_values_within_reasonable_range
+            
+    ::MISC
+            is_price_level_amount_equal_to_market_amount_limit 
+            context of is_price_level_amount_equal_to_market_amount_limit:
+            
+            base_urls = {
+                Market.SPOT: 'https://api.binance.com/api/v3/depth?symbol={}&limit={}',
+                Market.USD_M_FUTURES: 'https://fapi.binance.com/fapi/v1/depth?symbol={}&limit={}',
+                Market.COIN_M_FUTURES: 'https://dapi.binance.com/dapi/v1/depth?symbol={}&limit={}'
+            }
+    
+            limits = {
+                Market.SPOT: 5000,
+                Market.USD_M_FUTURES: 1000,
+                Market.COIN_M_FUTURES: 1000
+                }	
 '''
 
 '''
