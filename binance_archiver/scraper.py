@@ -35,7 +35,8 @@ def download_csv_data(
         pairs: list[str] | None = None,
         markets: list[str] | None = None,
         stream_types: list[str] | None = None,
-        skip_existing: bool = False
+        skip_existing: bool = False,
+        amount_of_files_to_be_downloaded_at_once: int = 10
         ) -> None:
 
     data_scraper = DataScraper(storage_connection_parameters)
@@ -46,14 +47,16 @@ def download_csv_data(
         pairs=pairs,
         date_range=date_range,
         dump_path=dump_path,
-        skip_existing=skip_existing
+        skip_existing=skip_existing,
+        amount_of_files_to_be_downloaded_at_once=amount_of_files_to_be_downloaded_at_once
     )
 
 
 class DataScraper:
 
     __slots__ = [
-        'storage_client'
+        'storage_client',
+        'amount_of_files_to_be_downloaded_at_once'
     ]
 
     def __init__(
@@ -76,6 +79,8 @@ class DataScraper:
         else:
             raise ValueError('No storage specified...')
 
+        self.amount_of_files_to_be_downloaded_at_once = ...
+
     def run(
             self,
             markets: list[str],
@@ -83,8 +88,11 @@ class DataScraper:
             pairs: list[str],
             date_range: list[str],
             dump_path: str | None,
-            skip_existing: bool = True
+            skip_existing: bool = True,
+            amount_of_files_to_be_downloaded_at_once: int = 10
     ) -> None:
+
+        self.amount_of_files_to_be_downloaded_at_once = amount_of_files_to_be_downloaded_at_once
 
         print(f'\033[35m{binance_archiver_logo}')
 
@@ -200,7 +208,7 @@ class DataScraper:
     @staticmethod
     def _generate_asset_parameters_data_classes_list(markets: list[str], stream_types: list[str], pairs: list[str], dates: list[str]) -> list[AssetParameters]:
         markets = [Market(market.lower()) for market in markets]
-        stream_types = [StreamType[stream_type.upper()] for stream_type in stream_types]
+        stream_types = [StreamType(stream_type.lower()) for stream_type in stream_types]
         pairs = [pair.lower() for pair in pairs]
 
         return [
@@ -238,6 +246,9 @@ class DataScraper:
                     dump_path=dump_path,
                     target_file_name=target_file_name
                 )
+
+                del dataframe_quality_report
+                del dataframe
 
     def _get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(self, asset_parameters: AssetParameters, date: str) -> pd.DataFrame:
         list_of_files_with_specified_prefixes_that_should_be_downloaded = (
@@ -327,12 +338,11 @@ class DataScraper:
     def _difference_depth_stream_type_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
 
         len_of_files_to_be_downloaded = len(list_of_file_to_be_downloaded)
-        amount_of_files_to_be_downloaded_at_once = 20
 
         records = []
         with alive_bar(len_of_files_to_be_downloaded, force_tty=True, spinner='dots_waves', title='') as bar:
-            for i in range(0, len_of_files_to_be_downloaded, amount_of_files_to_be_downloaded_at_once):
-                batch = list_of_file_to_be_downloaded[i:i + amount_of_files_to_be_downloaded_at_once]
+            for i in range(0, len_of_files_to_be_downloaded, self.amount_of_files_to_be_downloaded_at_once):
+                batch = list_of_file_to_be_downloaded[i:i + self.amount_of_files_to_be_downloaded_at_once]
                 result_queue = queue.Queue()
                 threads_list = []
 
@@ -522,12 +532,11 @@ class DataScraper:
     def _trade_stream_type_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
 
         len_of_files_to_be_downloaded = len(list_of_file_to_be_downloaded)
-        amount_of_files_to_be_downloaded_at_once = 20
 
         records = []
         with alive_bar(len_of_files_to_be_downloaded, force_tty=True, spinner='dots_waves', title='') as bar:
-            for i in range(0, len_of_files_to_be_downloaded, amount_of_files_to_be_downloaded_at_once):
-                batch = list_of_file_to_be_downloaded[i:i + amount_of_files_to_be_downloaded_at_once]
+            for i in range(0, len_of_files_to_be_downloaded, self.amount_of_files_to_be_downloaded_at_once):
+                batch = list_of_file_to_be_downloaded[i:i + self.amount_of_files_to_be_downloaded_at_once]
                 result_queue = queue.Queue()
                 threads_list = []
 
