@@ -22,7 +22,8 @@ if __name__ == '__main__':
             'TRADE_STREAM',
             'DIFFERENCE_DEPTH_STREAM'
         ],
-        skip_existing=False
+        skip_existing=False,
+        amount_of_files_to_be_downloaded_at_once=15
     )
 
     conduct_data_quality_analysis_on_specified_csv_list(
