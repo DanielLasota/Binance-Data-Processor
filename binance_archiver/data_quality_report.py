@@ -49,7 +49,7 @@ class DataQualityReport:
 
         lines = [
             f"#################################################################",
-            f"# Unfazed Binance Archiver. All Copyrights 2025 Matheus Pokora ©®",
+            f"# Unfazed Binance Archiver. All Copyrights 2025 Daniel Lasota",
             f"# Data Quality Report for {self.asset_parameters}",
             f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-4]}Z"
         ]

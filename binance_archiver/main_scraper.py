@@ -7,12 +7,12 @@ from binance_archiver.scraper import download_csv_data
 
 
 if __name__ == '__main__':
-    load_dotenv('binance-archiver-1.env')
+    load_dotenv('binance-archiver-3.env')
 
     download_csv_data(
         date_range=['10-03-2025', '10-03-2025'],
         storage_connection_parameters=StorageConnectionParameters(),
-        pairs=['TRXUSDT'],
+        pairs=['BTCUSDT'],
         markets=[
             'SPOT',
             'USD_M_FUTURES',
@@ -22,7 +22,7 @@ if __name__ == '__main__':
             'TRADE_STREAM',
             'DIFFERENCE_DEPTH_STREAM'
         ],
-        skip_existing=True
+        skip_existing=False
     )
 
     conduct_data_quality_analysis_on_specified_csv_list(
