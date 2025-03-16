@@ -1,7 +1,9 @@
 import io
-
 import pandas as pd
 
+from binance_archiver.enum_.asset_parameters import AssetParameters
+from binance_archiver.enum_.market_enum import Market
+from binance_archiver.enum_.stream_type_enum import StreamType
 from binance_archiver.individual_column_checker import IndividualColumnChecker
 from binance_archiver.enum_.epoch_time_unit import EpochTimeUnit
 
@@ -519,6 +521,116 @@ class TestIndividualColumnChecker:
         series = pd.Series([1, 2, 4, 5])
         assert IndividualColumnChecker.is_each_trade_id_bigger_by_one_than_previous(series) == False
 
+    #### is_each_snapshot_price_level_amount_accurate_to_market
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_positive_spot(self):
+        data = {
+            'LastUpdateId': [1] * 10000,
+            'IsAsk': [0] * 5000 + [1] * 5000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        assert result == True, "Expected True for SPOT market with exactly 5000 bids and 5000 asks for snapshot"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_positive_usd_m_futures(self):
+        data = {
+            'LastUpdateId': [1] * 2000,
+            'IsAsk': [0] * 1000 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.USD_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        assert result == True, "Expected True for USD_M_FUTURES market with exactly 1000 bids and 1000 asks for snapshot"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_positive_coin_m_futures(self):
+        data = {
+            'LastUpdateId': [1] * 2000,
+            'IsAsk': [0] * 1000 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.COIN_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSD_PERP'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        assert result == True, "Expected True for COIN_M_FUTURES market with exactly 1000 bids and 1000 asks for snapshot"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_spot_exceeds_limit(self):
+        data = {
+            'LastUpdateId': [1] * 10001,
+            'IsAsk': [0] * 5001 + [1] * 5000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        assert result == False, "Expected False for SPOT market with 5001 bids (exceeds 5000 limit)"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_usd_m_futures_exceeds_limit(self):
+        data = {
+            'LastUpdateId': [1] * 2001,
+            'IsAsk': [0] * 1001 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.USD_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        assert result == False, "Expected False for USD_M_FUTURES market with 1001 bids (exceeds 1000 limit)"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_multiple_snapshots_exceeds_limit(self):
+        data = {
+            'LastUpdateId': [1] * 2000 + [2] * 2001,
+            'IsAsk': [0] * 1000 + [1] * 1000 + [0] * 1001 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.COIN_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSD_PERP'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        assert result == False, "Expected False for COIN_M_FUTURES market with one snapshot having 1001 bids (exceeds 1000 limit)"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_raises_exception_for_wrong_stream_type(self):
+        data = {
+            'LastUpdateId': [1] * 2000,
+            'IsAsk': [0] * 1000 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.TRADE_STREAM,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        try:
+            IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+            assert False, "Expected an exception for wrong stream type"
+        except Exception as e:
+            assert str(
+                e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
 
 class TestIndividualColumnCheckerQuantitativeEdition:
 
@@ -862,3 +974,61 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         df = pd.read_csv('test_csvs/test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TradeId'])
         result_of_check = IndividualColumnChecker.is_each_trade_id_bigger_by_one_than_previous(series=df['TradeId'])
         assert result_of_check == False
+
+    #### is_each_snapshot_price_level_amount_accurate_to_market
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_positive(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk']
+        )
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='11-03-2025'
+        )
+        result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
+            df=df,
+            asset_parameters=asset_params
+        )
+        assert result_of_check == True, "Expected True for SPOT market snapshot with exactly 5000 bids and 5000 asks per snapshot"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_exceeds_limit(self):
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk']
+        )
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='11-03-2025'
+        )
+        result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
+            df=df,
+            asset_parameters=asset_params
+        )
+        print(f'result_of_check: {result_of_check}')
+        assert result_of_check == False, "Expected False for SPOT market snapshot with at least one side exceeding or below 5000 limit"
+
+    def test_is_each_snapshot_price_level_amount_accurate_to_market_raises_exception_for_wrong_stream_type(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk']
+        )
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.TRADE_STREAM,
+            pairs=['BTCUSDT'],
+            date='11-03-2025'
+        )
+        try:
+            IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
+                df=df,
+                asset_parameters=asset_params
+            )
+            assert False, "Expected an exception for wrong stream type"
+        except Exception as e:
+            assert str(
+                e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
