@@ -48,7 +48,15 @@ class DataQualityChecker:
             StreamType.DEPTH_SNAPSHOT: self._analyse_difference_depth_snapshot_dataframe
         }
         handler = stream_type_handlers.get(asset_parameters.stream_type)
-        return handler(dataframe=dataframe, asset_parameters=asset_parameters)
+        return handler(
+            dataframe=dataframe.astype(
+                {
+                    'Price': float,
+                    'Quantity': float
+                }
+            ),
+            asset_parameters=asset_parameters
+        )
 
     def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
         self.print_logo()
