@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='binance-archiver',
-    version='0.0.2',
+    version='0.0.3',
     packages=find_packages(),
     install_requires=[
         'python-dotenv',
@@ -11,18 +11,16 @@ setup(
         'uvicorn',
         'websockets',
         'orjson',
-        'requests'
+        'requests',
+        'numpy',
+        'pandas',
+        'alive-progress'
     ],
     extras_require={
         'dev': [
             'pytest',
             'objgraph',
             'pympler'
-        ],
-        'scraper': [
-            'numpy',
-            'pandas',
-            'alive-progress'
         ],
         'azure': [
             'azure-identity',
@@ -35,6 +33,7 @@ setup(
     author_email="grossmann.root@gmail.com",
     description="A package for archiving Binance data",
     keywords="binance archiver quant data sprzedam opla",
-    url="http://youtube.com",
+    url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     python_requires='>=3.11',
 )
+
