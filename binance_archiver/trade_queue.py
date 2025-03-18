@@ -19,7 +19,7 @@ class PutTradeMessageStrategy(ABC):
         message: str,
         timestamp_of_receive: int
     ) -> None:
-        pass
+        ...
 
 
 class ContinuousListeningStrategy(PutTradeMessageStrategy):

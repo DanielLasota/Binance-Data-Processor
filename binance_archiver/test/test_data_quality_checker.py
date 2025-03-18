@@ -247,13 +247,13 @@ class TestIndividualColumnChecker:
 
     def test_is_transaction_time_lower_or_equal_event_time_positive(self):
         transaction_series = pd.Series([1718196460656, 1718196461280])
-        event_time_series = pd.Series([1718196460656, 1718196461380])
-        assert IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(transaction_series, event_time_series) == True
+        event_time_series = pd.Series([1718196460655, 1718196461380])
+        assert IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(transaction_series, event_time_series, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == True
 
     def test_is_transaction_time_lower_or_equal_event_time_negative(self):
-        transaction_series = pd.Series([1718196460656, 1718196461380])
-        event_time_series = pd.Series([1718196460656, 1718196461280])
-        assert IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(transaction_series, event_time_series) == False
+        transaction_series = pd.Series([1718196460656, 1718196461280])
+        event_time_series = pd.Series([1718196460654, 1718196461380])
+        assert IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(transaction_series, event_time_series, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
 
     ####    are_series_values_increasing
 
@@ -824,17 +824,19 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_transaction_time_lower_or_equal_event_time_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TransactionTime', 'EventTime'])
-        result_of_check = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(
+        result_of_check = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(
             transaction_series=df['TransactionTime'],
-            event_time_series=df['EventTime']
+            event_time_series=df['EventTime'],
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
         )
         assert result_of_check == True
 
     def test_is_transaction_time_lower_or_equal_event_time_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TransactionTime', 'EventTime'])
-        result_of_check = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(
+        result_of_check = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(
             transaction_series=df['TransactionTime'],
-            event_time_series=df['EventTime']
+            event_time_series=df['EventTime'],
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
         )
         assert result_of_check == False
 

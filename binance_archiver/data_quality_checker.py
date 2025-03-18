@@ -74,18 +74,21 @@ class DataQualityChecker:
         data_quality_report_list = []
         with alive_bar(len(csv_paths), force_tty=True, spinner='dots_waves') as bar:
             for csv_path in csv_paths:
-                csv_name = csv_path.split('/')[-1]
-                asset_parameters = self.decode_asset_parameters_from_csv_name(csv_name)
-                dataframe = pd.read_csv(csv_path, comment='#')
-                dataframe_quality_report = self.get_dataframe_quality_report(
-                    dataframe=dataframe,
-                    asset_parameters=asset_parameters
-                )
-                file_name = csv_path.split('/')[-1]
-                dataframe_quality_report.set_file_name(file_name)
-                data_quality_report_list.append(dataframe_quality_report)
+                try:
+                    csv_name = csv_path.split('/')[-1]
+                    asset_parameters = self.decode_asset_parameters_from_csv_name(csv_name)
+                    dataframe = pd.read_csv(csv_path, comment='#')
+                    dataframe_quality_report = self.get_dataframe_quality_report(
+                        dataframe=dataframe,
+                        asset_parameters=asset_parameters
+                    )
+                    file_name = csv_path.split('/')[-1]
+                    dataframe_quality_report.set_file_name(file_name)
+                    data_quality_report_list.append(dataframe_quality_report)
 
-                bar()
+                    bar()
+                except Exception as e:
+                    print(f'data_quality_checker.py _conduct_quality_analysis_from_csv_paths_list, {csv_path}: {e}')
 
         data_quality_positive_report_list = [
             report for report
@@ -197,10 +200,10 @@ class DataQualityChecker:
 
         is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
         is_transaction_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TransactionTime'])
-        is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(dataframe['TransactionTime'], dataframe['EventTime'])
+        is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['EventTime'])
         report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
         report.add_test_result("TransactionTime", "is_whole_series_epoch_valid", is_transaction_time_epoch_valid)
-        report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time",is_transaction_time_lower_or_equal_event)
+        report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance",is_transaction_time_lower_or_equal_event)
 
         is_symbol_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Symbol'])
         is_symbol_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Symbol'], asset_parameters.pairs[0].upper())
@@ -287,11 +290,11 @@ class DataQualityChecker:
 
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
-            is_transaction_time_lower_or_equal_event_time = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(dataframe['TransactionTime'], dataframe['EventTime'])
+            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['EventTime'])
             is_transaction_time_column_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['EventTime'])
             report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
             report.add_test_result("TransactionTime", "is_transaction_time_column_epoch_valid", is_transaction_time_column_epoch_valid)
-            report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time", is_transaction_time_lower_or_equal_event_time)
+            report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance", is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance)
 
         is_there_only_one_unique_value_in_symbol_column = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Symbol'])
         is_whole_symbol_column_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Symbol'], asset_parameters.pairs[0].upper())
@@ -376,10 +379,10 @@ class DataQualityChecker:
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
             is_transaction_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TransactionTime'])
-            is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time(dataframe['TransactionTime'], dataframe['MessageOutputTime'])
+            is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['MessageOutputTime'])
             report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
             report.add_test_result("TransactionTime", "is_whole_series_epoch_valid", is_transaction_time_epoch_valid)
-            report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time", is_transaction_time_lower_or_equal_event)
+            report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance", is_transaction_time_lower_or_equal_event)
 
         is_last_update_id_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['LastUpdateId'])
         report.add_test_result("LastUpdateId", "is_series_non_decreasing", is_last_update_id_non_decreasing)
