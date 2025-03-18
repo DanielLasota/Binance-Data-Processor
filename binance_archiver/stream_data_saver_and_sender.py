@@ -6,7 +6,6 @@ import os
 import threading
 import time
 import zipfile
-import zlib
 from collections import defaultdict
 import re
 
@@ -193,8 +192,7 @@ class StreamDataSaverAndSender:
             stream_data = defaultdict(list)
 
             while not queue.empty():
-                compressed_message = queue.get_nowait()
-                message = zlib.decompress(compressed_message).decode('utf-8')
+                message = queue.get_nowait()
 
                 match = self._stream_message_pair_pattern.search(message)
                 pair_found_in_message = match.group(1)

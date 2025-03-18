@@ -1,6 +1,5 @@
 import re
 import uuid
-import zlib
 from queue import Queue
 from collections import deque
 from typing import final, Tuple
@@ -22,7 +21,7 @@ class PutDepthMessageStrategy(ABC):
         message: str,
         timestamp_of_receive: int
     ) -> None:
-        pass
+        ...
 
 
 class ContinuousListeningStrategy(PutDepthMessageStrategy):
@@ -41,8 +40,7 @@ class ContinuousListeningStrategy(PutDepthMessageStrategy):
         with self.context.lock:
             if stream_listener_id.id_keys == self.context.currently_accepted_stream_id_keys:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
-                self.context.queue.put(compressed_message)
+                self.context.queue.put(message_with_timestamp_of_receive)
 
 
 class SwitchingWebsocketsStrategy(PutDepthMessageStrategy):
@@ -66,8 +64,7 @@ class SwitchingWebsocketsStrategy(PutDepthMessageStrategy):
 
             if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
-                self.context.queue.put(compressed_message)
+                self.context.queue.put(message_with_timestamp_of_receive)
 
             self.context.append_message_to_compare_structure(stream_listener_id, message)
 

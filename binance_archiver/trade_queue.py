@@ -43,8 +43,7 @@ class ContinuousListeningStrategy(PutTradeMessageStrategy):
 
             if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
-                self.context.queue.put(compressed_message)
+                self.context.queue.put(message_with_timestamp_of_receive)
             else:
                 self.context.new_stream_listener_id_keys = stream_listener_id_keys
 
@@ -70,8 +69,7 @@ class SwitchingWebsocketsStrategy(PutTradeMessageStrategy):
 
             if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
-                self.context.queue.put(compressed_message)
+                self.context.queue.put(message_with_timestamp_of_receive)
             else:
                 self.context.new_stream_listener_id_keys = stream_listener_id_keys
 
