@@ -86,8 +86,9 @@ class IndividualColumnChecker:
         return first_within_range and last_within_range
 
     @staticmethod
-    def is_transaction_time_lower_or_equal_event_time(transaction_series: pd.Series, event_time_series: pd.Series) -> bool:
-        return (transaction_series <= event_time_series).all()
+    def is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(transaction_series: pd.Series, event_time_series: pd.Series, epoch_time_unit: EpochTimeUnit) -> bool:
+        one_millisecond = epoch_time_unit.multiplier_of_second * 0.001
+        return (transaction_series <= event_time_series + one_millisecond).all()
 
     @staticmethod
     def are_series_values_increasing(series: pd.Series) -> bool:
