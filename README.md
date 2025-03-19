@@ -1,79 +1,176 @@
-# Real-time market data listener and archiver in python. 
-Saves raw binance data from:
-limit orderbook difference depth stream
-limit orderbook difference depth snapshot request
-transaction stream
+# Binance-Archiver
+## A Package for Listening or Archiving to Multiple Binance WebSockets with Snapshots.
+## Package contains scraper with built-in quality report for each column
 
-into .json / .json.zip / .json.zip on azure or backblaze
+```bash
+pip install binance-archiver
+```
 
-simply enter azure backblaze connection params into environment variables and import 
+### Functions:
+1. Listener
+2. Archiver 
+3. Scraper  
+4. CSV Data Quality Checker
 
-'launch_data_sink' - use as data sink
+### Handles:
+spot  
+futures usd-m  
+futures coin-m
 
-or 
+difference depth stream  
+trade stream  
+depth snapshot  
 
-'launch_data_listener' - Use in your algo trading as it just informs all observers without data save
-
-NEW!!!:
-Although Binance now limits each WebSocket connection to 24 hours, this code runs continuously (24/7) without missing any stream entries!
+.json, zip, azure, backblaze
 
 
-# Handles: 
-spot, futures usd-m, futures coin-m
-Level 2 orderbook difference depth stream
-trade stream
-orderbook snapshots with configured trigger interval 
-24-hour WebSocket lifecycle. At the end of the WebSocket's lifespan, it initiates a new WebSocket to ensure the continuity of data flow is maintained seamlessly.
 
-Configured to use as container on Azure with Azure blob / keyvault or backblaze
 
+## Listener Mode: 
+```python
+from binance_archiver import launch_data_listener
+
+
+class SampleObserverClass:
+    @staticmethod
+    def update(message):
+        print(f"message: {message}")
+
+if __name__ == '__main__':
+    sample_observer = SampleObserverClass()
+
+    data_listener = launch_data_listener(observers=[sample_observer])
+
+```
+
+## Archiver Mode: 
+
+backblaze / azure env pattern:
+
+VAULT_URL=  
+BACKBLAZE_ACCESS_KEY_ID=  
+BACKBLAZE_SECRET_ACCESS_KEY=  
+BACKBLAZE_ENDPOINT_URL=  
+BACKBLAZE_BUCKET_NAME=  
+
+```python
+import os
+import time
+from dotenv import load_dotenv
+from binance_archiver import launch_data_sink
+
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+load_dotenv(env_path)
+
+if __name__ == "__main__":
+    
+    data_sink = launch_data_sink()
+
+    while not data_sink.global_shutdown_flag.is_set():
+        time.sleep(16)
+
+    data_sink.logger.info('the program has ended, exiting')
+
+```
+now create your own config:
+```python
+import os
+import time
+from dotenv import load_dotenv
+
+from binance_archiver import load_config_from_json, DataSinkConfig, launch_data_sink
+from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
+
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+load_dotenv(env_path)
+
+
+if __name__ == "__main__":
+    config_from_json = load_config_from_json(json_filename='production_config.json')
+
+    data_sink_config = DataSinkConfig(
+        instruments={
+            'spot': ['BTCUSDT', 'TRXUSDT'],
+            'usd_m_futures': ['BTCUSDT', 'TRXUSDT'],
+            'coin_m_futures': ['BTCUSD_PERP', 'TRXUSD_PERP']
+        },
+        time_settings={
+            "file_duration_seconds": 300,
+            "snapshot_fetcher_interval_seconds": 60,
+            "websocket_life_time_seconds": 60*60*23
+        },
+        data_save_target=config_from_json['data_save_target'],
+        storage_connection_parameters=StorageConnectionParameters()
+    )
+
+    data_sink = launch_data_sink(data_sink_config=data_sink_config)
+
+    while not data_sink.global_shutdown_flag.is_set():
+        time.sleep(16)
+
+    data_sink.logger.info('the program has ended, exiting')
+```
+## Scraper with quality check:
+```python
+import os
+
+from dotenv import load_dotenv
+
+from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_archiver.scraper import download_csv_data
+
+
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+load_dotenv(env_path)
+
+
+if __name__ == '__main__':
+
+    download_csv_data(
+        date_range=['11-03-2025', '12-03-2025'],
+        storage_connection_parameters=StorageConnectionParameters(),
+        pairs=[
+            'BTCUSDT',
+            'TRXUSDT'
+        ],
+        markets=[
+            'SPOT',
+            'USD_M_FUTURES',
+            'COIN_M_FUTURES'
+        ],
+        stream_types=[
+            'TRADE_STREAM',
+            'DIFFERENCE_DEPTH_STREAM',
+            'DEPTH_SNAPSHOT',
+        ],
+        skip_existing=False,
+        amount_of_files_to_be_downloaded_at_once=20
+    )
+
+```
+Check csvs with certificate:
+```python
+from binance_archiver.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
+from binance_archiver.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
+
+if __name__ == '__main__':
+
+    conduct_data_quality_analysis_on_specified_csv_list(
+        csv_paths=[
+            'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_spot_btcusdt_10-03-2025.csv',
+            'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_usd_m_futures_btcusdt_10-03-2025.csv',
+            'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_coin_m_futures_btcusd_perp_10-03-2025.csv',
+        ]
+    )
+
+    conduct_data_quality_analysis_on_whole_directory('C:/Users/daniel/Documents/binance_archival_data/')
+
+```  
+
+### sample screenshots:
 ![image](https://github.com/user-attachments/assets/a9461c8d-b5a7-43de-b1cc-96ef5df72f40)
 
 ![image](https://github.com/user-attachments/assets/93a9cece-21fd-406c-8555-fbb774188265)
 
 ![Zrzut ekranu 2024-06-02 230137](https://github.com/DanielLasota/Binance-Archiver/assets/127039319/b400f859-60ef-4995-936d-d68ecab82ddf)
 
-
-
-## Installation
-
-```bash
-# to be announced
-```
-
-## Usage
-
-import the `run_stonks_analysis` function from the `stonks` module and run the script:
-
-```python
-import time
-from dotenv import load_dotenv
-
-from binance_archiver import load_config_from_json, DataSinkConfig, launch_data_sink
-
-if __name__ == "__main__":
-
-    load_dotenv('sample_env.env')
-
-    data_sink_config = DataSinkConfig(
-        instruments={
-            'spot': ['BTCUSDT', 'XRPUSDT'],
-            'usd_m_futures': ['BTCUSDT', 'XRPUSDT'],
-            'coin_m_futures': ['BTCUSDT', 'XRPUSDT']
-        },
-        time_settings={
-            "file_duration_seconds": 120,
-            "snapshot_fetcher_interval_seconds": 300,
-            "websocket_life_time_seconds": 120
-        },
-        data_save_target='azure_blob'
-    )
-
-    data_sink = launch_data_sink(data_sink_config=data_sink_config)
-    
-    time.sleep(99)
-    
-    data_sink.shutdown()
-    
-
-```

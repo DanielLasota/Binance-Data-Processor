@@ -1,13 +1,15 @@
+import os
 import time
 from dotenv import load_dotenv
 
 from binance_archiver import load_config_from_json, DataSinkConfig, launch_data_sink
 from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
 
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+load_dotenv(env_path)
+
 
 if __name__ == "__main__":
-
-    load_dotenv('binance-archiver-2.env')
     config_from_json = load_config_from_json(json_filename='production_config.json')
 
     data_sink_config = DataSinkConfig(

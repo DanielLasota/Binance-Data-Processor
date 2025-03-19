@@ -19,7 +19,10 @@ __all__ = [
     'BinanceDataSink'
 ]
 
-def launch_data_sink(data_sink_config: DataSinkConfig) -> BinanceDataSink:
+def launch_data_sink(data_sink_config: DataSinkConfig = None) -> BinanceDataSink:
+
+    if data_sink_config is None:
+        data_sink_config = DataSinkConfig()
 
     binance_data_sink = BinanceDataSink(data_sink_config=data_sink_config)
     binance_data_sink.run()

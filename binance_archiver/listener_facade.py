@@ -20,13 +20,13 @@ __all__ = [
 
 
 def launch_data_listener(
-        data_sink_config: DataSinkConfig,
-        init_observers: list[object] = None
+        data_sink_config: DataSinkConfig = DataSinkConfig(),
+        observers: list[object] = None
 ) -> BinanceDataListener:
 
     listener_facade = BinanceDataListener(
         data_sink_config=data_sink_config,
-        init_observers=init_observers
+        init_observers=observers
     )
 
     listener_facade.run()
