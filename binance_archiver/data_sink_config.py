@@ -18,9 +18,9 @@ class DataSinkConfig:
     )
     time_settings: IntervalSettings | dict[str, any] = field(
         default_factory=lambda: IntervalSettings(
-            file_duration_seconds=120,
-            snapshot_fetcher_interval_seconds=300,
-            websocket_life_time_seconds=60*60*23
+            file_duration_seconds=300,
+            snapshot_fetcher_interval_seconds=60,
+            websocket_life_time_seconds=60*60*6
         )
     )
     data_save_target: DataSaveTarget | str = DataSaveTarget.JSON

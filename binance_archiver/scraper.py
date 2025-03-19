@@ -36,7 +36,7 @@ def download_csv_data(
         pairs: list[str] | None = None,
         markets: list[str] | None = None,
         stream_types: list[str] | None = None,
-        skip_existing: bool = False,
+        skip_existing: bool = True,
         amount_of_files_to_be_downloaded_at_once: int = 10
         ) -> None:
 
