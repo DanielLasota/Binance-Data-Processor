@@ -5,7 +5,6 @@ from collections import deque
 from typing import final, Tuple
 import threading
 from abc import ABC, abstractmethod
-
 import orjson
 
 from binance_data_processor.core.exceptions import ClassInstancesAmountLimitException

@@ -15,7 +15,7 @@ __all__ = [
 
 __version__ = "0.0.1"
 __author__ = "Daniel Lasota <grossmann.root@gmail.com>"
-__description__ = "launch data sink or listening engine"
+__description__ = "launch data sink or listening engine. Then Run scraper with data quality certificate"
 __email__ = "grossmann.root@gmail.com"
 __url__ = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 __status__ = "development"
