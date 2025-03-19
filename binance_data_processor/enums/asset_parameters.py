@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.enum_.stream_type_enum import StreamType
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.enums.stream_type_enum import StreamType
 
 
 @dataclass(slots=True)

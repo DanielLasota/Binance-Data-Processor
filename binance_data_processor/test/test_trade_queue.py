@@ -4,9 +4,9 @@ import json
 from queue import Queue
 import pytest
 
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.stream_listener_id import StreamListenerId
-from binance_data_processor.trade_queue import TradeQueue, ClassInstancesAmountLimitException
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.core.stream_listener_id import StreamListenerId
+from binance_data_processor.core.trade_queue import TradeQueue, ClassInstancesAmountLimitException
 
 
 def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:

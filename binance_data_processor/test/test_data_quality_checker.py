@@ -1,11 +1,11 @@
 import io
 import pandas as pd
 
-from binance_data_processor.enum_.asset_parameters import AssetParameters
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.enum_.stream_type_enum import StreamType
-from binance_data_processor.individual_column_checker import IndividualColumnChecker
-from binance_data_processor.enum_.epoch_time_unit import EpochTimeUnit
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.enums.stream_type_enum import StreamType
+from binance_data_processor.scraper.individual_column_checker import IndividualColumnChecker
+from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
 
 
 class TestIndividualColumnChecker:

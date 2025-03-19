@@ -1,7 +1,7 @@
 import uuid
 import time
 
-from binance_data_processor.exceptions import BadStreamIdParameter
+from binance_data_processor.core.exceptions import BadStreamIdParameter
 
 
 class StreamListenerId:

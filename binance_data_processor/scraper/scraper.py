@@ -14,14 +14,14 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from typing import List
 
-from binance_data_processor.data_quality_checker import get_dataframe_quality_report, DataQualityChecker
-from binance_data_processor.data_quality_report import DataQualityReport
-from binance_data_processor.enum_.asset_parameters import AssetParameters
-from binance_data_processor.enum_.epoch_time_unit import EpochTimeUnit
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.enum_.stream_type_enum import StreamType
-from binance_data_processor.logo import binance_archiver_logo
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.scraper.data_quality_checker import get_dataframe_quality_report, DataQualityChecker
+from binance_data_processor.scraper.data_quality_report import DataQualityReport
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.enums.stream_type_enum import StreamType
+from binance_data_processor.core.logo import binance_archiver_logo
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
 
 
 __all__ = [

@@ -7,7 +7,7 @@ import os
 from typing import Tuple, Dict, Any, Optional
 import time
 
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
 
 
 class B2Client:

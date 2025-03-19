@@ -1,7 +1,7 @@
-from binance_data_processor.data_sink_config import DataSinkConfig
-from binance_data_processor.data_sink_facade import launch_data_sink, BinanceDataSink
-from binance_data_processor.listener_facade import launch_data_listener, BinanceDataListener
-from binance_data_processor.load_config import load_config_from_json
+from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.data_sink.data_sink_facade import launch_data_sink, BinanceDataSink
+from binance_data_processor.listener.listener_facade import launch_data_listener, BinanceDataListener
+from binance_data_processor.core.load_config import load_config_from_json
 
 __all__ = [
     'launch_data_sink',
@@ -9,7 +9,8 @@ __all__ = [
     'BinanceDataSink',
     'BinanceDataListener',
     'load_config_from_json',
-    'DataSinkConfig'
+    'DataSinkConfig',
+    '__version__'
 ]
 
 __version__ = "0.0.1"

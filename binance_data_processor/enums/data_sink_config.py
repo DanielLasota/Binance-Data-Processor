@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
 import os
 
-from binance_data_processor.enum_.data_save_target_enum import DataSaveTarget
-from binance_data_processor.enum_.instruments_matrix import InstrumentsMatrix
-from binance_data_processor.enum_.interval_settings import IntervalSettings
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
+from binance_data_processor.enums.instruments_matrix import InstrumentsMatrix
+from binance_data_processor.enums.interval_settings import IntervalSettings
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
 
 
 @dataclass(slots=True)
@@ -28,7 +28,7 @@ class DataSinkConfig:
         default=None,
         repr=False
     )
-    file_save_catalog: str = 'dump/'
+    file_save_catalog: str = '../dump/'
 
     def validate(self):
         if not isinstance(self.data_save_target, DataSaveTarget):

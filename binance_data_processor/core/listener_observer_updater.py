@@ -5,7 +5,7 @@ import queue
 import threading
 from queue import Queue
 
-from binance_data_processor.abstract_base_classes import Observer
+from binance_data_processor.core.abstract_base_classes import Observer
 
 
 class ListenerObserverUpdater:
