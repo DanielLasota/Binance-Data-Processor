@@ -10,14 +10,14 @@ from collections import defaultdict
 import re
 
 from binance_data_processor import DataSinkConfig
-from binance_data_processor.enum_.asset_parameters import AssetParameters
-from binance_data_processor.difference_depth_queue import DifferenceDepthQueue
-from binance_data_processor.enum_.data_save_target_enum import DataSaveTarget
-from binance_data_processor.exceptions import BadStorageConnectionParameters
-from binance_data_processor.queue_pool import ListenerQueuePool, DataSinkQueuePool
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
-from binance_data_processor.timestamps_generator import TimestampsGenerator
-from binance_data_processor.trade_queue import TradeQueue
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
+from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
+from binance_data_processor.core.exceptions import BadStorageConnectionParameters
+from binance_data_processor.core.queue_pool import ListenerQueuePool, DataSinkQueuePool
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.core.timestamps_generator import TimestampsGenerator
+from binance_data_processor.core.trade_queue import TradeQueue
 
 
 class StreamDataSaverAndSender:
@@ -138,7 +138,7 @@ class StreamDataSaverAndSender:
 
     @staticmethod
     def _get_own_lightweight_s3_client(storage_connection_parameters: StorageConnectionParameters):
-        from binance_data_processor.s3_client import S3Client
+        from binance_data_processor.cloud_storage_clients.s3_client import S3Client
 
         try:
             return S3Client(storage_connection_parameters=storage_connection_parameters)

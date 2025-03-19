@@ -14,11 +14,11 @@ import threading
 # from pympler import asizeof, muppy, tracker
 # from operator import itemgetter
 
-import binance_data_processor.data_sink_facade
+import binance_data_processor.data_sink.data_sink_facade
 from binance_data_processor import DataSinkConfig
-from binance_data_processor.enum_.commands_registry_enum import CommandsRegistry
-from binance_data_processor.stream_service import StreamService
-from binance_data_processor.enum_.market_enum import Market
+from binance_data_processor.enums.commands_registry_enum import CommandsRegistry
+from binance_data_processor.core.stream_service import StreamService
+from binance_data_processor.enums.market_enum import Market
 
 
 class CommandLineInterface:
@@ -356,7 +356,7 @@ class CommandLineInterface:
 
     def show_pympler_data_sink_object_analysis(self):
         data_sink_objects = [obj for obj in muppy.get_objects()
-                             if isinstance(obj, binance_data_processor.data_sink_facade.BinanceDataSink)]
+                             if isinstance(obj, binance_data_processor.data_sink.data_sink_facade.BinanceDataSink)]
 
         if len(data_sink_objects) == 1:
             data_sink = data_sink_objects[0]
@@ -367,7 +367,7 @@ class CommandLineInterface:
 
     def show_pympler_data_sink_object_analysis_with_detail_level(self, n_detail_level):
         data_sink_objects = [obj for obj in muppy.get_objects()
-                             if isinstance(obj, binance_data_processor.data_sink_facade.BinanceDataSink)]
+                             if isinstance(obj, binance_data_processor.data_sink.data_sink_facade.BinanceDataSink)]
 
         if len(data_sink_objects) == 1:
             data_sink = data_sink_objects[0]
@@ -381,7 +381,7 @@ class CommandLineInterface:
 
     def show_pympler_data_sink_object_analysis_with_manual_iteration(self):
         data_sink_objects = [obj for obj in muppy.get_objects()
-                             if isinstance(obj, binance_data_processor.data_sink_facade.BinanceDataSink)]
+                             if isinstance(obj, binance_data_processor.data_sink.data_sink_facade.BinanceDataSink)]
 
         if len(data_sink_objects) != 1:
             raise Exception('len of data_sink_objects != 1')

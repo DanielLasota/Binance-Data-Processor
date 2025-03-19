@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from binance_data_processor.enum_.market_enum import Market
+from binance_data_processor.enums.market_enum import Market
 import pprint
 
 @dataclass

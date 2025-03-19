@@ -8,9 +8,9 @@ from abc import ABC, abstractmethod
 
 import orjson
 
-from binance_data_processor.exceptions import ClassInstancesAmountLimitException
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.stream_listener_id import StreamListenerId
+from binance_data_processor.core.exceptions import ClassInstancesAmountLimitException
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.core.stream_listener_id import StreamListenerId
 
 
 class PutDepthMessageStrategy(ABC):

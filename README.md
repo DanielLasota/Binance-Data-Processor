@@ -1,9 +1,9 @@
-# Binance-Archiver
-## A Package for Listening or Archiving to Multiple Binance WebSockets with Snapshots.
+# Binance Data Processor
+## A Package for Listening / Archiving to Multiple Binance WebSockets with Snapshots.
 ## Package contains scraper with built-in quality report for each column
 
 ```bash
-pip install binance-archiver
+pip install binance-data-processor
 ```
 
 ### Functions:
@@ -82,7 +82,7 @@ import time
 from dotenv import load_dotenv
 
 from binance_data_processor import load_config_from_json, DataSinkConfig, launch_data_sink
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
 load_dotenv(env_path)
@@ -119,7 +119,7 @@ import os
 
 from dotenv import load_dotenv
 
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
 from binance_data_processor.scraper import download_csv_data
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
@@ -151,8 +151,8 @@ if __name__ == '__main__':
 Check csvs with certificate:
 
 ```python
-from binance_data_processor.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
-from binance_data_processor.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
+from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
+from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
 
 if __name__ == '__main__':
     conduct_data_quality_analysis_on_specified_csv_list(

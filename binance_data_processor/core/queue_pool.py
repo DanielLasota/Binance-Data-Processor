@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from queue import Queue
 
-from binance_data_processor.difference_depth_queue import DifferenceDepthQueue
-from binance_data_processor.trade_queue import TradeQueue
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.enum_.stream_type_enum import StreamType
+from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
+from binance_data_processor.core.trade_queue import TradeQueue
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.enums.stream_type_enum import StreamType
 
 
 class QueuePool:

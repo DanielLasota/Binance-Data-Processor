@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-
+from binance_data_processor import __version__
 
 setup(
-    name='binance-archiver',
-    version='0.0.3',
+    name='binance-data-processor',
+    version=__version__,
     packages=find_packages(),
     install_requires=[
         'python-dotenv',
@@ -32,7 +32,7 @@ setup(
     author="Daniel Lasota",
     author_email="grossmann.root@gmail.com",
     description="A package for archiving Binance data",
-    keywords="binance archiver quant data sprzedam opla",
+    keywords="binance data processor listener archiver quant data sprzedam opla",
     url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     python_requires='>=3.11',
 )

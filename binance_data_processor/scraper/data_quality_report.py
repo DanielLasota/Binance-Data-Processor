@@ -2,8 +2,8 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from binance_data_processor.enum_.asset_parameters import AssetParameters
-from binance_data_processor.enum_.data_quality_report_status_enum import DataQualityReportStatus
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.data_quality_report_status_enum import DataQualityReportStatus
 
 
 @dataclass
@@ -49,7 +49,7 @@ class DataQualityReport:
 
         lines = [
             f"#################################################################",
-            f"# Unfazed Binance Archiver. All Copyrights 2025 Daniel Lasota",
+            f"# Unfazed Binance Data Processor. All Copyrights 2025 Daniel Lasota",
             f"# Data Quality Report for {self.asset_parameters}",
             f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-4]}Z"
         ]
