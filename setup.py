@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-from binance_data_processor import __version__
+
 
 setup(
     name='binance-data-processor',
-    version=__version__,
+    version='0.0.1',
     packages=find_packages(),
     install_requires=[
         'python-dotenv',
@@ -14,6 +14,7 @@ setup(
         'requests',
         'numpy',
         'pandas',
+        'boto3==1.35.2',
         'alive-progress'
     ],
     extras_require={
