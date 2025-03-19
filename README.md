@@ -174,3 +174,5 @@ if __name__ == '__main__':
 
 ![Zrzut ekranu 2024-06-02 230137](https://github.com/DanielLasota/Binance-Archiver/assets/127039319/b400f859-60ef-4995-936d-d68ecab82ddf)
 
+![Control-V (4)](https://github.com/user-attachments/assets/5917b44c-e545-46f5-b5d0-3b3f5d322bb2)
+
