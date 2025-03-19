@@ -26,15 +26,17 @@ depth snapshot
 
 
 
-## Listener Mode: 
+## Listener Mode:
+
 ```python
-from binance_archiver import launch_data_listener
+from binance_data_processor import launch_data_listener
 
 
 class SampleObserverClass:
     @staticmethod
     def update(message):
         print(f"message: {message}")
+
 
 if __name__ == '__main__':
     sample_observer = SampleObserverClass()
@@ -51,19 +53,19 @@ VAULT_URL=
 BACKBLAZE_ACCESS_KEY_ID=  
 BACKBLAZE_SECRET_ACCESS_KEY=  
 BACKBLAZE_ENDPOINT_URL=  
-BACKBLAZE_BUCKET_NAME=  
+BACKBLAZE_BUCKET_NAME=
 
 ```python
 import os
 import time
 from dotenv import load_dotenv
-from binance_archiver import launch_data_sink
+from binance_data_processor import launch_data_sink
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
 load_dotenv(env_path)
 
 if __name__ == "__main__":
-    
+
     data_sink = launch_data_sink()
 
     while not data_sink.global_shutdown_flag.is_set():
@@ -73,17 +75,17 @@ if __name__ == "__main__":
 
 ```
 now create your own config:
+
 ```python
 import os
 import time
 from dotenv import load_dotenv
 
-from binance_archiver import load_config_from_json, DataSinkConfig, launch_data_sink
-from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor import load_config_from_json, DataSinkConfig, launch_data_sink
+from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
 load_dotenv(env_path)
-
 
 if __name__ == "__main__":
     config_from_json = load_config_from_json(json_filename='production_config.json')
@@ -97,7 +99,7 @@ if __name__ == "__main__":
         time_settings={
             "file_duration_seconds": 300,
             "snapshot_fetcher_interval_seconds": 60,
-            "websocket_life_time_seconds": 60*60*23
+            "websocket_life_time_seconds": 60 * 60 * 23
         },
         data_save_target=config_from_json['data_save_target'],
         storage_connection_parameters=StorageConnectionParameters()
@@ -111,21 +113,19 @@ if __name__ == "__main__":
     data_sink.logger.info('the program has ended, exiting')
 ```
 ## Scraper with quality check:
+
 ```python
 import os
 
 from dotenv import load_dotenv
 
-from binance_archiver.enum_.storage_connection_parameters import StorageConnectionParameters
-from binance_archiver.scraper import download_csv_data
-
+from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.scraper import download_csv_data
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
 load_dotenv(env_path)
 
-
 if __name__ == '__main__':
-
     download_csv_data(
         date_range=['11-03-2025', '12-03-2025'],
         storage_connection_parameters=StorageConnectionParameters(),
@@ -149,12 +149,12 @@ if __name__ == '__main__':
 
 ```
 Check csvs with certificate:
+
 ```python
-from binance_archiver.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
-from binance_archiver.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
+from binance_data_processor.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
+from binance_data_processor.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
 
 if __name__ == '__main__':
-
     conduct_data_quality_analysis_on_specified_csv_list(
         csv_paths=[
             'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_spot_btcusdt_10-03-2025.csv',
