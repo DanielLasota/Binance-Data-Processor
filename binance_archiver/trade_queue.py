@@ -1,5 +1,4 @@
 import uuid
-import zlib
 from queue import Queue
 from typing import final, Tuple
 import threading

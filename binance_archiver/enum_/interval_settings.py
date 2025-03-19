@@ -4,9 +4,9 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class IntervalSettings:
-    file_duration_seconds: int = 60 * 5
+    file_duration_seconds: int = 60*5
     snapshot_fetcher_interval_seconds: int = 60
-    websocket_life_time_seconds: int = 3600 * 23
+    websocket_life_time_seconds: int = 60*60*6
 
     def validate(self):
         if self.file_duration_seconds <= 0:
