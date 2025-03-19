@@ -9,11 +9,11 @@ from queue import Queue
 import requests
 
 from binance_data_processor import DataSinkConfig
-from binance_data_processor.enum_.asset_parameters import AssetParameters
-from binance_data_processor.stream_data_saver_and_sender import StreamDataSaverAndSender
-from binance_data_processor.enum_.stream_type_enum import StreamType
-from binance_data_processor.timestamps_generator import TimestampsGenerator
-from binance_data_processor.url_factory import URLFactory
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.core.stream_data_saver_and_sender import StreamDataSaverAndSender
+from binance_data_processor.enums.stream_type_enum import StreamType
+from binance_data_processor.core.timestamps_generator import TimestampsGenerator
+from binance_data_processor.core.url_factory import URLFactory
 
 
 class DepthSnapshotStrategy(ABC):

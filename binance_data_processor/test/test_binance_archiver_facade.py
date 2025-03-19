@@ -6,35 +6,35 @@ from queue import Queue
 from unittest.mock import patch, MagicMock
 import pytest
 
-from ..abstract_base_classes import Observer
-from binance_data_processor.enum_.asset_parameters import AssetParameters
-from ..exceptions import (
+from binance_data_processor.core.abstract_base_classes import Observer
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.core.exceptions import (
     ClassInstancesAmountLimitException,
 )
 
-from ..listener_facade import (
+from binance_data_processor.listener.listener_facade import (
     launch_data_listener,
     BinanceDataListener
 )
-from ..data_sink_facade import BinanceDataSink
+from binance_data_processor.data_sink.data_sink_facade import BinanceDataSink
 from .. import launch_data_sink, DataSinkConfig
-from ..snapshot_manager import DepthSnapshotStrategy, DataSinkDepthSnapshotStrategy, ListenerDepthSnapshotStrategy, \
+from binance_data_processor.core.snapshot_manager import DepthSnapshotStrategy, DataSinkDepthSnapshotStrategy, ListenerDepthSnapshotStrategy, \
     DepthSnapshotService
-from ..listener_observer_updater import ListenerObserverUpdater
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
-from ..stream_data_saver_and_sender import StreamDataSaverAndSender
-from ..queue_pool import ListenerQueuePool, DataSinkQueuePool
-from ..stream_service import StreamService
-from ..command_line_interface import CommandLineInterface
-from ..timestamps_generator import TimestampsGenerator
-from ..fastapi_manager import FastAPIManager
+from binance_data_processor.core.listener_observer_updater import ListenerObserverUpdater
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.core.stream_data_saver_and_sender import StreamDataSaverAndSender
+from binance_data_processor.core.queue_pool import ListenerQueuePool, DataSinkQueuePool
+from binance_data_processor.core.stream_service import StreamService
+from binance_data_processor.core.command_line_interface import CommandLineInterface
+from binance_data_processor.core.timestamps_generator import TimestampsGenerator
+from binance_data_processor.core.fastapi_manager import FastAPIManager
 
-from ..setup_logger import setup_logger
-from ..difference_depth_queue import DifferenceDepthQueue
-from ..stream_listener_id import StreamListenerId
-from ..trade_queue import TradeQueue
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.enum_.stream_type_enum import StreamType
+from binance_data_processor.core.setup_logger import setup_logger
+from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
+from binance_data_processor.core.stream_listener_id import StreamListenerId
+from binance_data_processor.core.trade_queue import TradeQueue
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.enums.stream_type_enum import StreamType
 
 
 class TestArchiverFacade:

@@ -2,10 +2,10 @@ import pytest
 import time
 from unittest.mock import MagicMock
 
-from binance_data_processor.enum_.asset_parameters import AssetParameters
-from binance_data_processor.enum_.market_enum import Market
-from binance_data_processor.enum_.stream_type_enum import StreamType
-from binance_data_processor.blackout_supervisor import BlackoutSupervisor
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.enums.stream_type_enum import StreamType
+from binance_data_processor.core.blackout_supervisor import BlackoutSupervisor
 
 
 @pytest.fixture

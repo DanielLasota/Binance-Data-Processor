@@ -3,7 +3,7 @@ import time
 from dotenv import load_dotenv
 
 from binance_data_processor import load_config_from_json, DataSinkConfig, launch_data_sink
-from binance_data_processor.enum_.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
 load_dotenv(env_path)

@@ -4,15 +4,15 @@ import pprint
 import threading
 import time
 
-from binance_data_processor.command_line_interface import CommandLineInterface
-from binance_data_processor.data_sink_config import DataSinkConfig
-from binance_data_processor.fastapi_manager import FastAPIManager
-from binance_data_processor.stream_data_saver_and_sender import StreamDataSaverAndSender
-from binance_data_processor.logo import binance_archiver_logo
-from binance_data_processor.queue_pool import DataSinkQueuePool
-from binance_data_processor.setup_logger import setup_logger
-from binance_data_processor.snapshot_manager import DataSinkDepthSnapshotStrategy, DepthSnapshotService
-from binance_data_processor.stream_service import StreamService
+from binance_data_processor.core.command_line_interface import CommandLineInterface
+from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.core.fastapi_manager import FastAPIManager
+from binance_data_processor.core.stream_data_saver_and_sender import StreamDataSaverAndSender
+from binance_data_processor.core.logo import binance_archiver_logo
+from binance_data_processor.core.queue_pool import DataSinkQueuePool
+from binance_data_processor.core.setup_logger import setup_logger
+from binance_data_processor.core.snapshot_manager import DataSinkDepthSnapshotStrategy, DepthSnapshotService
+from binance_data_processor.core.stream_service import StreamService
 
 __all__ = [
     'launch_data_sink',
