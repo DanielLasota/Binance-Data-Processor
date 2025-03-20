@@ -61,7 +61,10 @@ class DataQualityReport:
         raw_tests_results_list = []
         for column, tests in self.tests_results_register.items():
             for test_name, result in tests.items():
-                status = "PASS" if result == True else f"FAIL - {result}" if isinstance(result, str) else "FAIL"
+                status = (
+                    DataQualityReportStatus.POSITIVE.name if result == True
+                    else DataQualityReportStatus.NEGATIVE.name
+                )
                 raw_tests_results_list.append((column, test_name, status))
 
         if raw_tests_results_list:
