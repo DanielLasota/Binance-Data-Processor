@@ -54,8 +54,9 @@ class BinanceDataListener(Subject):
         self.data_sink_config = data_sink_config
 
         self.logger = setup_logger(should_dump_logs=True)
-        self.logger.info("\n%s", binance_archiver_logo)
-        self.logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
+        if data_sink_config.show_logo is True:
+            self.logger.info("\n%s", binance_archiver_logo)
+            self.logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
 
         self.global_shutdown_flag = threading.Event()
 
