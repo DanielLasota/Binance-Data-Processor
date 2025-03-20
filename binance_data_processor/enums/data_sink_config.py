@@ -29,6 +29,7 @@ class DataSinkConfig:
         repr=False
     )
     file_save_catalog: str = '../dump/'
+    show_logo: bool = True
 
     def validate(self):
         if not isinstance(self.data_save_target, DataSaveTarget):
