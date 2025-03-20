@@ -33,7 +33,7 @@ class IndividualColumnChecker:
                 series.notna().all()
                 and series.gt(0).all()
                 and series.astype(float).eq(series.astype(int)).all()
-                and series.dtype == int
+                and pd.api.types.is_integer_dtype(series)
         )
 
     @staticmethod
@@ -186,7 +186,7 @@ class IndividualColumnChecker:
     ::["data"]["T"] 'TransactionTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
-            is_transaction_time_lower_or_equal_event_time
+            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
 
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
@@ -201,15 +201,18 @@ class IndividualColumnChecker:
             are_values_non_negative
             are_values_within_reasonable_range
     ::["data"]["p"] 'Price' [SPOT]
+            are_values_positive
             is_there_no_abnormal_price_tick_higher_than_2_percent
     ::["data"]["p"] 'Price' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_positive (filtered to XUnknownParameter)
+            are_values_positive_x_column_filtered_to_market
             is_there_no_abnormal_price_tick_higher_than_2_percent (filtered to XUnknownParameter)
 
     ::["data"]["q"] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_values_with_specified_type
             are_values_non_negative
             are_values_within_reasonable_range
+    ::["data"]["q"] 'Quantity' [SPOT]
+            are_values_positive
     ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
             are_values_positive (filtered to XUnknownParameter)
 
@@ -248,7 +251,7 @@ class IndividualColumnChecker:
     ::["data"]["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
-            is_transaction_time_lower_or_equal_event_time
+            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
 
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
@@ -295,7 +298,7 @@ class IndividualColumnChecker:
             are_all_within_utc_z_day_range
             are_first_and_last_timestamp_within_60_seconds_from_the_borders
     ::["_rc"] 'TimestampOfReceive' [USD_M_FUTURES, COIN_M_FUTURES]
-        is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
+            is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
 
     ::["_rq"] 'TimestampOfRequest' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -308,7 +311,7 @@ class IndividualColumnChecker:
     ::["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
-            is_transaction_time_lower_or_equal_event_time
+            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
 
     ::["lastUpdateId"] 'LastUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -320,6 +323,9 @@ class IndividualColumnChecker:
     ::["pair"] 'Pair' [COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
             is_whole_series_made_of_only_one_expected_value
+            
+    ::["data"]["b"]/["data"]["a"] 'IsAsk' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_zero_or_one
 
     ::["bids"][0]/["asks"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_values_with_specified_type
@@ -332,20 +338,7 @@ class IndividualColumnChecker:
             are_values_within_reasonable_range
             
     ::MISC
-            is_price_level_amount_equal_to_market_amount_limit 
-            context of is_price_level_amount_equal_to_market_amount_limit:
-            
-            base_urls = {
-                Market.SPOT: 'https://api.binance.com/api/v3/depth?symbol={}&limit={}',
-                Market.USD_M_FUTURES: 'https://fapi.binance.com/fapi/v1/depth?symbol={}&limit={}',
-                Market.COIN_M_FUTURES: 'https://dapi.binance.com/dapi/v1/depth?symbol={}&limit={}'
-            }
-    
-            limits = {
-                Market.SPOT: 5000,
-                Market.USD_M_FUTURES: 1000,
-                Market.COIN_M_FUTURES: 1000
-                }	
+            is_each_snapshot_price_level_amount_accurate_to_market 
 '''
 
 '''
@@ -356,7 +349,7 @@ is_whole_series_epoch_valid
 are_all_within_utc_z_day_range
 is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
 are_first_and_last_timestamp_within_60_seconds_from_the_borders
-is_transaction_time_lower_or_equal_event_time
+is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
 are_series_values_increasing
 is_first_update_id_bigger_by_one_than_previous_entry_final_update_id
 is_final_update_id_to_previous_entry_final_update

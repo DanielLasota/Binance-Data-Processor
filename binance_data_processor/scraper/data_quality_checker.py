@@ -75,14 +75,14 @@ class DataQualityChecker:
         with alive_bar(len(csv_paths), force_tty=True, spinner='dots_waves') as bar:
             for csv_path in csv_paths:
                 try:
-                    csv_name = csv_path.split('/')[-1]
+                    csv_name = os.path.basename(csv_path)
                     asset_parameters = self.decode_asset_parameters_from_csv_name(csv_name)
                     dataframe = pd.read_csv(csv_path, comment='#')
                     dataframe_quality_report = self.get_dataframe_quality_report(
                         dataframe=dataframe,
                         asset_parameters=asset_parameters
                     )
-                    file_name = csv_path.split('/')[-1]
+                    file_name = os.path.basename(csv_path)
                     dataframe_quality_report.set_file_name(file_name)
                     data_quality_report_list.append(dataframe_quality_report)
 
@@ -176,12 +176,12 @@ class DataQualityChecker:
         is_timestamp_of_receive_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
         are_event_time_within_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         is_event_time_close_to_receive_time_by_5_s = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(dataframe['TimestampOfReceive'], dataframe['EventTime'], epoch_time_unit=epoch_time_unit)
-        are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
+        are_first_and_last_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_epoch_valid)
         report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_event_time_within_day_range)
         report.add_test_result("TimestampOfReceive", "is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s", is_event_time_close_to_receive_time_by_5_s)
-        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders)
+        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_timestamps_within_60_seconds_from_the_borders)
 
         is_stream_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Stream'])
         is_stream_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Stream'], f"{asset_parameters.pairs[0]}@trade")
@@ -200,10 +200,10 @@ class DataQualityChecker:
 
         is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
         is_transaction_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TransactionTime'])
-        is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['EventTime'])
+        is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['EventTime'], epoch_time_unit=epoch_time_unit)
         report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
         report.add_test_result("TransactionTime", "is_whole_series_epoch_valid", is_transaction_time_epoch_valid)
-        report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance",is_transaction_time_lower_or_equal_event)
+        report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance", is_transaction_time_lower_or_equal_event)
 
         is_symbol_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Symbol'])
         is_symbol_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Symbol'], asset_parameters.pairs[0].upper())
@@ -222,16 +222,29 @@ class DataQualityChecker:
         report.add_test_result("Price", "are_values_non_negative", are_prices_non_negative)
         report.add_test_result("Price", "are_values_within_reasonable_range", are_price_in_range)
 
+        if asset_parameters.market in [Market.SPOT]:
+            are_prices_positive = IndividualColumnChecker.are_values_positive(dataframe['Price'])
+            is_price_no_abnormal_tick = IndividualColumnChecker.is_there_no_abnormal_price_tick_higher_than_2_percent(dataframe['Price'])
+            report.add_test_result("Price", "are_values_positive", are_prices_positive)
+            report.add_test_result("Price", "is_there_no_abnormal_price_tick_higher_than_2_percent", is_price_no_abnormal_tick)
+
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
+            """
+            Why TRADE_STREAM SPOT is are_values_non_negative whilst [Market.USD_M_FUTURES, Market.COIN_M_FUTURES] are_values_positive?
+            Why check price individually for TRADE_STREAM, [Market.USD_M_FUTURES, Market.COIN_M_FUTURES] with are_values_positive ?
+            
+            TimestampOfReceive,Stream,EventType,EventTime,TransactionTime,Symbol,TradeId,Price,Quantity,IsBuyerMarketMaker,XUnknownParameter
+            1741748001578,trxusdt@trade,trade,1741748001573,1741748001573,TRXUSDT,551999400,0.22393,933,1,MARKET
+            1741748002452,trxusdt@trade,trade,1741748002447,1741748002447,TRXUSDT,551999401,0,0,0,NA
+            1741748002497,trxusdt@trade,trade,1741748002492,1741748002492,TRXUSDT,551999402,0.22394,1,0,MARKET
+            
+            XUnknownParameter could be NA then Price becomes 0
+            """
+
             are_prices_positive_with_x_equals_market = IndividualColumnChecker.are_values_positive(dataframe[dataframe['XUnknownParameter'] == 'MARKET']['Price'])
             is_price_no_abnormal_tick = IndividualColumnChecker.is_there_no_abnormal_price_tick_higher_than_2_percent(dataframe[dataframe['XUnknownParameter'] == 'MARKET']['Price'])
             report.add_test_result("Price", "are_values_positive_x_column_filtered_to_market", are_prices_positive_with_x_equals_market)
             report.add_test_result("Price", "is_there_no_abnormal_price_tick_higher_than_2_percent", is_price_no_abnormal_tick)
-
-        if asset_parameters.market in [Market.SPOT]:
-            is_price_no_abnormal_tick = IndividualColumnChecker.is_there_no_abnormal_price_tick_higher_than_2_percent(dataframe['Price'])
-            report.add_test_result("Price", "is_there_no_abnormal_price_tick_higher_than_2_percent", is_price_no_abnormal_tick)
-
 
         are_quantity_types_correct = IndividualColumnChecker.are_values_with_specified_type(dataframe['Quantity'], float)
         are_quantity_non_negative = IndividualColumnChecker.are_values_non_negative(dataframe['Quantity'])
@@ -239,6 +252,10 @@ class DataQualityChecker:
         report.add_test_result("Quantity", "are_values_with_specified_type", are_quantity_types_correct)
         report.add_test_result("Quantity", "are_values_non_negative", are_quantity_non_negative)
         report.add_test_result("Quantity", "are_values_within_reasonable_range", are_quantity_in_range)
+
+        if asset_parameters.market is Market.SPOT:
+            are_quantities_positive = IndividualColumnChecker.are_values_positive(dataframe['Quantity'])
+            report.add_test_result("Quantity", "are_values_positive", are_quantities_positive)
 
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             are_quantities_positive_with_x_equals_market = IndividualColumnChecker.are_values_positive(dataframe[dataframe['XUnknownParameter'] == 'MARKET']['Quantity'])
@@ -266,12 +283,12 @@ class DataQualityChecker:
         is_timestamp_of_receive_column_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
         are_all_event_time_within_utc_z_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         is_event_time_close_to_receive_time_by_5_s = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(dataframe['TimestampOfReceive'], dataframe['EventTime'], epoch_time_unit=epoch_time_unit)
-        are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
+        are_first_and_last_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_column_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_column_epoch_valid)
         report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_all_event_time_within_utc_z_day_range)
         report.add_test_result("TimestampOfReceive", "is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s", is_event_time_close_to_receive_time_by_5_s)
-        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_receive_timestamps_within_60_seconds_from_the_borders)
+        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_timestamps_within_60_seconds_from_the_borders)
 
         is_there_only_one_unique_value_in_stream_column = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Stream'])
         is_whole_stream_column_made_of_only_one_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Stream'], f"{asset_parameters.pairs[0]}@depth@100ms")
@@ -290,7 +307,7 @@ class DataQualityChecker:
 
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
-            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['EventTime'])
+            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['EventTime'], epoch_time_unit=epoch_time_unit)
             is_transaction_time_column_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['EventTime'])
             report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
             report.add_test_result("TransactionTime", "is_transaction_time_column_epoch_valid", is_transaction_time_column_epoch_valid)
@@ -354,12 +371,11 @@ class DataQualityChecker:
         is_timestamp_of_receive_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TimestampOfReceive'])
         is_timestamp_of_receive_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
         are_all_within_utc_z_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
-
         are_first_and_last_timestamps_within_10_minutes_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_10_minutes_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_epoch_valid)
         report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_all_within_utc_z_day_range)
-        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamp_within_60_seconds_from_the_borders", are_first_and_last_timestamps_within_10_minutes_from_the_borders)
+        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_10_minutes_from_the_borders", are_first_and_last_timestamps_within_10_minutes_from_the_borders)
 
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_receive_time_close_to_event_time = (IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(dataframe['TimestampOfReceive'],dataframe['MessageOutputTime'],epoch_time_unit=epoch_time_unit))
@@ -379,7 +395,7 @@ class DataQualityChecker:
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_transaction_time_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TransactionTime'])
             is_transaction_time_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TransactionTime'])
-            is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['MessageOutputTime'])
+            is_transaction_time_lower_or_equal_event = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(dataframe['TransactionTime'], dataframe['MessageOutputTime'], epoch_time_unit=epoch_time_unit)
             report.add_test_result("TransactionTime", "is_series_non_decreasing", is_transaction_time_non_decreasing)
             report.add_test_result("TransactionTime", "is_whole_series_epoch_valid", is_transaction_time_epoch_valid)
             report.add_test_result("TransactionTime", "is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance", is_transaction_time_lower_or_equal_event)
@@ -417,6 +433,6 @@ class DataQualityChecker:
         report.add_test_result("Quantity", "are_values_within_reasonable_range", are_quantity_in_range)
 
         is_price_level_amount_equal_to_market_amount_limit = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(dataframe[['LastUpdateId', 'IsAsk']], asset_parameters)
-        report.add_test_result("NONE_GENERAL", "is_price_level_amount_equal_to_market_amount_limit", is_price_level_amount_equal_to_market_amount_limit)
+        report.add_test_result("GENERAL", "is_price_level_amount_equal_to_market_amount_limit", is_price_level_amount_equal_to_market_amount_limit)
 
         return report
