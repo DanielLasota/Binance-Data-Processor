@@ -13,18 +13,17 @@ pip install binance-data-processor
 4. CSV Data Quality Checker
 
 ### Handles:
+#### Markets:
 spot  
 futures usd-m  
 futures coin-m
 
+#### Sources:
 difference depth stream  
 trade stream  
-depth snapshot  
+depth snapshot request
 
 .json, zip, azure, backblaze
-
-
-
 
 ## Listener Mode:
 
@@ -80,8 +79,7 @@ now create your own config:
 import os
 import time
 from dotenv import load_dotenv
-
-from binance_data_processor import DataSinkConfig, launch_data_sink, StorageConnectionParameters
+from binance_data_processor import launch_data_sink, DataSinkConfig, StorageConnectionParameters
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/sample_env.env')
 load_dotenv(env_path)
@@ -113,9 +111,7 @@ if __name__ == "__main__":
 
 ```python
 import os
-
 from dotenv import load_dotenv
-
 from binance_data_processor import download_csv_data, StorageConnectionParameters
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/sample_env.env')
@@ -147,7 +143,10 @@ if __name__ == '__main__':
 Check csvs with certificate:
 
 ```python
-from binance_data_processor import conduct_data_quality_analysis_on_whole_directory, conduct_data_quality_analysis_on_specified_csv_list
+from binance_data_processor import (
+    conduct_data_quality_analysis_on_whole_directory, 
+    conduct_data_quality_analysis_on_specified_csv_list
+)
 
 if __name__ == '__main__':
     conduct_data_quality_analysis_on_specified_csv_list(
