@@ -61,7 +61,7 @@ import time
 from dotenv import load_dotenv
 from binance_data_processor import launch_data_sink
 
-env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/sample_env.env')
 load_dotenv(env_path)
 
 if __name__ == "__main__":
@@ -81,15 +81,12 @@ import os
 import time
 from dotenv import load_dotenv
 
-from binance_data_processor import load_config_from_json, DataSinkConfig, launch_data_sink
-from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor import DataSinkConfig, launch_data_sink, StorageConnectionParameters
 
-env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/sample_env.env')
 load_dotenv(env_path)
 
 if __name__ == "__main__":
-    config_from_json = load_config_from_json(json_filename='production_config.json')
-
     data_sink_config = DataSinkConfig(
         instruments={
             'spot': ['BTCUSDT', 'TRXUSDT'],
@@ -101,7 +98,7 @@ if __name__ == "__main__":
             "snapshot_fetcher_interval_seconds": 60,
             "websocket_life_time_seconds": 60 * 60 * 23
         },
-        data_save_target=config_from_json['data_save_target'],
+        data_save_target='azure_blob',
         storage_connection_parameters=StorageConnectionParameters()
     )
 
@@ -119,10 +116,9 @@ import os
 
 from dotenv import load_dotenv
 
-from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
-from binance_data_processor.scraper import download_csv_data
+from binance_data_processor import download_csv_data, StorageConnectionParameters
 
-env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/sample_env.env')
 load_dotenv(env_path)
 
 if __name__ == '__main__':
@@ -151,8 +147,7 @@ if __name__ == '__main__':
 Check csvs with certificate:
 
 ```python
-from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
-from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
+from binance_data_processor import conduct_data_quality_analysis_on_whole_directory, conduct_data_quality_analysis_on_specified_csv_list
 
 if __name__ == '__main__':
     conduct_data_quality_analysis_on_specified_csv_list(
