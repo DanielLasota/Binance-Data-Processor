@@ -1,11 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
-from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
-from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
-from binance_data_processor.scraper import download_csv_data
-
+from binance_data_processor import download_csv_data
+from binance_data_processor import StorageConnectionParameters
+from binance_data_processor import conduct_data_quality_analysis_on_specified_csv_list
+from binance_data_processor import conduct_data_quality_analysis_on_whole_directory
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-1.env')
 load_dotenv(env_path)
@@ -33,9 +32,8 @@ if __name__ == '__main__':
 
     conduct_data_quality_analysis_on_specified_csv_list(
         csv_paths=[
-            'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_spot_btcusdt_10-03-2025.csv',
-            'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_usd_m_futures_btcusdt_10-03-2025.csv',
-            'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_coin_m_futures_btcusd_perp_10-03-2025.csv',
+            'C:/Users/daniel/Documents/binance_archival_data/binance_difference_depth_stream_usd_m_futures_trxusdt_14-03-2025.csv',
+            'C:/Users/daniel/Documents/binance_archival_data/binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
         ]
     )
 
