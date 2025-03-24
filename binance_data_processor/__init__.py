@@ -5,9 +5,9 @@ from binance_data_processor.data_sink.data_sink_facade import launch_data_sink
 from binance_data_processor.data_sink.data_sink_facade import BinanceDataSink
 from binance_data_processor.listener.listener_facade import launch_data_listener
 from binance_data_processor.listener.listener_facade import BinanceDataListener
-from binance_data_processor.scraper.scraper import download_csv_data
-from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
-from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
+# from binance_data_processor.scraper.scraper import download_csv_data
+# from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
+# from binance_data_processor.scraper.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
 
 
 __all__ = [
@@ -18,9 +18,9 @@ __all__ = [
     'BinanceDataSink',
     'launch_data_listener',
     'BinanceDataListener',
-    'download_csv_data',
-    'conduct_data_quality_analysis_on_specified_csv_list',
-    'conduct_data_quality_analysis_on_whole_directory'
+    # 'download_csv_data',
+    # 'conduct_data_quality_analysis_on_specified_csv_list',
+    # 'conduct_data_quality_analysis_on_whole_directory'
 ]
 
 __version__ = "0.0.1"
