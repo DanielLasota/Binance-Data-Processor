@@ -7,12 +7,13 @@ import queue
 import threading
 import zipfile
 from datetime import timedelta, datetime
-import boto3
+
 import orjson
 from alive_progress import alive_bar
 import pandas as pd
 from abc import ABC, abstractmethod
 from typing import List
+import time
 
 from binance_data_processor.scraper.data_quality_checker import get_dataframe_quality_report, DataQualityChecker
 from binance_data_processor.scraper.data_quality_report import DataQualityReport
@@ -479,6 +480,7 @@ class DataScraper:
                                     ]
                                 )
                     bar()
+                del batch_results
 
         if market == Market.SPOT:
             columns = [
@@ -762,13 +764,17 @@ class DataScraper:
         return pd.DataFrame(data=records, columns=columns)
 
     def download_file_and_put_json_into_queue(self, file_name: str, result_queue: queue.Queue, index: int) -> None:
-        try:
-            response = self.storage_client.read_file(file_name=file_name)
-            json_dict = self._convert_cloud_storage_response_to_json(response)
-            result_queue.put((index, json_dict))
-        except Exception as e:
-            print(f"Error downloading {file_name}: {e}")
-            result_queue.put((index, None))
+        while True:
+            try:
+                response = self.storage_client.read_file(file_name=file_name)
+                json_dict = self._convert_cloud_storage_response_to_json(response)
+                result_queue.put((index, json_dict))
+                break
+
+            except Exception as e:
+                print(f"Error downloading {file_name}: {e}")
+                print("Retry in 10 seconds...")
+                time.sleep(10)
 
     @staticmethod
     def _convert_cloud_storage_response_to_json(storage_response: bytes) -> list[dict] | None:
@@ -816,6 +822,7 @@ class BackBlazeS3Client(IClientHandler):
             endpoint_url: str,
             bucket_name: str
     ) -> None:
+        import boto3
 
         self._bucket_name = bucket_name
 
