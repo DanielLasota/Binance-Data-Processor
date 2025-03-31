@@ -110,7 +110,9 @@ class DepthSnapshotService:
                 )
                 for pair in asset_parameters.pairs:
                     try:
-                        message = self._request_snapshot_with_timestamps(asset_parameters=asset_parameters)
+                        message = self._request_snapshot_with_timestamps(
+                            asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
+                        )
 
                         file_name = StreamDataSaverAndSender.get_file_name(
                             asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
