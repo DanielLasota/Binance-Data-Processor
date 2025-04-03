@@ -177,8 +177,11 @@ class DataScraper:
         found_asset_parameter_list = []
 
         for csv in local_csv_file_paths:
-            asset_parameters = DataQualityChecker.decode_asset_parameters_from_csv_name(csv)
-            found_asset_parameter_list.append(asset_parameters)
+            try:
+                asset_parameters = DataQualityChecker.decode_asset_parameters_from_csv_name(csv)
+                found_asset_parameter_list.append(asset_parameters)
+            except Exception as e:
+                print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
 
         return found_asset_parameter_list
 
