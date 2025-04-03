@@ -6,14 +6,14 @@ from binance_data_processor import StorageConnectionParameters
 from binance_data_processor import conduct_data_quality_analysis_on_specified_csv_list
 from binance_data_processor import conduct_data_quality_analysis_on_whole_directory
 
-env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-3.env')
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-23.env')
 load_dotenv(env_path)
 
 
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['25-03-2025', '25-03-2025'],
+        date_range=['01-04-2025', '01-04-2025'],
         storage_connection_parameters=StorageConnectionParameters(),
         pairs=['TRXUSDT'],
         markets=[

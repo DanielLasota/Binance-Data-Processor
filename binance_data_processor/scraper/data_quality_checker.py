@@ -176,12 +176,17 @@ class DataQualityChecker:
         is_timestamp_of_receive_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
         are_event_time_within_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         is_event_time_close_to_receive_time_by_5_s = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(dataframe['TimestampOfReceive'], dataframe['EventTime'], epoch_time_unit=epoch_time_unit)
-        are_first_and_last_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_epoch_valid)
         report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_event_time_within_day_range)
         report.add_test_result("TimestampOfReceive", "is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s", is_event_time_close_to_receive_time_by_5_s)
-        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_timestamps_within_60_seconds_from_the_borders)
+
+        if asset_parameters.market in [Market.SPOT, Market.USD_M_FUTURES]:
+            are_first_and_last_timestamps_within_60_seconds_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
+            report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_60_seconds_from_the_borders", are_first_and_last_timestamps_within_60_seconds_from_the_borders)
+        elif asset_parameters.market in [Market.COIN_M_FUTURES]:
+            are_first_and_last_timestamps_within_5_minutes_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_5_minutes_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
+            report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_5_minutes_from_the_borders", are_first_and_last_timestamps_within_5_minutes_from_the_borders)
 
         is_stream_unique = IndividualColumnChecker.is_there_only_one_unique_value_in_series(dataframe['Stream'])
         is_stream_expected_value = IndividualColumnChecker.is_whole_series_made_of_only_one_expected_value(dataframe['Stream'], f"{asset_parameters.pairs[0]}@trade")
@@ -371,11 +376,11 @@ class DataQualityChecker:
         is_timestamp_of_receive_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(dataframe['TimestampOfReceive'])
         is_timestamp_of_receive_epoch_valid = IndividualColumnChecker.is_whole_series_epoch_valid(dataframe['TimestampOfReceive'])
         are_all_within_utc_z_day_range = IndividualColumnChecker.are_all_within_utc_z_day_range(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
-        are_first_and_last_timestamps_within_10_minutes_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_10_minutes_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
+        are_first_and_last_timestamps_within_5_minutes_from_the_borders = IndividualColumnChecker.are_first_and_last_timestamps_within_5_minutes_from_the_borders(dataframe['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_whole_series_epoch_valid", is_timestamp_of_receive_epoch_valid)
         report.add_test_result("TimestampOfReceive", "are_all_within_utc_z_day_range", are_all_within_utc_z_day_range)
-        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_10_minutes_from_the_borders", are_first_and_last_timestamps_within_10_minutes_from_the_borders)
+        report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_5_minutes_from_the_borders", are_first_and_last_timestamps_within_5_minutes_from_the_borders)
 
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_receive_time_close_to_event_time = (IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(dataframe['TimestampOfReceive'],dataframe['MessageOutputTime'],epoch_time_unit=epoch_time_unit))
