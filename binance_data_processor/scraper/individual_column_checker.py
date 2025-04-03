@@ -70,12 +70,12 @@ class IndividualColumnChecker:
         return first_within_range and last_within_range
 
     @staticmethod
-    def are_first_and_last_timestamps_within_10_minutes_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def are_first_and_last_timestamps_within_5_minutes_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
         day_length = 86_400 * epoch_time_unit.multiplier_of_second
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
         day_end_ms = day_start_ms + day_length - 1
-        sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * 60 * 10
+        sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * 60 * 5
 
         first_timestamp = series.iloc[0]
         last_timestamp = series.iloc[-1]
