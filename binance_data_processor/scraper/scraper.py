@@ -7,7 +7,6 @@ import queue
 import threading
 import zipfile
 from datetime import timedelta, datetime
-
 import orjson
 from alive_progress import alive_bar
 import pandas as pd
@@ -31,15 +30,15 @@ __all__ = [
 
 
 def download_csv_data(
-        date_range: list[str],
         storage_connection_parameters: StorageConnectionParameters,
-        dump_path: str | None = None,
+        date_range: list[str],
         pairs: list[str] | None = None,
         markets: list[str] | None = None,
         stream_types: list[str] | None = None,
         skip_existing: bool = True,
-        amount_of_files_to_be_downloaded_at_once: int = 10
-        ) -> None:
+        amount_of_files_to_be_downloaded_at_once: int = 10,
+        dump_path: str | None = None
+) -> None:
 
     data_scraper = DataScraper(storage_connection_parameters)
 
@@ -126,7 +125,7 @@ class DataScraper:
         print(f'\nFinished: {dump_path}')
 
     def _get_asset_parameters_to_be_downloaded(self, markets: list[str], stream_types: list[str], pairs: list[str], dates_to_be_downloaded: list[str], dump_path: str, skip_existing: bool) -> list[AssetParameters]:
-        selected_asset_parameters = self._generate_asset_parameters_data_classes_list(
+        asset_parameters_to_be_downloaded = self._generate_asset_parameters_list_to_be_downloaded(
             markets=markets,
             stream_types=stream_types,
             pairs=pairs,
@@ -134,25 +133,25 @@ class DataScraper:
         )
 
         if skip_existing is True:
-            asset_parameters_of_existing_files = self._get_existing_files_asset_parameters_list(csv_nest=dump_path)
-            final_asset_parameters_to_be_downloaded = [
+            asset_parameters_of_existing_files = self._get_existing_in_nest_files_catalog_asset_parameters_list(csv_nest=dump_path)
+            asset_parameters_to_be_downloaded_minus_existing_files_asset_parameters = [
                 asset for asset
-                in selected_asset_parameters
+                in asset_parameters_to_be_downloaded
                 if asset not in asset_parameters_of_existing_files
             ]
-            selected_and_existing_to_be_skipped = [
+            asset_parameters_to_be_downloaded_that_already_exists = [
                 asset for asset
-                in selected_asset_parameters
+                in asset_parameters_to_be_downloaded
                 if asset in asset_parameters_of_existing_files
             ]
 
             print(f'skipping existing assets:')
-            for asset in selected_and_existing_to_be_skipped:
+            for asset in asset_parameters_to_be_downloaded_that_already_exists:
                 print(asset)
         else:
-            final_asset_parameters_to_be_downloaded = selected_asset_parameters
+            asset_parameters_to_be_downloaded_minus_existing_files_asset_parameters = asset_parameters_to_be_downloaded
 
-        return final_asset_parameters_to_be_downloaded
+        return asset_parameters_to_be_downloaded_minus_existing_files_asset_parameters
 
     @staticmethod
     def _prepare_dump_path_catalog(dump_path) -> str:
@@ -169,8 +168,8 @@ class DataScraper:
         return dump_path
 
     @staticmethod
-    def _get_existing_files_asset_parameters_list(csv_nest: str) -> list[AssetParameters]:
-        local_files = DataQualityChecker.list_files_in_local_directory(csv_nest)
+    def _get_existing_in_nest_files_catalog_asset_parameters_list(csv_nest: str) -> list[AssetParameters]:
+        local_files = DataQualityChecker._list_files_in_local_directory(csv_nest)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
         print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files")
 
@@ -178,7 +177,7 @@ class DataScraper:
 
         for csv in local_csv_file_paths:
             try:
-                asset_parameters = DataQualityChecker.decode_asset_parameters_from_csv_name(csv)
+                asset_parameters = DataQualityChecker._decode_asset_parameters_from_csv_name(csv)
                 found_asset_parameter_list.append(asset_parameters)
             except Exception as e:
                 print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
@@ -211,7 +210,7 @@ class DataScraper:
         return date_list
 
     @staticmethod
-    def _generate_asset_parameters_data_classes_list(markets: list[str], stream_types: list[str], pairs: list[str], dates: list[str]) -> list[AssetParameters]:
+    def _generate_asset_parameters_list_to_be_downloaded(markets: list[str], stream_types: list[str], pairs: list[str], dates: list[str]) -> list[AssetParameters]:
         markets = [Market(market.lower()) for market in markets]
         stream_types = [StreamType(stream_type.lower()) for stream_type in stream_types]
         pairs = [pair.lower() for pair in pairs]
