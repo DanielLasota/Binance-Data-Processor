@@ -43,9 +43,9 @@ class DataQualityChecker:
 
     def get_dataframe_quality_report(self, dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
         stream_type_handlers = {
-            StreamType.DIFFERENCE_DEPTH_STREAM: self._analyse_difference_depth_dataframe,
-            StreamType.TRADE_STREAM: self._analyse_trade_dataframe,
-            StreamType.DEPTH_SNAPSHOT: self._analyse_depth_snapshot_dataframe
+            StreamType.DIFFERENCE_DEPTH_STREAM: self._get_full_difference_depth_dataframe_report,
+            StreamType.TRADE_STREAM: self._get_full_trade_dataframe_report,
+            StreamType.DEPTH_SNAPSHOT: self._get_full_depth_snapshot_dataframe_report
         }
         handler = stream_type_handlers.get(asset_parameters.stream_type)
         return handler(
@@ -60,7 +60,7 @@ class DataQualityChecker:
 
     def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
         self.print_logo()
-        local_files = self.list_files_in_local_directory(csv_nest_directory)
+        local_files = self._list_files_in_local_directory(csv_nest_directory)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
         print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files")
 
@@ -76,7 +76,7 @@ class DataQualityChecker:
             for csv_path in csv_paths:
                 try:
                     csv_name = os.path.basename(csv_path)
-                    asset_parameters = self.decode_asset_parameters_from_csv_name(csv_name)
+                    asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
                     dataframe = pd.read_csv(csv_path, comment='#')
                     dataframe_quality_report = self.get_dataframe_quality_report(
                         dataframe=dataframe,
@@ -114,7 +114,7 @@ class DataQualityChecker:
                 print(e)
 
     @staticmethod
-    def list_files_in_local_directory(directory_path: str) -> list:
+    def _list_files_in_local_directory(directory_path: str) -> list:
         try:
             files = []
             for root, _, filenames in os.walk(directory_path):
@@ -128,7 +128,7 @@ class DataQualityChecker:
             return []
 
     @staticmethod
-    def decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
+    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
         _csv_name = csv_name.replace('.csv', '')
 
         market_mapping = {
@@ -167,7 +167,7 @@ class DataQualityChecker:
         )
 
     @staticmethod
-    def _analyse_trade_dataframe(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+    def _get_full_trade_dataframe_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
         report = DataQualityReport(asset_parameters=asset_parameters)
 
         epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
@@ -280,7 +280,7 @@ class DataQualityChecker:
         return report
 
     @staticmethod
-    def _analyse_difference_depth_dataframe(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+    def _get_full_difference_depth_dataframe_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
         report = DataQualityReport(asset_parameters=asset_parameters)
         epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
 
@@ -369,7 +369,7 @@ class DataQualityChecker:
         return report
 
     @staticmethod
-    def _analyse_depth_snapshot_dataframe(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+    def _get_full_depth_snapshot_dataframe_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
         report = DataQualityReport(asset_parameters=asset_parameters)
         epoch_time_unit = EpochTimeUnit.MILLISECONDS
 
