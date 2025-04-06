@@ -7,7 +7,8 @@ from binance_data_processor import DataSinkConfig
 from binance_data_processor import launch_data_sink
 from binance_data_processor import StorageConnectionParameters
 
-env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-2.env')
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-ba1-v2-test.env')
+if 'prod' in env_path: raise Exception('prod .env not allowed locally')
 load_dotenv(env_path)
 
 
@@ -34,4 +35,4 @@ if __name__ == "__main__":
     while not data_sink.global_shutdown_flag.is_set():
         time.sleep(16)
 
-    data_sink.logger.info('the program has ended, exiting')
+    print('the program has ended, exiting')
