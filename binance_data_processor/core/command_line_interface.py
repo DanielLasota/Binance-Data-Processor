@@ -48,8 +48,8 @@ class CommandLineInterface:
         command = CommandsRegistry(command)
 
         self.logger.info('\n')
-        self.logger.info('############')
-        self.logger.info('VVVVVVVVVVVV')
+        self.logger.info('################################################')
+        self.logger.info('VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV')
 
         commands_registry = {
             CommandsRegistry.SHUTDOWN:
@@ -305,8 +305,8 @@ class CommandLineInterface:
         print(sorted(mem.create_summary(), reverse=True, key=itemgetter(2))[:10])
 
         def lsos(n=30):
-            import pandas as pd
-            import sys
+            # import pandas as pd
+            # import sys
 
             all_obj = globals()
 

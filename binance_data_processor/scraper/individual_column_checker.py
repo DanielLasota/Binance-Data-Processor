@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pandas as pd
-
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
 from binance_data_processor.enums.market_enum import Market
@@ -29,6 +27,8 @@ class IndividualColumnChecker:
 
     @staticmethod
     def is_whole_series_epoch_valid(series: pd.Series) -> bool:
+        import pandas as pd
+
         return (
                 series.notna().all()
                 and series.gt(0).all()
@@ -38,6 +38,8 @@ class IndividualColumnChecker:
 
     @staticmethod
     def are_all_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+        import pandas as pd
+
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
 
         day_length = 86_400 * epoch_time_unit.multiplier_of_second
@@ -55,6 +57,8 @@ class IndividualColumnChecker:
 
     @staticmethod
     def are_first_and_last_timestamps_within_60_seconds_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+        import pandas as pd
+
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
         day_length = 86_400 * epoch_time_unit.multiplier_of_second
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
@@ -71,6 +75,8 @@ class IndividualColumnChecker:
 
     @staticmethod
     def are_first_and_last_timestamps_within_5_minutes_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+        import pandas as pd
+
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
         day_length = 86_400 * epoch_time_unit.multiplier_of_second
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)

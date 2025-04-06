@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
-import pandas as pd
-from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
@@ -307,6 +307,8 @@ class OrderBookConcatenator:
 
     @staticmethod
     def _concatenate_orders_and_trades_within_single_pair(asset_parameters_list_for_single_market: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
+        import pandas as pd
+
         print('                       └─single pair')
         for _ in asset_parameters_list_for_single_market:
             print(f'                                   └─{_}')
@@ -368,6 +370,9 @@ class OrderBookConcatenator:
 
     @staticmethod
     def _prepare_single_market_single_pair_trade_or_difference_depth_dataframe(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+        import pandas as pd
+        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
+
         file_path_for_csv = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter)}.csv'
         columns_to_load = OrderBookConcatenator._get_columns_for_specified_asset_parameters(asset_parameter)
 
@@ -393,6 +398,8 @@ class OrderBookConcatenator:
 
     @staticmethod
     def _concatenate_pairs_within_single_market(list_of_single_pair_dataframe: list[pd.DataFrame]):
+        import pandas as pd
+
         if len(list_of_single_pair_dataframe) == 0:
             return list_of_single_pair_dataframe[0]
 
@@ -402,6 +409,8 @@ class OrderBookConcatenator:
 
     @staticmethod
     def _concatenate_markets_within_single_csv(list_of_single_market_dataframe: list[pd.DataFrame]):
+        import pandas as pd
+
         if len(list_of_single_market_dataframe) == 0:
             return list_of_single_market_dataframe[0]
 

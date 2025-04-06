@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import pandas as pd
-import numpy as np
 import os
-from alive_progress import alive_bar
 
-from binance_data_processor.scraper.data_quality_report import DataQualityReport
+from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
+from binance_data_processor.scraper.data_quality_report import DataQualityReport
 from binance_data_processor.scraper.individual_column_checker import IndividualColumnChecker
-from binance_data_processor.core.logo import binance_archiver_logo
 
 
 def get_dataframe_quality_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
@@ -71,6 +68,9 @@ class DataQualityChecker:
         self._conduct_quality_analysis_from_csv_paths_list(csv_paths=csv_paths)
 
     def _conduct_quality_analysis_from_csv_paths_list(self, csv_paths: list[str]) -> None:
+        import pandas as pd
+        from alive_progress import alive_bar
+
         data_quality_report_list = []
         with alive_bar(len(csv_paths), force_tty=True, spinner='dots_waves') as bar:
             for csv_path in csv_paths:
@@ -168,6 +168,8 @@ class DataQualityChecker:
 
     @staticmethod
     def _get_full_trade_dataframe_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+        import numpy as np
+
         report = DataQualityReport(asset_parameters=asset_parameters)
 
         epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
