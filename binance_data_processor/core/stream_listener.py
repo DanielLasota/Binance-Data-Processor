@@ -5,7 +5,6 @@ import threading
 import time
 import traceback
 import websockets
-
 from websockets.legacy.client import WebSocketClientProtocol
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
@@ -14,7 +13,6 @@ from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
 from binance_data_processor.core.trade_queue import TradeQueue
 from binance_data_processor.core.stream_listener_id import StreamListenerId
-from binance_data_processor.core.blackout_supervisor import BlackoutSupervisor
 from binance_data_processor.core.url_factory import URLFactory
 
 
@@ -29,8 +27,7 @@ class StreamListener:
         '_ws_lock',
         '_ws',
         '_url',
-        '_loop',
-        '_blackout_supervisor'
+        '_loop'
     ]
 
     def __init__(
@@ -44,10 +41,6 @@ class StreamListener:
         self.asset_parameters = asset_parameters
         self.id: StreamListenerId = StreamListenerId(pairs=self.asset_parameters.pairs)
         self.thread: threading.Thread | None = None
-        self._blackout_supervisor = BlackoutSupervisor(
-            max_interval_without_messages_in_seconds=120 if asset_parameters.market is Market.COIN_M_FUTURES else 30,
-            on_error_callback=lambda: self.restart_websocket_app()
-        )
 
         self._stop_event = threading.Event()
         self._ws_lock = threading.Lock()
@@ -68,7 +61,6 @@ class StreamListener:
 
     def close_websocket_app(self):
         self.logger.info(f"{self.asset_parameters.market} {self.asset_parameters.stream_type} {self.id.start_timestamp} Closing StreamListener")
-        self._blackout_supervisor.shutdown_supervisor()
 
         self._stop_event.set()
         with self._ws_lock:
@@ -153,8 +145,6 @@ class StreamListener:
 
     async def _listen_messages(self, ws: WebSocketClientProtocol):
 
-        self._blackout_supervisor.run()
-
         while not self._stop_event.is_set():
             try:
                 message = await ws.recv()
@@ -170,8 +160,6 @@ class StreamListener:
                     raw_message=message,
                     timestamp_of_receive=timestamp_of_receive_rounded
                 )
-
-                self._blackout_supervisor.notify()
 
             except websockets.exceptions.ConnectionClosed as e:
                 if not self._stop_event.is_set():
