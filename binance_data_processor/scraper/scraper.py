@@ -112,7 +112,7 @@ class DataScraper:
         amount_of_files_to_be_made = len(asset_parameters_to_be_downloaded) * len(dates_to_be_downloaded)
 
         print(
-            f'\033[36m'
+            f'\033[36m\n'
             f'ought to download {amount_of_files_to_be_made} file(s)\n'
         )
 
@@ -145,6 +145,7 @@ class DataScraper:
                 if asset in asset_parameters_of_existing_files
             ]
 
+            print(f'WARNING! Some of specified asset_parameters already exists')
             print(f'skipping existing assets:')
             for asset in asset_parameters_to_be_downloaded_that_already_exists:
                 print(asset)
@@ -171,7 +172,7 @@ class DataScraper:
     def _get_existing_in_nest_files_catalog_asset_parameters_list(csv_nest: str) -> list[AssetParameters]:
         local_files = DataQualityChecker._list_files_in_local_directory(csv_nest)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
-        print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files")
+        print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files\n")
 
         found_asset_parameter_list = []
 

@@ -131,7 +131,12 @@ class StreamListener:
     async def _main_coroutine(self):
         while not self._stop_event.is_set():
             try:
-                async with websockets.connect(self._url) as ws:
+                async with websockets.connect(
+                        self._url,
+                        ping_interval=None,
+                        ping_timeout=None,
+                        max_queue=32
+                ) as ws:
                     with self._ws_lock:
                         self._ws = ws
 
@@ -139,11 +144,9 @@ class StreamListener:
 
             except (OSError, websockets.exceptions.ConnectionClosed) as e:
                 self.logger.error(f"Connection error/reconnect for {self.asset_parameters}: {e}")
-                await asyncio.sleep(2)
             except Exception as e:
                 self.logger.error(f"Unexpected error in _main_coroutine: {self.asset_parameters} {e}")
                 self.logger.error(traceback.format_exc())
-                await asyncio.sleep(2)
             finally:
                 with self._ws_lock:
                     self._ws = None

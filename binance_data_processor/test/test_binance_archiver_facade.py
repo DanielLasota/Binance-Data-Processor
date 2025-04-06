@@ -196,12 +196,12 @@ class TestArchiverFacade:
             )
             data_sink_facade = BinanceDataSink(data_sink_config=data_sink_config)
 
-            assert isinstance(data_sink_facade.queue_pool, DataSinkQueuePool)
-            assert isinstance(data_sink_facade.stream_service, StreamService)
-            assert isinstance(data_sink_facade.command_line_interface, CommandLineInterface)
-            assert isinstance(data_sink_facade.fast_api_manager, FastAPIManager)
-            assert isinstance(data_sink_facade.stream_data_saver_and_sender, StreamDataSaverAndSender)
-            assert isinstance(data_sink_facade.depth_snapshot_service, DepthSnapshotService)
+            assert isinstance(data_sink_facade._queue_pool, DataSinkQueuePool)
+            assert isinstance(data_sink_facade._stream_service, StreamService)
+            assert isinstance(data_sink_facade._command_line_interface, CommandLineInterface)
+            assert isinstance(data_sink_facade._fast_api_manager, FastAPIManager)
+            assert isinstance(data_sink_facade._stream_data_saver_and_sender, StreamDataSaverAndSender)
+            assert isinstance(data_sink_facade._depth_snapshot_service, DepthSnapshotService)
 
             data_sink_facade.shutdown()
             DifferenceDepthQueue.clear_instances()

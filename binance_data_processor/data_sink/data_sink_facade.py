@@ -34,14 +34,14 @@ class BinanceDataSink:
 
     __slots__ = [
         'data_sink_config',
-        'logger',
+        '_logger',
         'global_shutdown_flag',
-        'queue_pool',
-        'stream_service',
-        'command_line_interface',
-        'fast_api_manager',
-        'stream_data_saver_and_sender',
-        'depth_snapshot_service'
+        '_queue_pool',
+        '_stream_service',
+        '_command_line_interface',
+        '_fast_api_manager',
+        '_stream_data_saver_and_sender',
+        '_depth_snapshot_service'
     ]
 
     def __init__(
@@ -49,57 +49,61 @@ class BinanceDataSink:
             data_sink_config: DataSinkConfig
     ) -> None:
         self.data_sink_config = data_sink_config
-        self.logger = setup_logger(should_dump_logs=True)
-        self.logger.info("\n%s", binance_archiver_logo)
-        self.logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
+        self._logger = setup_logger(should_dump_logs=True)
+        self._logger.info("\n%s", binance_archiver_logo)
+        self._logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
 
         self.global_shutdown_flag = threading.Event()
 
-        self.queue_pool = DataSinkQueuePool()
+        self._queue_pool = DataSinkQueuePool()
 
-        self.stream_service = StreamService(
-            queue_pool=self.queue_pool,
+        self._stream_service = StreamService(
+            queue_pool=self._queue_pool,
             global_shutdown_flag=self.global_shutdown_flag,
             data_sink_config=data_sink_config
         )
 
-        self.stream_data_saver_and_sender = StreamDataSaverAndSender(
-            queue_pool=self.queue_pool,
+        self._stream_data_saver_and_sender = StreamDataSaverAndSender(
+            queue_pool=self._queue_pool,
             global_shutdown_flag=self.global_shutdown_flag,
             data_sink_config = self.data_sink_config
         )
 
-        self.command_line_interface = CommandLineInterface(
-            stream_service=self.stream_service,
+        self._command_line_interface = CommandLineInterface(
+            stream_service=self._stream_service,
             data_sink_config=self.data_sink_config,
             shutdown_callback=self.shutdown
         )
 
-        self.fast_api_manager = FastAPIManager(callback=self.command_line_interface.handle_command)
+        self._fast_api_manager = FastAPIManager(
+            callback=self._command_line_interface.handle_command
+        )
 
-        self.depth_snapshot_service = DepthSnapshotService(
-            snapshot_strategy=DataSinkDepthSnapshotStrategy(data_saver=self.stream_data_saver_and_sender),
+        self._depth_snapshot_service = DepthSnapshotService(
+            snapshot_strategy=DataSinkDepthSnapshotStrategy(
+                data_saver=self._stream_data_saver_and_sender
+            ),
             data_sink_config=data_sink_config,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
     def run(self) -> None:
 
-        self.stream_service.run()
+        self._stream_service.run()
 
-        self.fast_api_manager.run()
+        self._fast_api_manager.run()
 
-        self.stream_data_saver_and_sender.run()
+        self._stream_data_saver_and_sender.run()
 
-        self.depth_snapshot_service.run()
+        self._depth_snapshot_service.run()
 
     def shutdown(self):
 
-        self.logger.info("Shutting down archiver")
+        self._logger.info("Shutting down archiver")
 
         self.global_shutdown_flag.set()
 
-        self.fast_api_manager.shutdown()
+        self._fast_api_manager.shutdown()
 
         time.sleep(5)
 
@@ -109,8 +113,8 @@ class BinanceDataSink:
         ]
 
         if remaining_threads:
-            self.logger.warning(f"Some threads are still alive:")
+            self._logger.warning(f"Some threads are still alive:")
             for thread in remaining_threads:
-                self.logger.warning(f"Thread {thread.name} is still alive {thread.is_alive()}")
+                self._logger.warning(f"Thread {thread.name} is still alive {thread.is_alive()}")
         else:
-            self.logger.info("All threads have been successfully stopped.")
+            self._logger.info("All threads have been successfully stopped.")
