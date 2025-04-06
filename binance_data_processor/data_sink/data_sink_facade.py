@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pprint
+import sys
 import threading
 import time
 
@@ -96,6 +97,16 @@ class BinanceDataSink:
         self._stream_data_saver_and_sender.run()
 
         self._depth_snapshot_service.run()
+
+        self._check_if_there_is_no_huge_library_imported()
+
+    @staticmethod
+    def _check_if_there_is_no_huge_library_imported():
+        modules = list(sys.modules.keys())
+
+        for library in ['pandas', 'numpy', 'alive_progress']:
+            if library in modules:
+                raise Exception(f'Imported {library} whilst running data sink. Check the imports')
 
     def shutdown(self):
 

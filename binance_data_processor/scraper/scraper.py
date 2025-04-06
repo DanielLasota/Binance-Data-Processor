@@ -8,20 +8,17 @@ import threading
 import zipfile
 from datetime import timedelta, datetime
 import orjson
-from alive_progress import alive_bar
-import pandas as pd
 from abc import ABC, abstractmethod
-from typing import List
 import time
 
-from binance_data_processor.scraper.data_quality_checker import get_dataframe_quality_report, DataQualityChecker
-from binance_data_processor.scraper.data_quality_report import DataQualityReport
+from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
-from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.scraper.data_quality_checker import get_dataframe_quality_report
+from binance_data_processor.scraper.data_quality_report import DataQualityReport
 
 
 __all__ = [
@@ -170,7 +167,7 @@ class DataScraper:
 
     @staticmethod
     def _get_existing_in_nest_files_catalog_asset_parameters_list(csv_nest: str) -> list[AssetParameters]:
-        local_files = DataQualityChecker._list_files_in_local_directory(csv_nest)
+        local_files = DataScraper._list_files_in_local_directory(csv_nest)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
         print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files\n")
 
@@ -178,12 +175,65 @@ class DataScraper:
 
         for csv in local_csv_file_paths:
             try:
-                asset_parameters = DataQualityChecker._decode_asset_parameters_from_csv_name(csv)
+                asset_parameters = DataScraper._decode_asset_parameters_from_csv_name(csv)
                 found_asset_parameter_list.append(asset_parameters)
             except Exception as e:
                 print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
 
         return found_asset_parameter_list
+
+    @staticmethod
+    def _list_files_in_local_directory(directory_path: str) -> list:
+        try:
+            files = []
+            for root, _, filenames in os.walk(directory_path):
+                for filename in filenames:
+                    full_path = os.path.join(root, filename)
+                    files.append(full_path)
+            return files
+
+        except Exception as e:
+            print(f"Error whilst listing files: {e}")
+            return []
+
+    @staticmethod
+    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
+        _csv_name = csv_name.replace('.csv', '')
+
+        market_mapping = {
+            'spot': Market.SPOT,
+            'usd_m_futures': Market.USD_M_FUTURES,
+            'coin_m_futures': Market.COIN_M_FUTURES,
+        }
+
+        stream_type_mapping = {
+            'difference_depth': StreamType.DIFFERENCE_DEPTH_STREAM,
+            'trade': StreamType.TRADE_STREAM,
+            'depth_snapshot': StreamType.DEPTH_SNAPSHOT,
+        }
+
+        market = next((value for key, value in market_mapping.items() if key in _csv_name), None)
+        if market is None:
+            raise ValueError(f"Unknown market in CSV name: {_csv_name}")
+
+        stream_type = next((value for key, value in stream_type_mapping.items() if key in _csv_name), None)
+        if stream_type is None:
+            raise ValueError(f"Unknown stream type in CSV name: {_csv_name}")
+
+        pair = (
+            f"{_csv_name.split('_')[-3]}_{_csv_name.split('_')[-2]}"
+            if market is Market.COIN_M_FUTURES
+            else _csv_name.split('_')[-2]
+        )
+
+        date = _csv_name.split('_')[-1]
+
+        return AssetParameters(
+            market=market,
+            stream_type=stream_type,
+            pairs=[pair],
+            date=date
+        )
 
     @staticmethod
     def _generate_dates_string_list_from_range(date_range: list[str]) -> list[str]:
@@ -287,6 +337,8 @@ class DataScraper:
 
     @staticmethod
     def _cut_dataframe_to_the_range_of_single_day(dataframe: pd.DataFrame, target_day: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> pd.DataFrame:
+        import pandas as pd
+
         date_obj = datetime.strptime(target_day, '%d-%m-%Y')
         start_time = pd.Timestamp(date_obj, tz='UTC')
 
@@ -338,6 +390,8 @@ class DataScraper:
         return handler_lookup[stream_type]
 
     def _difference_depth_stream_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
+        import pandas as pd
+        from alive_progress import alive_bar
 
         len_of_files_to_be_downloaded = len(list_of_file_to_be_downloaded)
 
@@ -533,6 +587,8 @@ class DataScraper:
         return pd.DataFrame(data=records, columns=columns)
 
     def _trade_stream_type_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
+        import pandas as pd
+        from alive_progress import alive_bar
 
         len_of_files_to_be_downloaded = len(list_of_file_to_be_downloaded)
 
@@ -645,6 +701,9 @@ class DataScraper:
             return pd.DataFrame(data=records, columns=columns)
 
     def _depth_snapshot_stream_type_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
+        import pandas as pd
+        from alive_progress import alive_bar
+
         len_of_files_to_be_downloaded = len(list_of_file_to_be_downloaded)
 
         records = []
@@ -806,12 +865,12 @@ class IClientHandler(ABC):
     __slots__ = ()
 
     @abstractmethod
-    def list_files_with_prefixes(self, prefixes: List[str]) -> List[str]:
-        pass
+    def list_files_with_prefixes(self, prefixes: list[str]) -> list[str]:
+        ...
 
     @abstractmethod
     def read_file(self, file_name) -> bytes:
-        pass
+        ...
 
 
 class BackBlazeS3Client(IClientHandler):

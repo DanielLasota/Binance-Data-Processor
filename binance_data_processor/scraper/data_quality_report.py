@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 
-import pandas as pd
-
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.data_quality_report_status_enum import DataQualityReportStatus
 
@@ -44,6 +42,7 @@ class DataQualityReport:
 
     def __str__(self) -> str:
         from datetime import datetime
+        import pandas as pd
 
         data_quality_status = 'POSITIVE' if self.is_data_quality_report_positive() == True else 'NEGATIVE'
 
