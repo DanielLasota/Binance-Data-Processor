@@ -6,7 +6,7 @@ from binance_data_processor import StorageConnectionParameters
 from binance_data_processor import conduct_data_quality_analysis_on_specified_csv_list
 from binance_data_processor import conduct_data_quality_analysis_on_whole_directory
 
-env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-23.env')
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-ba2-v2-prod.env')
 load_dotenv(env_path)
 
 
@@ -16,17 +16,27 @@ if __name__ == '__main__':
         storage_connection_parameters=StorageConnectionParameters(),
         date_range=['04-04-2025', '04-04-2025'],
         pairs=[
-            'ETHUSDT'
+            "SOLUSDT",
+            "XRPUSDT",
+            "DOGEUSDT",
+            "ADAUSDT",
+            "SHIBUSDT",
+            "LTCUSDT",
+            "AVAXUSDT",
+            "TRXUSDT",
+            "DOTUSDT",
+            "BCHUSDT",
+            "SUIUSDT"
         ],
         markets=[
             'SPOT',
-            # 'USD_M_FUTURES',
-            # 'COIN_M_FUTURES'
+            'USD_M_FUTURES',
+            'COIN_M_FUTURES'
         ],
         stream_types=[
             'TRADE_STREAM',
-            # 'DIFFERENCE_DEPTH_STREAM',
-            # 'DEPTH_SNAPSHOT',
+            'DIFFERENCE_DEPTH_STREAM',
+            'DEPTH_SNAPSHOT',
         ],
         skip_existing=True,
         amount_of_files_to_be_downloaded_at_once=20

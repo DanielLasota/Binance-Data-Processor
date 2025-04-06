@@ -70,7 +70,7 @@ if __name__ == "__main__":
     while not data_sink.global_shutdown_flag.is_set():
         time.sleep(16)
 
-    data_sink.logger.info('the program has ended, exiting')
+    print('the program has ended, exiting')
 
 ```
 now create your own config:
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     while not data_sink.global_shutdown_flag.is_set():
         time.sleep(16)
 
-    data_sink.logger.info('the program has ended, exiting')
+    print('the program has ended, exiting')
 ```
 ## Scraper with quality check:
 
