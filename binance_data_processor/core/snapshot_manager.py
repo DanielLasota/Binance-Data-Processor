@@ -114,7 +114,7 @@ class DepthSnapshotService:
             self._sleep_with_flag_check(sleep_duration)
 
             while (remaining_ms := target_midnight_utc_epoch_s * 1000 - DepthSnapshotService._get_current_utc_epoch_timestamp_in_milliseconds()) > 0 and remaining_ms < 1000:
-                self.logger.info('waiting 0.1s to reach midnight')
+                self.logger.debug('waiting 0.1s to reach midnight')
                 time.sleep(0.1)
 
             self._fetch_and_save_snapshots()
@@ -203,7 +203,7 @@ class DepthSnapshotService:
             self._session.close()
             self._session = requests.Session()
             self._last_refresh_time = current_time
-            self.logger.info("HTTP session refreshed")
+            self.logger.debug("Snapshot Manager HTTP session refreshed")
 
     def _request_snapshot_with_timestamps(self, asset_parameters: AssetParameters) -> str:
         self._refresh_session_if_needed()
