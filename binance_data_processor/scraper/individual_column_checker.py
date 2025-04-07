@@ -50,10 +50,10 @@ class IndividualColumnChecker:
         return series.between(day_start_ms, day_end_ms).all()
 
     @staticmethod
-    def is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive_time_column: pd.Series, event_time_column: pd.Series, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
         five_seconds = 1 * epoch_time_unit.multiplier_of_second * 5
         one_hundred_milliseconds = 0.1 * epoch_time_unit.multiplier_of_second
-        return (receive_time_column - event_time_column).between(-one_hundred_milliseconds, five_seconds).all()
+        return (timestamp_of_receive_column - event_time_column).between(-one_hundred_milliseconds, five_seconds).all()
 
     @staticmethod
     def are_first_and_last_timestamps_within_60_seconds_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
@@ -167,70 +167,7 @@ class IndividualColumnChecker:
         return (price_level_counts == limit_per_side).all()
 
 
-'''
-    # TRADES CHECK
 
-    ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_series_non_decreasing
-            is_whole_series_epoch_valid
-            are_all_within_utc_z_day_range
-            is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
-            are_first_and_last_timestamp_within_60_seconds_from_the_borders
-            
-    ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
-
-    ::["data"]["e"] 'EventType' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
-
-    ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_series_non_decreasing
-            is_whole_series_epoch_valid
-
-    ::["data"]["T"] 'TransactionTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_series_non_decreasing
-            is_whole_series_epoch_valid
-            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
-
-    ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
-
-    ::["data"]["t"] 'TradeId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_series_values_increasing
-            is_each_trade_id_bigger_by_one_than_previous
-
-    ::["data"]["p"] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
-            are_values_non_negative
-            are_values_within_reasonable_range
-    ::["data"]["p"] 'Price' [SPOT]
-            are_values_positive
-            is_there_no_abnormal_price_tick_higher_than_2_percent
-    ::["data"]["p"] 'Price' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_positive_x_column_filtered_to_market
-            is_there_no_abnormal_price_tick_higher_than_2_percent (filtered to XUnknownParameter)
-
-    ::["data"]["q"] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
-            are_values_non_negative
-            are_values_within_reasonable_range
-    ::["data"]["q"] 'Quantity' [SPOT]
-            are_values_positive
-    ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_positive (filtered to XUnknownParameter)
-
-    ::["data"]["m"] 'IsBuyerMarketMaker' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_zero_or_one
-
-    ::["data"]["X"] 'MUnknownParameter' [SPOT]
-            is_whole_series_made_of_only_one_expected_value
-
-    ::["data"]["X"] 'XUnknownParameter' [USD_M_FUTURES, COIN_M_FUTURES]
-            is_whole_series_made_of_set_of_expected_values
-'''
 
 '''
     # DIFFERENCE DEPTH CHECK
@@ -240,7 +177,7 @@ class IndividualColumnChecker:
             is_whole_series_epoch_valid
             are_all_within_utc_z_day_range
             is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
-            are_first_and_last_timestamp_within_60_seconds_from_the_borders
+            are_first_and_last_timestamps_within_60_seconds_from_the_borders
 
     ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
@@ -275,7 +212,7 @@ class IndividualColumnChecker:
 
     ::["data"]["pu"] 'FinalUpdateIdInLastStream' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_final_update_id_to_previous_entry_final_update
+            is_final_update_id_equal_to_previous_entry_final_update
 
     ::["data"]["b"]/["data"]["a"] 'IsAsk' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_values_zero_or_one
@@ -345,6 +282,74 @@ class IndividualColumnChecker:
             
     ::MISC
             is_each_snapshot_price_level_amount_accurate_to_market 
+'''
+
+'''
+    # TRADES CHECK
+
+    ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_whole_series_epoch_valid
+            are_all_within_utc_z_day_range
+            is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
+    ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES]
+            are_first_and_last_timestamps_within_60_seconds_from_the_borders
+    ::["_E"] 'TimestampOfReceive' [COIN_M_FUTURES]
+            are_first_and_last_timestamps_within_5_minutes_from_the_borders
+
+    ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_there_only_one_unique_value_in_series
+            is_whole_series_made_of_only_one_expected_value
+
+    ::["data"]["e"] 'EventType' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_there_only_one_unique_value_in_series
+            is_whole_series_made_of_only_one_expected_value
+
+    ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_whole_series_epoch_valid
+
+    ::["data"]["T"] 'TransactionTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_whole_series_epoch_valid
+            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
+
+    ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_there_only_one_unique_value_in_series
+            is_whole_series_made_of_only_one_expected_value
+
+    ::["data"]["t"] 'TradeId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            are_series_values_increasing
+            is_each_trade_id_bigger_by_one_than_previous
+
+    ::["data"]["p"] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_with_specified_type
+            are_values_non_negative
+            are_values_within_reasonable_range
+    ::["data"]["p"] 'Price' [SPOT]
+            are_values_positive
+            is_there_no_abnormal_price_tick_higher_than_2_percent
+    ::["data"]["p"] 'Price' [USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_positive_x_column_filtered_to_market
+            is_there_no_abnormal_price_tick_higher_than_2_percent (filtered to XUnknownParameter)
+
+    ::["data"]["q"] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_with_specified_type
+            are_values_non_negative
+            are_values_within_reasonable_range
+    ::["data"]["q"] 'Quantity' [SPOT]
+            are_values_positive
+    ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_positive_x_column_filtered_to_market (filtered to XUnknownParameter)
+
+    ::["data"]["m"] 'IsBuyerMarketMaker' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            are_values_zero_or_one
+
+    ::["data"]["X"] 'MUnknownParameter' [SPOT]
+            is_whole_series_made_of_only_one_expected_value
+
+    ::["data"]["X"] 'XUnknownParameter' [USD_M_FUTURES, COIN_M_FUTURES]
+            is_whole_series_made_of_set_of_expected_values
 '''
 
 '''
