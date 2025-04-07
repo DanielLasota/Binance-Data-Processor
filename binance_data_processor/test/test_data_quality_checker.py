@@ -716,7 +716,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
-            receive_time_column=df['TimestampOfReceive'],
+            timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime']
         )
         assert result_of_check == True
@@ -725,7 +725,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
 
         result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
-            receive_time_column=df['TimestampOfReceive'],
+            timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
@@ -734,7 +734,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
-            receive_time_column=df['TimestampOfReceive'],
+            timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime']
         )
         assert result_of_check == False
@@ -742,7 +742,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     def test_are_event_times_close_to_receive_times_negative_microseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
-            receive_time_column=df['TimestampOfReceive'],
+            timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
