@@ -474,11 +474,11 @@ class TestIndividualColumnChecker:
 
     def test_are_values_within_reasonable_range_positive(self):
         series = pd.Series([1.5, 2.0, 2.5])
-        assert IndividualColumnChecker.are_values_within_reasonable_range(series, 1.0, 3.0) == True
+        assert IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series, 1.0, 3.0) == True
 
     def test_are_values_within_reasonable_range_negative(self):
-        series = pd.Series([1.5, 0.5, 2.5])
-        assert IndividualColumnChecker.are_values_within_reasonable_range(series, 1.0, 3.0) == False
+        series = pd.Series([1.0, 1.1, 2.5])
+        assert IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series, 1.0, 3.0) == False
 
     #### is_there_no_abnormal_price_tick_higher_than_2_percent
 
@@ -1044,12 +1044,12 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_values_within_reasonable_range_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.are_values_within_reasonable_range(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == True
 
     def test_are_values_within_reasonable_range_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.are_values_within_reasonable_range(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == False
 
     #### is_there_no_abnormal_price_tick_higher_than_2_percent
