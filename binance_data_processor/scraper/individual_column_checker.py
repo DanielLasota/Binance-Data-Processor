@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
-from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 
 
@@ -10,15 +9,11 @@ class IndividualColumnChecker:
     __slots__ = ()
 
     @staticmethod
-    def is_there_only_one_unique_value_in_series(series: pd.Series) -> bool:
-        return len(series.unique()) == 1
-
-    @staticmethod
-    def is_whole_series_made_of_only_one_expected_value(series: pd.Series, expected_value: any) -> bool:
+    def is_there_only_one_unique_expected_value_in_series(series: pd.Series, expected_value: any) -> bool:
         return series.unique()[0] == expected_value and len(series.unique()) == 1
 
     @staticmethod
-    def is_whole_series_made_of_set_of_expected_values(series: pd.Series, expected_values: set[any]) -> bool:
+    def is_series_of_set_of_expected_values(series: pd.Series, expected_values: set[any]) -> bool:
         return set(series.unique()) <= expected_values
 
     @staticmethod
@@ -26,7 +21,7 @@ class IndividualColumnChecker:
         return series.diff().min() >= 0
 
     @staticmethod
-    def is_whole_series_epoch_valid(series: pd.Series) -> bool:
+    def is_series_epoch_valid(series: pd.Series) -> bool:
         import pandas as pd
 
         return (
@@ -37,7 +32,7 @@ class IndividualColumnChecker:
         )
 
     @staticmethod
-    def are_all_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def is_series_epoch_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -50,7 +45,7 @@ class IndividualColumnChecker:
         return series.between(day_start_ms, day_end_ms).all()
 
     @staticmethod
-    def is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, epoch_time_unit: EpochTimeUnit) -> bool:
+    def is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, epoch_time_unit: EpochTimeUnit) -> bool:
         """
         func checks drift between TimestampOfReceive and EventTime or other combination:
 
@@ -100,7 +95,7 @@ class IndividualColumnChecker:
         return first_within_range and last_within_range
 
     @staticmethod
-    def are_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def is_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -138,15 +133,15 @@ class IndividualColumnChecker:
         return (final_update_id.iloc[:-1].reset_index(drop=True) == final_update_id_in_last_stream.iloc[1:].reset_index(drop=True)).all()
 
     @staticmethod
-    def are_values_with_specified_type(series: pd.Series, expected_type: type) -> bool:
+    def is_series_of_expected_data_type(series: pd.Series, expected_type: type) -> bool:
         return series.map(lambda x: type(x) is expected_type).all()
 
     @staticmethod
-    def are_values_positive(series: pd.Series) -> bool:
+    def is_series_of_positive_values(series: pd.Series) -> bool:
         return series.gt(0).all()
 
     @staticmethod
-    def are_values_non_negative(series: pd.Series):
+    def is_series_of_non_negative_values(series: pd.Series):
         return series.ge(0).all()
 
     @staticmethod
@@ -154,16 +149,16 @@ class IndividualColumnChecker:
         return ((series > min_value) & (series < max_value)).all()
 
     @staticmethod
-    def is_there_no_abnormal_price_tick_higher_than_2_percent(series: pd.Series, max_percent_change: float = 2.0) -> bool:
+    def is_there_no_abnormal_tick_higher_than_2_percent(series: pd.Series, max_percent_change: float = 2.0) -> bool:
         pct_changes = series.pct_change().dropna() * 100
         return pct_changes.abs().le(max_percent_change).all()
 
     @staticmethod
-    def are_values_zero_or_one(series: pd.Series) -> bool:
+    def is_series_of_zero_or_one_only(series: pd.Series) -> bool:
         return series.isin([0, 1]).all() and series.map(lambda x: type(x) is int).all()
 
     @staticmethod
-    def is_each_trade_id_bigger_by_one_than_previous(series: pd.Series) -> bool:
+    def is_each_series_value_bigger_by_one_than_previous(series: pd.Series) -> bool:
         return series.diff()[1:].eq(1).all()
 
     @staticmethod
@@ -206,36 +201,33 @@ class IndividualColumnChecker:
 
     ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            are_all_within_utc_z_day_range
-            is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_series_epoch_within_utc_z_day_range
+            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms
         [SPOT, USD_M_FUTURES]
             are_first_and_last_timestamps_within_2_seconds_from_the_borders
         [COIN_M_FUTURES]
             are_first_and_last_timestamps_within_5_seconds_from_the_borders
             
     ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["e"] 'EventType' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
+            is_series_epoch_valid
         [USD_M_FUTURES, COIN_M_FUTURES]
-            is_timestamp_of_event_time_no_greater_than_transaction_time_column_by_one_s_and_no_less_by_1_ms
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
 
     ::["data"]["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            is_timestamp_of_event_time_no_greater_than_transaction_time_column_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
 
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["U"] 'FirstUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -252,20 +244,19 @@ class IndividualColumnChecker:
             is_final_update_id_equal_to_previous_entry_final_update
 
     ::["data"]["b"]/["data"]["a"] 'IsAsk' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_zero_or_one
+            is_series_of_zero_or_one_only
 
     ::["data"]["b"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type_of_float
-            are_values_positive
+            is_series_of_expected_data_type_float
+            is_series_of_positive_values
             are_values_exclusively_within_specified_reasonable_range_zero_to_1e6
 
     ::["data"]["ps"] 'PSUnknownField' [COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["b"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type_of_float
-            are_values_non_negative
+            is_series_of_expected_data_type_float
+            is_series_of_non_negative_values
             are_values_exclusively_within_specified_reasonable_range_zero_to_1e9
 '''
 
@@ -276,70 +267,68 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
 
     ::["_rc"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            are_all_within_utc_z_day_range
-            is_first_timestamp_within_60_seconds_from_the_borders
-            is_timestamp_of_receive_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_series_epoch_within_utc_z_day_range
+            is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_timestamp_of_receive_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
         [USD_M_FUTURES, COIN_M_FUTURES]
-            is_timestamp_of_receive_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
-            is_timestamp_of_receive_no_greater_than_message_transaction_time_by_one_s_and_no_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_message_output_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_message_transaction_time_by_one_s_and_not_less_by_1_ms
 
     ::["_rq"] 'TimestampOfRequest' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            are_all_within_utc_z_day_range
-            is_first_timestamp_within_60_seconds_from_the_borders
-            is_timestamp_of_receive_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_series_epoch_within_utc_z_day_range
+            is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_timestamp_of_receive_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
     ::["_rq"] 'TimestampOfRequest' [USD_M_FUTURES, COIN_M_FUTURES]
-            is_message_output_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
-            is_transaction_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
+            is_message_output_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
+            is_transaction_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
 
     ::["E"] 'MessageOutputTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            are_all_within_utc_z_day_range
-            is_first_timestamp_within_60_seconds_from_the_borders
-            is_timestamp_of_receive_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
-            is_message_output_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
-            is_message_output_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_series_epoch_within_utc_z_day_range
+            is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_timestamp_of_receive_not_greater_than_message_output_time_by_one_s_and_not_less_by_1_ms
+            is_message_output_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
+            is_message_output_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
             
     ::["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            are_all_within_utc_z_day_range
-            is_first_timestamp_within_60_seconds_from_the_borders
-            is_timestamp_of_receive_no_greater_than_message_transaction_time_by_one_s_and_no_less_by_1_ms
-            is_message_output_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
-            is_transaction_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_series_epoch_within_utc_z_day_range
+            is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_timestamp_of_receive_not_greater_than_message_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_message_output_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_transaction_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
             
     ::["lastUpdateId"] 'LastUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
 
     ::["symbol"] 'Symbol' [COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["pair"] 'Pair' [COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
             
     ::["data"]["b"]/["data"]["a"] 'IsAsk' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_zero_or_one
+            is_series_of_zero_or_one_only
 
     ::["bids"][0]/["asks"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type_of_float
-            are_values_positive
-            are_values_exclusively_within_specified_reasonable_range_range_zero_to_1e6
+            is_series_of_expected_data_type_float
+            is_series_of_positive_values
+            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6
 
     ::["bids"][1]/["asks"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_quantity_values_with_specified_type_of_float
-            are_quantity_values_positive
-            are_values_exclusively_within_specified_reasonable_range_range_zero_to_1e9
+            is_series_of_expected_data_type_float
+            is_series_of_positive_values
+            are_values_exclusively_within_specified_reasonable_range_zero_to_1e9
             
     ::MISC 'LastUpdateId', 'IsAsk', [SPOT]
             is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side
         [USD_M_FUTURES, COIN_M_FUTURES]
-            is_price_level_amount_equal_to_market_amount_limit_of_1000_per_side
+            is_each_snapshot_price_level_amount_accurate_to_1000
 '''
 
 '''
@@ -347,75 +336,71 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
 
     ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            are_all_within_utc_z_day_range
-            is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
-            is_timestamp_of_receive_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_series_epoch_within_utc_z_day_range
+            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
     ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES]
             are_first_and_last_timestamps_within_10_seconds_from_the_borders
     ::["_E"] 'TimestampOfReceive' [COIN_M_FUTURES]
             are_first_and_last_timestamps_within_5_minutes_from_the_borders
 
     ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["e"] 'EventType' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
-            is_event_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
 
     ::["data"]["T"] 'TransactionTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid
-            is_timestamp_of_receive_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
-            is_event_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            is_series_epoch_valid
+            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
             
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_value_in_series
-            is_whole_series_made_of_only_one_expected_value
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["t"] 'TradeId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_series_values_increasing
-            is_each_trade_id_bigger_by_one_than_previous
+            is_each_series_value_bigger_by_one_than_previous
 
     ::["data"]["p"] 'Price' [SPOT]
-            are_values_positive
-            are_values_with_specified_type_of_float
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6 ( trzeba zmienic na > , nazwe tez)
-            is_there_no_abnormal_price_tick_higher_than_2_percent
+            is_series_of_positive_values
+            is_series_of_expected_data_type_float
+            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6
+            is_there_no_abnormal_tick_higher_than_2_percent
     ::["data"]["p"] 'Price' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_positive                                                                     df[df['XUnknownParameter'] == 'MARKET']['Price']        
-            are_values_with_specified_type_of_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Price']
+            is_series_of_positive_values                                                                     df[df['XUnknownParameter'] == 'MARKET']['Price']        
+            is_series_of_expected_data_type_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Price']
             are_values_exclusively_within_specified_reasonable_range_zero_to_1e6                    df[df['XUnknownParameter'] == 'MARKET']['Price']
-            is_there_no_abnormal_price_tick_higher_than_2_percent                                   df[df['XUnknownParameter'] == 'MARKET']['Price']
+            is_there_no_abnormal_tick_higher_than_2_percent                                   df[df['XUnknownParameter'] == 'MARKET']['Price']
 
     ::["data"]["q"] 'Quantity' [SPOT]
-            are_values_positive
-            are_values_with_specified_type_of_float
+            is_series_of_positive_values
+            is_series_of_expected_data_type_float
             are_values_exclusively_within_specified_reasonable_zero_to_1e9
     ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_quantity_values_positive                                                            df[df['XUnknownParameter'] == 'MARKET']['Quantity']
-            are_values_with_specified_type_of_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            is_series_of_positive_values                                                            df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            is_series_of_expected_data_type_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Quantity']
             are_values_exclusively_within_specified_reasonable_zero_to_1e9                          df[df['XUnknownParameter'] == 'MARKET']['Quantity']
             
     ::["data"]["m"] 'IsBuyerMarketMaker' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_zero_or_one
+            is_series_of_zero_or_one_only
 
-    ::["data"]["X"] 'MUnknownParameter' [SPOT]
-            is_whole_series_made_of_only_one_expected_value
+    ::["data"]["M"] 'MUnknownParameter' [SPOT]
+            is_there_only_one_unique_expected_value_in_series
 
     ::["data"]["X"] 'XUnknownParameter' [USD_M_FUTURES, COIN_M_FUTURES]
             is_whole_series_made_of_set_of_expected_values_market_insurance_fund_or_na
 
-
+import IndividualColumnChecker as icc
 
 ustalic wspolny format dla nazw (stringow testow)
 przepisac nazwy wszystkich zmiennych na unikalne!!!!!!
-import IndividualColumnChecker as icc
 '''
