@@ -50,20 +50,46 @@ class IndividualColumnChecker:
         return series.between(day_start_ms, day_end_ms).all()
 
     @staticmethod
-    def is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
-        five_seconds = 1 * epoch_time_unit.multiplier_of_second * 5
-        one_hundred_milliseconds = 0.1 * epoch_time_unit.multiplier_of_second
-        return (timestamp_of_receive_column - event_time_column).between(-one_hundred_milliseconds, five_seconds).all()
+    def is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, epoch_time_unit: EpochTimeUnit) -> bool:
+        """
+        func checks drift between TimestampOfReceive and EventTime or other combination:
+
+        it checks if TimestampOfReceive is no greater than EventTime by 1 second
+
+        (ms: epoch 100
+        or us epoch 100_000)
+
+        We also assume 1 ms of tolerance so:
+
+        TimestampOfReceive,EventTime
+        1743495203952000,1743495203952999
+
+        or
+
+        TimestampOfReceive,EventTime
+        1743495203814,1743495203815
+
+
+        We consider as ok
+
+
+        TimestampOfReceive,EventTime
+        1743495203952,1743495203815
+        """
+
+        one_second = epoch_time_unit.multiplier_of_second * 1
+        one_millisecond = epoch_time_unit.multiplier_of_second / 1000
+        return (timestamp_of_receive_column - event_time_column).between(-one_millisecond, one_second).all()
 
     @staticmethod
-    def are_first_and_last_timestamps_within_60_seconds_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def are_first_and_last_timestamps_within_n_seconds_from_the_borders(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
         day_length = 86_400 * epoch_time_unit.multiplier_of_second
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
         day_end_ms = day_start_ms + day_length - 1
-        sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * 60
+        sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * n_seconds
 
         first_timestamp = series.iloc[0]
         last_timestamp = series.iloc[-1]
@@ -74,27 +100,18 @@ class IndividualColumnChecker:
         return first_within_range and last_within_range
 
     @staticmethod
-    def are_first_and_last_timestamps_within_5_minutes_from_the_borders(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def are_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
-        day_length = 86_400 * epoch_time_unit.multiplier_of_second
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
-        day_end_ms = day_start_ms + day_length - 1
-        sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * 60 * 5
+        n_seconds = 1 * epoch_time_unit.multiplier_of_second * n_seconds
 
         first_timestamp = series.iloc[0]
-        last_timestamp = series.iloc[-1]
 
-        first_within_range = day_start_ms <= first_timestamp <= day_start_ms + sixty_seconds
-        last_within_range = day_end_ms - sixty_seconds <= last_timestamp <= day_end_ms
+        first_within_range = day_start_ms <= first_timestamp <= day_start_ms + n_seconds
 
-        return first_within_range and last_within_range
-
-    @staticmethod
-    def is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(transaction_series: pd.Series, event_time_series: pd.Series, epoch_time_unit: EpochTimeUnit) -> bool:
-        one_millisecond = epoch_time_unit.multiplier_of_second * 0.001
-        return (transaction_series <= event_time_series + one_millisecond).all()
+        return first_within_range
 
     @staticmethod
     def are_series_values_increasing(series: pd.Series) -> bool:
@@ -117,7 +134,6 @@ class IndividualColumnChecker:
 
         Answer after a moment of thought:
         the uniqueness of the combination of FinalUpdateId along with FinalUpdateIdInLastStream means equal dataframe length after performing drop_duplicates()
-        and fk it, time for CS, we’ll worry about it later
         """
         return (final_update_id.iloc[:-1].reset_index(drop=True) == final_update_id_in_last_stream.iloc[1:].reset_index(drop=True)).all()
 
@@ -151,22 +167,22 @@ class IndividualColumnChecker:
         return series.diff()[1:].eq(1).all()
 
     @staticmethod
-    def is_each_snapshot_price_level_amount_accurate_to_market(df: pd.DataFrame, asset_parameters: AssetParameters) -> bool:
+    def is_each_snapshot_price_level_amount_accurate_to_market(df: pd.DataFrame, asset_parameters: AssetParameters, expected_amount_of_price_levels_per_side: int) -> bool:
         if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT:
             raise Exception('is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT')
 
-        limits_per_side = {
-            Market.SPOT: 5000,
-            Market.USD_M_FUTURES: 1000,
-            Market.COIN_M_FUTURES: 1000
-        }
-        limit_per_side = limits_per_side[asset_parameters.market]
+        price_level_counts = df.groupby(['LastUpdateId', 'IsAsk']).size()
+
+        return (price_level_counts == expected_amount_of_price_levels_per_side).all()
+
+    @staticmethod
+    def is_each_snapshot_price_level_amount_in_specified_range(df: pd.DataFrame, asset_parameters: AssetParameters, expected_minimum_amount: int, expected_maximum_amount) -> bool:
+        if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT:
+            raise Exception('is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT')
 
         price_level_counts = df.groupby(['LastUpdateId', 'IsAsk']).size()
 
-        return (price_level_counts == limit_per_side).all()
-
-
+        return ((price_level_counts >= expected_minimum_amount) & (price_level_counts <= expected_maximum_amount)).all()
 
 
 '''
@@ -176,9 +192,12 @@ class IndividualColumnChecker:
             is_series_non_decreasing
             is_whole_series_epoch_valid
             are_all_within_utc_z_day_range
-            is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
-            are_first_and_last_timestamps_within_60_seconds_from_the_borders
-
+            is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
+        [SPOT, USD_M_FUTURES]
+            are_first_and_last_timestamps_within_2_seconds_from_the_borders
+        [COIN_M_FUTURES]
+            are_first_and_last_timestamps_within_5_seconds_from_the_borders
+            
     ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
             is_whole_series_made_of_only_one_expected_value
@@ -190,11 +209,13 @@ class IndividualColumnChecker:
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
+        [USD_M_FUTURES, COIN_M_FUTURES]
+            is_timestamp_of_event_time_no_greater_than_transaction_time_column_by_one_s_and_no_less_by_1_ms
 
     ::["data"]["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
-            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
+            is_timestamp_of_event_time_no_greater_than_transaction_time_column_by_one_s_and_no_less_by_1_ms
 
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
@@ -218,18 +239,18 @@ class IndividualColumnChecker:
             are_values_zero_or_one
 
     ::["data"]["b"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
+            are_values_with_specified_type_of_float
             are_values_positive
-            are_values_within_reasonable_range
+            are_price_values_within_reasonable_range_zero_to_1e6
 
     ::["data"]["ps"] 'PSUnknownField' [COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
             is_whole_series_made_of_only_one_expected_value
 
     ::["data"]["b"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
-            are_values_non_negative
-            are_values_within_reasonable_range
+            are_quantity_values_with_specified_type_of_float
+            are_quantity_values_non_negative
+            are_quantity_values_within_reasonable_range_zero_to_1e9
 '''
 
 '''
@@ -239,23 +260,40 @@ class IndividualColumnChecker:
             is_series_non_decreasing
             is_whole_series_epoch_valid
             are_all_within_utc_z_day_range
-            are_first_and_last_timestamp_within_60_seconds_from_the_borders
-    ::["_rc"] 'TimestampOfReceive' [USD_M_FUTURES, COIN_M_FUTURES]
-            is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
-
+            is_first_timestamp_within_60_seconds_from_the_borders
+            is_timestamp_of_receive_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
+        [USD_M_FUTURES, COIN_M_FUTURES]
+            is_timestamp_of_receive_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
+            is_timestamp_of_receive_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
+            
     ::["_rq"] 'TimestampOfRequest' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
-            is_whole_series_epoch_valid           
+            is_whole_series_epoch_valid
+            are_all_within_utc_z_day_range
+            is_first_timestamp_within_60_seconds_from_the_borders
+            is_timestamp_of_receive_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
+        [USD_M_FUTURES, COIN_M_FUTURES]
+            is_timestamp_of_request_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
+            is_timestamp_of_request_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
 
     ::["E"] 'MessageOutputTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
-
+            are_all_within_utc_z_day_range
+            is_first_timestamp_within_60_seconds_from_the_borders
+            is_timestamp_of_receive_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
+            is_timestamp_of_request_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
+            is_message_output_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            
     ::["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
-            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
-
+            are_all_within_utc_z_day_range
+            is_first_timestamp_within_60_seconds_from_the_borders
+            is_timestamp_of_receive_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
+            is_timestamp_of_request_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
+            is_message_output_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            
     ::["lastUpdateId"] 'LastUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
 
@@ -271,17 +309,19 @@ class IndividualColumnChecker:
             are_values_zero_or_one
 
     ::["bids"][0]/["asks"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
+            are_values_with_specified_type_of_float
             are_values_positive
-            are_values_within_reasonable_range
+            are_price_values_within_reasonable_range_zero_to_1e6
 
     ::["bids"][1]/["asks"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
-            are_values_non_negative
-            are_values_within_reasonable_range
+            are_quantity_values_with_specified_type_of_float
+            are_quantity_values_positive
+            are_quantity_values_within_reasonable_range_zero_to_1e9
             
-    ::MISC
-            is_each_snapshot_price_level_amount_accurate_to_market 
+    ::MISC 'LastUpdateId', 'IsAsk', [SPOT]
+            is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side
+        [USD_M_FUTURES, COIN_M_FUTURES]
+            is_price_level_amount_equal_to_market_amount_limit_of_1000_per_side
 '''
 
 '''
@@ -291,9 +331,10 @@ class IndividualColumnChecker:
             is_series_non_decreasing
             is_whole_series_epoch_valid
             are_all_within_utc_z_day_range
-            is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
+            is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
+            is_timestamp_of_receive_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
     ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES]
-            are_first_and_last_timestamps_within_60_seconds_from_the_borders
+            are_first_and_last_timestamps_within_10_seconds_from_the_borders
     ::["_E"] 'TimestampOfReceive' [COIN_M_FUTURES]
             are_first_and_last_timestamps_within_5_minutes_from_the_borders
 
@@ -308,12 +349,15 @@ class IndividualColumnChecker:
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
+            is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
+            is_event_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
 
     ::["data"]["T"] 'TransactionTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
-            is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
-
+            is_timestamp_of_receive_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            is_event_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
             is_whole_series_made_of_only_one_expected_value
@@ -322,26 +366,26 @@ class IndividualColumnChecker:
             are_series_values_increasing
             is_each_trade_id_bigger_by_one_than_previous
 
-    ::["data"]["p"] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
-            are_values_non_negative
-            are_values_within_reasonable_range
     ::["data"]["p"] 'Price' [SPOT]
             are_values_positive
+            are_values_with_specified_type_of_float
+            are_values_within_reasonable_range_zero_to_1e6 ( trzeba zmienic na > , nazwe tez)
             is_there_no_abnormal_price_tick_higher_than_2_percent
     ::["data"]["p"] 'Price' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_positive_x_column_filtered_to_market
-            is_there_no_abnormal_price_tick_higher_than_2_percent (filtered to XUnknownParameter)
+            are_values_positive                                         df[df['XUnknownParameter'] == 'MARKET']['Price']        
+            are_values_with_specified_type_of_float                     df[df['XUnknownParameter'] == 'MARKET']['Price']
+            are_values_within_reasonable_range_zero_to_1e6              df[df['XUnknownParameter'] == 'MARKET']['Price']
+            is_there_no_abnormal_price_tick_higher_than_2_percent       df[df['XUnknownParameter'] == 'MARKET']['Price']
 
-    ::["data"]["q"] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_with_specified_type
-            are_values_non_negative
-            are_values_within_reasonable_range
     ::["data"]["q"] 'Quantity' [SPOT]
             are_values_positive
+            are_values_with_specified_type_of_float
+            are_values_within_reasonable_range_zero_to_1e9
     ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_positive_x_column_filtered_to_market (filtered to XUnknownParameter)
-
+            are_quantity_values_positive                                df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            are_values_with_specified_type_of_float                     df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            are_values_within_reasonable_range_zero_to_1e9              df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            
     ::["data"]["m"] 'IsBuyerMarketMaker' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_values_zero_or_one
 
@@ -349,8 +393,15 @@ class IndividualColumnChecker:
             is_whole_series_made_of_only_one_expected_value
 
     ::["data"]["X"] 'XUnknownParameter' [USD_M_FUTURES, COIN_M_FUTURES]
-            is_whole_series_made_of_set_of_expected_values
+            is_whole_series_made_of_set_of_expected_values_market_insurance_fund_or_na
+            
+            
+ustalic wspolny format dla nazw (stringow testow)
+przepisac nazwy wszystkich zmiennych na unikalne!!!!!!
+!!!!!!!!!!!!!!are_values_within_reasonable_range_zero_to_1e6 ( trzeba zmienic na > , nazwe tez)            
 '''
+
+
 
 '''
 is_there_only_one_unique_value_in_series
@@ -358,7 +409,7 @@ is_whole_series_made_of_only_one_expected_value
 is_series_non_decreasing
 is_whole_series_epoch_valid
 are_all_within_utc_z_day_range
-is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s
+is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
 are_first_and_last_timestamp_within_60_seconds_from_the_borders
 is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
 are_series_values_increasing
