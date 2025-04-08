@@ -150,8 +150,8 @@ class IndividualColumnChecker:
         return series.ge(0).all()
 
     @staticmethod
-    def are_values_within_reasonable_range(series: pd.Series, min_value: float, max_value: float) -> bool:
-        return series.between(min_value, max_value).all()
+    def are_values_exclusively_within_specified_reasonable_range(series: pd.Series, min_value: float, max_value: float) -> bool:
+        return ((series > min_value) & (series < max_value)).all()
 
     @staticmethod
     def is_there_no_abnormal_price_tick_higher_than_2_percent(series: pd.Series, max_percent_change: float = 2.0) -> bool:
@@ -184,6 +184,22 @@ class IndividualColumnChecker:
 
         return ((price_level_counts >= expected_minimum_amount) & (price_level_counts <= expected_maximum_amount)).all()
 
+'''
+    is_timestamp_of_receive_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(df['TimestampOfReceive'])
+    report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_column_non_decreasing)
+
+    are_quantity_values_within_reasonable_range_zero_to_1e9 = IndividualColumnChecker.are_values_within_reasonable_range(df['Quantity'], 0.0, 1e9)
+    report.add_test_result("Quantity", "are_quantity_values_within_reasonable_range_zero_to_1e9", are_quantity_values_within_reasonable_range_zero_to_1e9)
+
+    # Column                  TestName                                                             Status       
+    # TimestampOfReceive      is_series_non_decreasing                                             POSITIVE  
+    ...
+    # Quantity                are_quantity_values_within_reasonable_range_zero_to_1e9              POSITIVE   
+    
+    Column: Column
+    TestName: are_{column if there are at least 2 vars to check}_values_within_reasonable_range{min, max}
+    variable_name: are_{column(s)}_values_within_reasonable_range{min, max}
+'''
 
 '''
     # DIFFERENCE DEPTH CHECK
@@ -241,19 +257,21 @@ class IndividualColumnChecker:
     ::["data"]["b"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_values_with_specified_type_of_float
             are_values_positive
-            are_price_values_within_reasonable_range_zero_to_1e6
+            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6
 
     ::["data"]["ps"] 'PSUnknownField' [COIN_M_FUTURES]
             is_there_only_one_unique_value_in_series
             is_whole_series_made_of_only_one_expected_value
 
     ::["data"]["b"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_quantity_values_with_specified_type_of_float
-            are_quantity_values_non_negative
-            are_quantity_values_within_reasonable_range_zero_to_1e9
+            are_values_with_specified_type_of_float
+            are_values_non_negative
+            are_values_exclusively_within_specified_reasonable_range_zero_to_1e9
 '''
 
 '''
+TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
+
     # DEPTH SNAPSHOT CHECK
 
     ::["_rc"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
@@ -264,17 +282,17 @@ class IndividualColumnChecker:
             is_timestamp_of_receive_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
         [USD_M_FUTURES, COIN_M_FUTURES]
             is_timestamp_of_receive_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
-            is_timestamp_of_receive_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
-            
+            is_timestamp_of_receive_no_greater_than_message_transaction_time_by_one_s_and_no_less_by_1_ms
+
     ::["_rq"] 'TimestampOfRequest' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_whole_series_epoch_valid
             are_all_within_utc_z_day_range
             is_first_timestamp_within_60_seconds_from_the_borders
             is_timestamp_of_receive_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
-        [USD_M_FUTURES, COIN_M_FUTURES]
-            is_timestamp_of_request_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
-            is_timestamp_of_request_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
+    ::["_rq"] 'TimestampOfRequest' [USD_M_FUTURES, COIN_M_FUTURES]
+            is_message_output_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
+            is_transaction_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
 
     ::["E"] 'MessageOutputTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -282,7 +300,7 @@ class IndividualColumnChecker:
             are_all_within_utc_z_day_range
             is_first_timestamp_within_60_seconds_from_the_borders
             is_timestamp_of_receive_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
-            is_timestamp_of_request_no_greater_than_message_output_time_by_one_s_and_no_less_by_1_ms
+            is_message_output_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
             is_message_output_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
             
     ::["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
@@ -290,9 +308,9 @@ class IndividualColumnChecker:
             is_whole_series_epoch_valid
             are_all_within_utc_z_day_range
             is_first_timestamp_within_60_seconds_from_the_borders
-            is_timestamp_of_receive_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
-            is_timestamp_of_request_no_greater_than_message_transaction_by_one_s_and_no_less_by_1_ms
+            is_timestamp_of_receive_no_greater_than_message_transaction_time_by_one_s_and_no_less_by_1_ms
             is_message_output_time_no_greater_than_transaction_time_by_one_s_and_no_less_by_1_ms
+            is_transaction_time_no_greater_than_timestamp_of_request_by_one_s_and_no_less_by_1_ms
             
     ::["lastUpdateId"] 'LastUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -311,12 +329,12 @@ class IndividualColumnChecker:
     ::["bids"][0]/["asks"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_values_with_specified_type_of_float
             are_values_positive
-            are_price_values_within_reasonable_range_zero_to_1e6
+            are_values_exclusively_within_specified_reasonable_range_range_zero_to_1e6
 
     ::["bids"][1]/["asks"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_quantity_values_with_specified_type_of_float
             are_quantity_values_positive
-            are_quantity_values_within_reasonable_range_zero_to_1e9
+            are_values_exclusively_within_specified_reasonable_range_range_zero_to_1e9
             
     ::MISC 'LastUpdateId', 'IsAsk', [SPOT]
             is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side
@@ -369,22 +387,22 @@ class IndividualColumnChecker:
     ::["data"]["p"] 'Price' [SPOT]
             are_values_positive
             are_values_with_specified_type_of_float
-            are_values_within_reasonable_range_zero_to_1e6 ( trzeba zmienic na > , nazwe tez)
+            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6 ( trzeba zmienic na > , nazwe tez)
             is_there_no_abnormal_price_tick_higher_than_2_percent
     ::["data"]["p"] 'Price' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_values_positive                                         df[df['XUnknownParameter'] == 'MARKET']['Price']        
-            are_values_with_specified_type_of_float                     df[df['XUnknownParameter'] == 'MARKET']['Price']
-            are_values_within_reasonable_range_zero_to_1e6              df[df['XUnknownParameter'] == 'MARKET']['Price']
-            is_there_no_abnormal_price_tick_higher_than_2_percent       df[df['XUnknownParameter'] == 'MARKET']['Price']
+            are_values_positive                                                                     df[df['XUnknownParameter'] == 'MARKET']['Price']        
+            are_values_with_specified_type_of_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Price']
+            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6                    df[df['XUnknownParameter'] == 'MARKET']['Price']
+            is_there_no_abnormal_price_tick_higher_than_2_percent                                   df[df['XUnknownParameter'] == 'MARKET']['Price']
 
     ::["data"]["q"] 'Quantity' [SPOT]
             are_values_positive
             are_values_with_specified_type_of_float
-            are_values_within_reasonable_range_zero_to_1e9
+            are_values_exclusively_within_specified_reasonable_zero_to_1e9
     ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
-            are_quantity_values_positive                                df[df['XUnknownParameter'] == 'MARKET']['Quantity']
-            are_values_with_specified_type_of_float                     df[df['XUnknownParameter'] == 'MARKET']['Quantity']
-            are_values_within_reasonable_range_zero_to_1e9              df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            are_quantity_values_positive                                                            df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            are_values_with_specified_type_of_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            are_values_exclusively_within_specified_reasonable_zero_to_1e9                          df[df['XUnknownParameter'] == 'MARKET']['Quantity']
             
     ::["data"]["m"] 'IsBuyerMarketMaker' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             are_values_zero_or_one
@@ -394,34 +412,10 @@ class IndividualColumnChecker:
 
     ::["data"]["X"] 'XUnknownParameter' [USD_M_FUTURES, COIN_M_FUTURES]
             is_whole_series_made_of_set_of_expected_values_market_insurance_fund_or_na
-            
-            
+
+
+
 ustalic wspolny format dla nazw (stringow testow)
 przepisac nazwy wszystkich zmiennych na unikalne!!!!!!
-!!!!!!!!!!!!!!are_values_within_reasonable_range_zero_to_1e6 ( trzeba zmienic na > , nazwe tez)            
-'''
-
-
-
-'''
-is_there_only_one_unique_value_in_series
-is_whole_series_made_of_only_one_expected_value
-is_series_non_decreasing
-is_whole_series_epoch_valid
-are_all_within_utc_z_day_range
-is_timestamp_of_receive_no_greater_than_event_time_by_one_s_and_no_less_by_1_ms
-are_first_and_last_timestamp_within_60_seconds_from_the_borders
-is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance
-are_series_values_increasing
-is_first_update_id_bigger_by_one_than_previous_entry_final_update_id
-is_final_update_id_to_previous_entry_final_update
-are_values_with_specified_type
-are_values_positive
-are_values_non_negative
-are_values_within_reasonable_range
-is_there_no_abnormal_price_tick_higher_than_2_percent
-are_values_zero_or_one
-is_each_trade_id_bigger_by_one_than_previous
-are_values_positive_x_column_filtered_to_market
-is_whole_series_made_of_set_of_expected_values
+import IndividualColumnChecker as icc
 '''
