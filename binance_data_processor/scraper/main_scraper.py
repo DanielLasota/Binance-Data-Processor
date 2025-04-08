@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     download_csv_data(
         storage_connection_parameters=StorageConnectionParameters(),
-        date_range=['04-04-2025', '04-04-2025'],
+        date_range=['05-04-2025', '05-04-2025'],
         pairs=[
             'ADAUSDT',
             # "SOLUSDT",
@@ -39,7 +39,7 @@ if __name__ == '__main__':
             'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT',
         ],
-        skip_existing=True,
+        skip_existing=False,
         amount_of_files_to_be_downloaded_at_once=20
     )
 
