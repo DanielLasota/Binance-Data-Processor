@@ -154,6 +154,7 @@ class TestIndividualColumnChecker:
         event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
         timestamp_of_receive    = pd.Series([1718196460_654_999, 1718196461_280_000])
         assert IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+
     #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_milliseconds(self):
@@ -436,15 +437,45 @@ class TestIndividualColumnChecker:
         series = pd.Series([1, 0, 3])
         assert IndividualColumnChecker.is_series_of_positive_values(series) == False
 
-    ##### are_values_within_reasonable_range
+    ##### is_series_range_reasonable_greater_than_min_less_than_max_values
 
-    def test_are_values_within_reasonable_range_positive(self):
+    def test_range_strict_positive(self):
         series = pd.Series([1.5, 2.0, 2.5])
-        assert IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series, 1.0, 3.0) == True
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == True
 
-    def test_are_values_within_reasonable_range_negative(self):
-        series = pd.Series([1.0, 1.1, 2.5])
-        assert IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series, 1.0, 3.0) == False
+    def test_range_strict_negative_at_min(self):
+        series = pd.Series([1.0, 1.5, 2.5])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+
+    def test_range_strict_negative_at_max(self):
+        series = pd.Series([1.5, 2.5, 3.0])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+
+    def test_range_strict_negative_below_min(self):
+        series = pd.Series([0.5, 2.0, 2.5])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+
+    def test_range_strict_negative_above_max(self):
+        series = pd.Series([1.5, 2.5, 3.5])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+
+    #### is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values
+
+    def test_are_values_within_reasonable_range_gte_positive_boundary(self):
+        series = pd.Series([1.0, 1.5, 2.9])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series, 1.0, 3.0) == True
+
+    def test_are_values_within_reasonable_range_gte_negative_below_min(self):
+        series = pd.Series([0.99, 1.0, 2.9])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series, 1.0, 3.0) == False
+
+    def test_are_values_within_reasonable_range_gte_negative_at_max(self):
+        series = pd.Series([1.0, 2.0, 3.0])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series, 1.0, 3.0) == False
+
+    def test_are_values_within_reasonable_range_gte_positive_all_in_range(self):
+        series = pd.Series([1.0, 2.0, 2.5])
+        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series, 1.0, 3.0) == True
 
     #### is_there_no_abnormal_price_tick_higher_than_2_percent
 
@@ -764,8 +795,6 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=df['EventTime'])
         assert result_of_check == False
 
-    """Next 4 test needs to be check as there were bug with day before 23:51 timestamps"""
-
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025')
@@ -996,16 +1025,29 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         result_of_check = IndividualColumnChecker.is_series_of_positive_values(series=df['Quantity'])
         assert result_of_check == False
 
-    ##### are_values_within_reasonable_range
+    ##### is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values
 
     def test_are_values_within_reasonable_range_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == True
 
     def test_are_values_within_reasonable_range_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
+        assert result_of_check == False
+
+    ##### is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values
+
+
+    def test_is_series_range_reasonable_greater_than_min_less_than_max_values_positive(self):
+        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
+        assert result_of_check == True
+
+    def test_is_series_range_reasonable_greater_than_min_less_than_max_values_negative(self):
+        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['Price'])
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == False
 
     #### is_there_no_abnormal_price_tick_higher_than_2_percent
