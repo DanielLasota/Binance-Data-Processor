@@ -234,10 +234,10 @@ class DataQualityChecker:
 
         is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df['Price'], float)
         are_price_values_positive = IndividualColumnChecker.is_series_of_positive_values(df['Price'])
-        are_price_values_within_reasonable_range_zero_to_1e6 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df['Price'], 0.0, 1e6)
+        is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(df['Price'], 0.0, 1e6)
         report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         report.add_test_result("Price", "are_values_positive", are_price_values_positive)
-        report.add_test_result("Price", "are_price_values_within_reasonable_range_zero_to_1e6", are_price_values_within_reasonable_range_zero_to_1e6)
+        report.add_test_result("Price", "is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values", is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values)
 
         if asset_parameters.market == Market.COIN_M_FUTURES:
             is_there_only_one_unique_expected_value_in_series = IndividualColumnChecker.is_there_only_one_unique_expected_value_in_series(df['PSUnknownField'], asset_parameters.pairs[0].replace('_perp', '').upper())
@@ -245,10 +245,10 @@ class DataQualityChecker:
 
         is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df['Quantity'], float)
         is_series_of_non_negative_values = IndividualColumnChecker.is_series_of_non_negative_values(df['Quantity'])
-        are_quantity_values_within_reasonable_range_zero_to_1e9 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df['Quantity'], 0.0, 1e9)
+        is_series_range_reasonable_greater_than_or_equal_0_less_than_1e9_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(df['Quantity'], 0.0, 1e9)
         report.add_test_result("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         report.add_test_result("Quantity", "is_series_of_non_negative_values", is_series_of_non_negative_values)
-        report.add_test_result("Quantity", "are_quantity_values_within_reasonable_range_zero_to_1e9", are_quantity_values_within_reasonable_range_zero_to_1e9)
+        report.add_test_result("Quantity", "is_series_range_reasonable_greater_than_or_equal_0_less_than_1e9_values", is_series_range_reasonable_greater_than_or_equal_0_less_than_1e9_values)
 
         return report
 
@@ -338,17 +338,17 @@ class DataQualityChecker:
 
         is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df['Price'], float)
         is_series_of_positive_values = IndividualColumnChecker.is_series_of_positive_values(df['Price'])
-        are_values_exclusively_within_specified_reasonable_range_zero_to_1e6 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df['Price'], 0.0, 1e6)
+        is_series_range_reasonable_greater_than_0_less_than_1e6_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e6)
         report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
-        report.add_test_result("Price", "are_values_exclusively_within_specified_reasonable_range_zero_to_1e6", are_values_exclusively_within_specified_reasonable_range_zero_to_1e6)
+        report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e6_values", is_series_range_reasonable_greater_than_0_less_than_1e6_values)
 
         is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df['Quantity'], float)
         is_series_of_positive_values = IndividualColumnChecker.is_series_of_positive_values(df['Quantity'])
-        are_values_within_reasonable_range_zero_to_1e9 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df['Quantity'], 0.0, 1e9)
+        is_series_range_reasonable_greater_than_0_less_than_1e9_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Quantity'], 0.0, 1e9)
         report.add_test_result("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         report.add_test_result("Quantity", "is_series_of_positive_values", is_series_of_positive_values)
-        report.add_test_result("Quantity", "are_values_within_reasonable_range_zero_to_1e9", are_values_within_reasonable_range_zero_to_1e9)
+        report.add_test_result("Quantity", "is_series_range_reasonable_greater_than_0_less_than_1e9_values", is_series_range_reasonable_greater_than_0_less_than_1e9_values)
 
         if asset_parameters.market == Market.SPOT:
             is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(df[['LastUpdateId', 'IsAsk']], asset_parameters, expected_minimum_amount=1000, expected_maximum_amount=5000)
@@ -428,36 +428,36 @@ class DataQualityChecker:
         if asset_parameters.market is Market.SPOT:
             is_series_of_positive_values = IndividualColumnChecker.is_series_of_positive_values(df['Price'])
             is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df['Price'], float)
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df['Price'], 0.0, 1e6)
+            is_series_range_reasonable_gt_0_lt_1e6_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e6)
             is_there_no_abnormal_tick_higher_than_2_percent = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(df['Price'])
             report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
             report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
-            report.add_test_result("Price", "are_values_exclusively_within_specified_reasonable_range_zero_to_1e6", are_values_exclusively_within_specified_reasonable_range_zero_to_1e6)
+            report.add_test_result("Price", "is_series_range_reasonable_gt_0_lt_1e6_values", is_series_range_reasonable_gt_0_lt_1e6_values)
             report.add_test_result("Price", "is_there_no_abnormal_tick_higher_than_2_percent", is_there_no_abnormal_tick_higher_than_2_percent)
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_series_of_positive_values = IndividualColumnChecker.is_series_of_positive_values(df[df['XUnknownParameter'] == 'MARKET']['Price'])
             is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df[df['XUnknownParameter'] == 'MARKET']['Price'], float)
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df[df['XUnknownParameter'] == 'MARKET']['Price'], 0.0, 1e6)
+            is_series_range_reasonable_greater_than_0_less_than_1e6_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(df[df['XUnknownParameter'] == 'MARKET']['Price'], 0.0, 1e6)
             is_there_no_abnormal_tick_higher_than_2_percent = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(df[df['XUnknownParameter'] == 'MARKET']['Price'])
             report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
             report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
-            report.add_test_result("Price", "are_values_exclusively_within_specified_reasonable_range_zero_to_1e6", are_values_exclusively_within_specified_reasonable_range_zero_to_1e6)
+            report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e6_values", is_series_range_reasonable_greater_than_0_less_than_1e6_values)
             report.add_test_result("Price", "is_there_no_abnormal_tick_higher_than_2_percent", is_there_no_abnormal_tick_higher_than_2_percent)
 
         if asset_parameters.market is Market.SPOT:
             is_series_of_positive_values = IndividualColumnChecker.is_series_of_positive_values(df['Quantity'])
             is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df['Quantity'], float)
-            are_values_within_reasonable_range_zero_to_1e9 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df['Quantity'], 0.0, 1e9)
+            is_series_range_reasonable_greater_than_0_less_than_1e9_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Quantity'], 0.0, 1e9)
             report.add_test_result("Quantity", "is_series_of_positive_values", is_series_of_positive_values)
             report.add_test_result("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
-            report.add_test_result("Quantity", "are_values_within_reasonable_range_zero_to_1e9", are_values_within_reasonable_range_zero_to_1e9)
+            report.add_test_result("Quantity", "is_series_range_reasonable_greater_than_0_less_than_1e9_values", is_series_range_reasonable_greater_than_0_less_than_1e9_values)
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_series_of_positive_values = IndividualColumnChecker.is_series_of_positive_values(df[df['XUnknownParameter'] == 'MARKET']['Quantity'])
             is_series_of_expected_data_type_float = IndividualColumnChecker.is_series_of_expected_data_type(df[df['XUnknownParameter'] == 'MARKET']['Quantity'], float)
-            are_values_within_reasonable_range_zero_to_1e9 = IndividualColumnChecker.are_values_exclusively_within_specified_reasonable_range(df[df['XUnknownParameter'] == 'MARKET']['Quantity'], 0.0, 1e9)
+            is_series_range_reasonable_greater_than_0_less_than_1e9_values = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(df[df['XUnknownParameter'] == 'MARKET']['Quantity'], 0.0, 1e9)
             report.add_test_result("Quantity", "is_series_of_positive_values", is_series_of_positive_values)
             report.add_test_result("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
-            report.add_test_result("Quantity", "are_values_within_reasonable_range_zero_to_1e9", are_values_within_reasonable_range_zero_to_1e9)
+            report.add_test_result("Quantity", "is_series_range_reasonable_greater_than_0_less_than_1e9_values", is_series_range_reasonable_greater_than_0_less_than_1e9_values)
 
         is_series_of_zero_or_one_only = IndividualColumnChecker.is_series_of_zero_or_one_only(df['IsBuyerMarketMaker'])
         report.add_test_result("IsBuyerMarketMaker", "is_series_of_zero_or_one_only", is_series_of_zero_or_one_only)

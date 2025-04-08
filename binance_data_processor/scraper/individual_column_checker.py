@@ -145,8 +145,12 @@ class IndividualColumnChecker:
         return series.ge(0).all()
 
     @staticmethod
-    def are_values_exclusively_within_specified_reasonable_range(series: pd.Series, min_value: float, max_value: float) -> bool:
+    def is_series_range_reasonable_greater_than_min_less_than_max_values(series: pd.Series, min_value: float, max_value: float) -> bool:
         return ((series > min_value) & (series < max_value)).all()
+
+    @staticmethod
+    def is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series: pd.Series, min_value: float, max_value: float) -> bool:
+        return ((series >= min_value) & (series < max_value)).all()
 
     @staticmethod
     def is_there_no_abnormal_tick_higher_than_2_percent(series: pd.Series, max_percent_change: float = 2.0) -> bool:
@@ -249,7 +253,7 @@ class IndividualColumnChecker:
     ::["data"]["b"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_expected_data_type_float
             is_series_of_positive_values
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6
+            is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values
 
     ::["data"]["ps"] 'PSUnknownField' [COIN_M_FUTURES]
             is_there_only_one_unique_expected_value_in_series
@@ -257,7 +261,7 @@ class IndividualColumnChecker:
     ::["data"]["b"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_expected_data_type_float
             is_series_of_non_negative_values
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e9
+            is_series_range_reasonable_greater_than_or_equal_0_less_than_1e9_values
 '''
 
 '''
@@ -318,12 +322,12 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
     ::["bids"][0]/["asks"][0] 'Price' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_expected_data_type_float
             is_series_of_positive_values
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6
+            is_series_range_reasonable_greater_than_0_less_than_1e6_values
 
     ::["bids"][1]/["asks"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_expected_data_type_float
             is_series_of_positive_values
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e9
+            is_series_range_reasonable_greater_than_0_less_than_1e9_values
             
     ::MISC 'LastUpdateId', 'IsAsk', [SPOT]
             is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side
@@ -373,22 +377,22 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
     ::["data"]["p"] 'Price' [SPOT]
             is_series_of_positive_values
             is_series_of_expected_data_type_float
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6
+            is_series_range_reasonable_greater_than_0_less_than_1e6_values
             is_there_no_abnormal_tick_higher_than_2_percent
     ::["data"]["p"] 'Price' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_positive_values                                                                     df[df['XUnknownParameter'] == 'MARKET']['Price']        
             is_series_of_expected_data_type_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Price']
-            are_values_exclusively_within_specified_reasonable_range_zero_to_1e6                    df[df['XUnknownParameter'] == 'MARKET']['Price']
+            is_series_range_reasonable_greater_than_0_less_than_1e6_values                    df[df['XUnknownParameter'] == 'MARKET']['Price']
             is_there_no_abnormal_tick_higher_than_2_percent                                   df[df['XUnknownParameter'] == 'MARKET']['Price']
 
     ::["data"]["q"] 'Quantity' [SPOT]
             is_series_of_positive_values
             is_series_of_expected_data_type_float
-            are_values_exclusively_within_specified_reasonable_zero_to_1e9
+            is_series_range_reasonable_greater_than_0_less_than_1e9_values
     ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_positive_values                                                            df[df['XUnknownParameter'] == 'MARKET']['Quantity']
             is_series_of_expected_data_type_float                                                 df[df['XUnknownParameter'] == 'MARKET']['Quantity']
-            are_values_exclusively_within_specified_reasonable_zero_to_1e9                          df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            is_series_range_reasonable_greater_than_0_less_than_1e9_values                          df[df['XUnknownParameter'] == 'MARKET']['Quantity']
             
     ::["data"]["m"] 'IsBuyerMarketMaker' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_zero_or_one_only
