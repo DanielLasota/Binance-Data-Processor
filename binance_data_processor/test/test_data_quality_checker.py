@@ -160,27 +160,34 @@ class TestIndividualColumnChecker:
 
     ##### is_event_time_column_close_to_receive_time_column_by_100_ms
 
-    def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
-        event = pd.Series([1718196460_656, 1718196461_280, 1718196460_656])
-        receive = pd.Series([1718196460_660, 1718196461_290, 1718196460_660])
-        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event) == True
+    def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_positive_milliseconds(self):
+        event_time = pd.Series([1718196460_656, 1718196461_280, 1718196460_656])
+        timestamp_of_receive = pd.Series([1718196460_660, 1718196461_290, 1718196460_660])
 
-    def test_are_event_times_close_to_receive_times_positive_microseconds(self):
-        event = pd.Series([1718196460_656_000, 1718196461_280_000, 1718196460_656_000])
-        receive = pd.Series([1718196460_660_000, 1718196461_290_000, 1718196460_660_000])
-        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
+        assert IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == True
 
-    def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
-        event = pd.Series([1718196460_656, 1718196461_280])
-        receive = pd.Series([1718196465_660, 1718196466_381])
-        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event) == False
+    def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_positive_microseconds(self):
+        event_time = pd.Series([1718196460_656_000, 1718196461_280_000, 1718196460_656_000])
+        timestamp_of_receive = pd.Series([1718196460_660_000, 1718196461_290_000, 1718196460_660_000])
+        assert IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
 
-    def test_are_event_times_close_to_receive_times_negative_microseconds(self):
+    def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_milliseconds(self):
+        event_time              = pd.Series([1718196460_656, 1718196461_280])
+        timestamp_of_receive    = pd.Series([1718196461_657, 1718196461_280])
+        assert IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
 
-        event = pd.Series([1718196460_656_000, 1718196461_280_000])
-        receive = pd.Series([1718196466_656_000, 1718196467_280_000])
-        assert IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(receive, event, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        event_time              = pd.Series([1718196460_656, 1718196461_280])
+        timestamp_of_receive    = pd.Series([1718196460_654, 1718196461_280])
+        assert IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
 
+    def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_microseconds(self):
+        event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
+        timestamp_of_receive    = pd.Series([1718196461_656_001, 1718196461_280_000])
+        assert IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+
+        event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
+        timestamp_of_receive    = pd.Series([1718196460_654_999, 1718196461_280_000])
+        assert IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
     #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_milliseconds(self):
@@ -189,7 +196,7 @@ class TestIndividualColumnChecker:
             1718193600000,  # 12:00:00
             1718236740000  # 23:59:00
         ])
-        result = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS)
+        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS)
         assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in milliseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_microseconds(self):
@@ -198,7 +205,7 @@ class TestIndividualColumnChecker:
             1718193600000_000,  # 12:00:00
             1718236740000_000  # 23:59:00
         ])
-        result = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS)
+        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS)
         assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in microseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_milliseconds(self):
@@ -218,9 +225,9 @@ class TestIndividualColumnChecker:
             1718236739000  # poza
         ])
 
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series1, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when first timestamp is too late in milliseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series2, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when last timestamp is too early in milliseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series3, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when both timestamps are out of range in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when first timestamp is too late in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when last timestamp is too early in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when both timestamps are out of range in milliseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_microseconds(self):
         series1 = pd.Series([
@@ -239,21 +246,9 @@ class TestIndividualColumnChecker:
             1718236739000_000  # poza
         ])
 
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series1, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when first timestamp is too late in microseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series2, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when last timestamp is too early in microseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(series3, date="12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when both timestamps are out of range in microseconds"
-
-    ####    is_transaction_time_lower_or_equal_event_time
-
-    def test_is_transaction_time_lower_or_equal_event_time_positive(self):
-        transaction_series = pd.Series([1718196460656, 1718196461280])
-        event_time_series = pd.Series([1718196460655, 1718196461380])
-        assert IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(transaction_series, event_time_series, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == True
-
-    def test_is_transaction_time_lower_or_equal_event_time_negative(self):
-        transaction_series = pd.Series([1718196460656, 1718196461280])
-        event_time_series = pd.Series([1718196460654, 1718196461380])
-        assert IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(transaction_series, event_time_series, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when first timestamp is too late in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when last timestamp is too early in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when both timestamps are out of range in microseconds"
 
     ####    are_series_values_increasing
 
@@ -535,7 +530,7 @@ class TestIndividualColumnChecker:
             pairs=['BTCUSDT'],
             date='01-01-2023'
         )
-        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params, expected_amount_of_price_levels_per_side=5000)
         assert result == True, "Expected True for SPOT market with exactly 5000 bids and 5000 asks for snapshot"
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_positive_usd_m_futures(self):
@@ -550,7 +545,7 @@ class TestIndividualColumnChecker:
             pairs=['BTCUSDT'],
             date='01-01-2023'
         )
-        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params, expected_amount_of_price_levels_per_side=1000)
         assert result == True, "Expected True for USD_M_FUTURES market with exactly 1000 bids and 1000 asks for snapshot"
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_positive_coin_m_futures(self):
@@ -565,7 +560,7 @@ class TestIndividualColumnChecker:
             pairs=['BTCUSD_PERP'],
             date='01-01-2023'
         )
-        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params, expected_amount_of_price_levels_per_side=1000)
         assert result == True, "Expected True for COIN_M_FUTURES market with exactly 1000 bids and 1000 asks for snapshot"
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_spot_exceeds_limit(self):
@@ -580,7 +575,7 @@ class TestIndividualColumnChecker:
             pairs=['BTCUSDT'],
             date='01-01-2023'
         )
-        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params, expected_amount_of_price_levels_per_side=5000)
         assert result == False, "Expected False for SPOT market with 5001 bids (exceeds 5000 limit)"
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_usd_m_futures_exceeds_limit(self):
@@ -595,7 +590,7 @@ class TestIndividualColumnChecker:
             pairs=['BTCUSDT'],
             date='01-01-2023'
         )
-        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params, expected_amount_of_price_levels_per_side=5000)
         assert result == False, "Expected False for USD_M_FUTURES market with 1001 bids (exceeds 1000 limit)"
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_multiple_snapshots_exceeds_limit(self):
@@ -610,7 +605,7 @@ class TestIndividualColumnChecker:
             pairs=['BTCUSD_PERP'],
             date='01-01-2023'
         )
-        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params, expected_amount_of_price_levels_per_side=5000)
         assert result == False, "Expected False for COIN_M_FUTURES market with one snapshot having 1001 bids (exceeds 1000 limit)"
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_raises_exception_for_wrong_stream_type(self):
@@ -626,11 +621,135 @@ class TestIndividualColumnChecker:
             date='01-01-2023'
         )
         try:
-            IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params)
+            IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(df, asset_params, expected_amount_of_price_levels_per_side=5000)
             assert False, "Expected an exception for wrong stream type"
         except Exception as e:
             assert str(
                 e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
+
+    #### is_each_snapshot_price_level_amount_accurate_to_market
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_positive_spot(self):
+        data = {
+            'LastUpdateId': [1] * 10000,
+            'IsAsk': [0] * 5000 + [1] * 5000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df, asset_params, 5000, 5000
+        )
+        assert result == True, "Expected True for SPOT market with exactly 5000 bids and 5000 asks for snapshot"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_positive_usd_m_futures(self):
+        data = {
+            'LastUpdateId': [1] * 2000,
+            'IsAsk': [0] * 1000 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.USD_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df, asset_params, 1000, 1000
+        )
+        assert result == True, "Expected True for USD_M_FUTURES market with exactly 1000 bids and 1000 asks for snapshot"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_positive_coin_m_futures(self):
+        data = {
+            'LastUpdateId': [1] * 2000,
+            'IsAsk': [0] * 1000 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.COIN_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSD_PERP'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df, asset_params, 1000, 1000
+        )
+        assert result == True, "Expected True for COIN_M_FUTURES market with exactly 1000 bids and 1000 asks for snapshot"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_negative_spot_exceeds_limit(self):
+        data = {
+            'LastUpdateId': [1] * 10001,
+            'IsAsk': [0] * 5001 + [1] * 5000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df, asset_params, 5000, 5000
+        )
+        assert result == False, "Expected False for SPOT market with 5001 bids (exceeds 5000 limit)"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_negative_usd_m_futures_exceeds_limit(self):
+        data = {
+            'LastUpdateId': [1] * 2001,
+            'IsAsk': [0] * 1001 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.USD_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df, asset_params, 1000, 1000
+        )
+        assert result == False, "Expected False for USD_M_FUTURES market with 1001 bids (exceeds 1000 limit)"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_negative_multiple_snapshots_exceeds_limit(self):
+        data = {
+            'LastUpdateId': [1] * 2000 + [2] * 2001,
+            'IsAsk': [0] * 1000 + [1] * 1000 + [0] * 1001 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.COIN_M_FUTURES,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSD_PERP'],
+            date='01-01-2023'
+        )
+        result = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df, asset_params, 1000, 1000
+        )
+        assert result == False, "Expected False for COIN_M_FUTURES market with one snapshot having 1001 bids (exceeds 1000 limit)"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_raises_exception_for_wrong_stream_type(self):
+        data = {
+            'LastUpdateId': [1] * 2000,
+            'IsAsk': [0] * 1000 + [1] * 1000
+        }
+        df = pd.DataFrame(data)
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.TRADE_STREAM,
+            pairs=['BTCUSDT'],
+            date='01-01-2023'
+        )
+        try:
+            IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+                df, asset_params, 5000, 5000
+            )
+            assert False, "Expected an exception for wrong stream type"
+        except Exception as e:
+            assert str(e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
 
 class TestIndividualColumnCheckerQuantitativeEdition:
 
@@ -711,41 +830,47 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         result_of_check = IndividualColumnChecker.are_all_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MICROSECONDS)
         assert result_of_check == False
 
-    ##### is_event_time_column_close_to_receive_time_column_by_100_ms
+    ##### is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms
 
     def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
-            event_time_column=df['EventTime']
+            event_time_column=df['EventTime'],
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
         )
+
         assert result_of_check == True
 
     def test_are_event_times_close_to_receive_times_positive_microseconds(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
 
-        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
+
         assert result_of_check == True
 
     def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
-            event_time_column=df['EventTime']
+            event_time_column=df['EventTime'],
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
         )
+
         assert result_of_check == False
 
     def test_are_event_times_close_to_receive_times_negative_microseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_receive_time_column_close_to_event_time_column_by_minus_100_ms_plus_5_s(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
+
         assert result_of_check == False
 
     #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
@@ -755,10 +880,11 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             'test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
             series=df['TimestampOfReceive'],
             date='04-03-2025',
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS,
         )
         assert result_of_check == True, "Expected first and last timestamps to be within 5 seconds from day borders in milliseconds"
 
@@ -767,10 +893,11 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             'test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
             series=df['TimestampOfReceive'],
             date='04-03-2025',
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS,
         )
         assert result_of_check == True, "Expected first and last timestamps to be within 5 seconds from day borders in microseconds"
 
@@ -779,10 +906,11 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             'test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
             series=df['TimestampOfReceive'],
             date='04-03-2025',
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS,
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in milliseconds"
 
@@ -790,9 +918,10 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             'test_csvs/test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
             series=df['TimestampOfReceive'],
             date='04-03-2025',
+            n_seconds=60,
             epoch_time_unit=EpochTimeUnit.MILLISECONDS
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in milliseconds"
@@ -802,9 +931,10 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             'test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
             series=df['TimestampOfReceive'],
             date='04-03-2025',
+            n_seconds=60,
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
@@ -813,32 +943,13 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             'test_csvs/test_negative_binance_trade_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_60_seconds_from_the_borders(
+        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
             series=df['TimestampOfReceive'],
             date='04-03-2025',
+            n_seconds=60,
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
-
-    #### is_transaction_time_lower_or_equal_event_time
-
-    def test_is_transaction_time_lower_or_equal_event_time_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TransactionTime', 'EventTime'])
-        result_of_check = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(
-            transaction_series=df['TransactionTime'],
-            event_time_series=df['EventTime'],
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
-        )
-        assert result_of_check == True
-
-    def test_is_transaction_time_lower_or_equal_event_time_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TransactionTime', 'EventTime'])
-        result_of_check = IndividualColumnChecker.is_transaction_time_lower_or_equal_event_time_with_one_ms_tolerance(
-            transaction_series=df['TransactionTime'],
-            event_time_series=df['EventTime'],
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
-        )
-        assert result_of_check == False
 
     #### are_series_values_increasing
 
@@ -992,7 +1103,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         )
         result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
             df=df,
-            asset_parameters=asset_params
+            asset_parameters=asset_params,
+            expected_amount_of_price_levels_per_side=5000
         )
         assert result_of_check == True, "Expected True for SPOT market snapshot with exactly 5000 bids and 5000 asks per snapshot"
 
@@ -1009,7 +1121,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         )
         result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
             df=df,
-            asset_parameters=asset_params
+            asset_parameters=asset_params,
+            expected_amount_of_price_levels_per_side=5000
         )
         print(f'result_of_check: {result_of_check}')
         assert result_of_check == False, "Expected False for SPOT market snapshot with at least one side exceeding or below 5000 limit"
@@ -1028,9 +1141,73 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         try:
             IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
                 df=df,
-                asset_parameters=asset_params
+                asset_parameters=asset_params,
+                expected_amount_of_price_levels_per_side=5000
             )
             assert False, "Expected an exception for wrong stream type"
         except Exception as e:
             assert str(
                 e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
+
+    #### is_each_snapshot_price_level_amount_accurate_to_market
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_positive(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk']
+        )
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='11-03-2025'
+        )
+        result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df=df,
+            asset_parameters=asset_params,
+            expected_minimum_amount=5000,
+            expected_maximum_amount=5000
+        )
+        assert result_of_check == True, "Expected True for SPOT market snapshot with exactly 5000 bids and 5000 asks per snapshot"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_negative_exceeds_limit(self):
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk']
+        )
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.DEPTH_SNAPSHOT,
+            pairs=['BTCUSDT'],
+            date='11-03-2025'
+        )
+        result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+            df=df,
+            asset_parameters=asset_params,
+            expected_minimum_amount=5000,
+            expected_maximum_amount=5000
+        )
+        print(f'result_of_check: {result_of_check}')
+        assert result_of_check == False, "Expected False for SPOT market snapshot with at least one side exceeding or below 5000 limit"
+
+    def test_is_each_snapshot_price_level_amount_in_specified_range_raises_exception_for_wrong_stream_type(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk']
+        )
+        asset_params = AssetParameters(
+            market=Market.SPOT,
+            stream_type=StreamType.TRADE_STREAM,
+            pairs=['BTCUSDT'],
+            date='11-03-2025'
+        )
+        try:
+            IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
+                df=df,
+                asset_parameters=asset_params,
+                expected_minimum_amount=5000,
+                expected_maximum_amount=5000
+            )
+            assert False, "Expected an exception for wrong stream type"
+        except Exception as e:
+            assert str(e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
