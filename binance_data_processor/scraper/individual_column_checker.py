@@ -9,7 +9,7 @@ class IndividualColumnChecker:
     __slots__ = ()
 
     @staticmethod
-    def is_there_only_one_unique_expected_value_in_series(series: pd.Series, expected_value: any) -> bool:
+    def is_series_of_only_one_unique_expected_value(series: pd.Series, expected_value: any) -> bool:
         return series.unique()[0] == expected_value and len(series.unique()) == 1
 
     @staticmethod
@@ -109,8 +109,8 @@ class IndividualColumnChecker:
         return first_within_range
 
     @staticmethod
-    def are_series_values_increasing(series: pd.Series) -> bool:
-        return series.diff().dropna().gt(0).all()
+    def is_series_increasing_by_one(series: pd.Series) -> bool:
+        return series.diff().dropna().eq(1).all()
 
     @staticmethod
     def is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(first_update_id: pd.Series, final_update_id: pd.Series) -> bool:
@@ -214,10 +214,10 @@ class IndividualColumnChecker:
             are_first_and_last_timestamps_within_5_seconds_from_the_borders
             
     ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["e"] 'EventType' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -231,7 +231,7 @@ class IndividualColumnChecker:
             is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
 
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["U"] 'FirstUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -256,7 +256,7 @@ class IndividualColumnChecker:
             is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values
 
     ::["data"]["ps"] 'PSUnknownField' [COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["b"][1] 'Quantity' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_expected_data_type_float
@@ -311,10 +311,10 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
             is_series_non_decreasing
 
     ::["symbol"] 'Symbol' [COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["pair"] 'Pair' [COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
             
     ::["data"]["b"]/["data"]["a"] 'IsAsk' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_zero_or_one_only
@@ -350,10 +350,10 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
             are_first_and_last_timestamps_within_5_minutes_from_the_borders
 
     ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["e"] 'EventType' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -368,10 +368,10 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
             is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
             
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["t"] 'TradeId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            are_series_values_increasing
+            is_series_increasing_by_one
             is_each_series_value_bigger_by_one_than_previous
 
     ::["data"]["p"] 'Price' [SPOT]
@@ -398,7 +398,7 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
             is_series_of_zero_or_one_only
 
     ::["data"]["M"] 'MUnknownParameter' [SPOT]
-            is_there_only_one_unique_expected_value_in_series
+            is_series_of_only_one_unique_expected_value
 
     ::["data"]["X"] 'XUnknownParameter' [USD_M_FUTURES, COIN_M_FUTURES]
             is_whole_series_made_of_set_of_expected_values_market_insurance_fund_or_na

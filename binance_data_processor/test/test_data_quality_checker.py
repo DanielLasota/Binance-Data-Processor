@@ -24,7 +24,7 @@ class TestIndividualColumnChecker:
             ]
         )
 
-        result_of_check = IndividualColumnChecker.is_there_only_one_unique_expected_value_in_series(series=series, expected_value='btcusdt@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=series, expected_value='btcusdt@depth@100ms')
         assert result_of_check == False
 
     def test_given_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
@@ -41,7 +41,7 @@ class TestIndividualColumnChecker:
             ]
         )
 
-        result_of_check = IndividualColumnChecker.is_there_only_one_unique_expected_value_in_series(series=series, expected_value='btcusdt@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=series, expected_value='btcusdt@depth@100ms')
         assert result_of_check == True
 
     def test_given_pandas_series_with_non_descending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_true_is_being_returned(self):
@@ -221,11 +221,11 @@ class TestIndividualColumnChecker:
 
     def test_are_series_values_increasing_positive(self):
         series = pd.Series([1, 2, 3, 4])
-        assert IndividualColumnChecker.are_series_values_increasing(series) == True
+        assert IndividualColumnChecker.is_series_increasing_by_one(series) == True
 
     def test_are_series_values_increasing_negative(self):
         series = pd.Series([1, 2, 2, 4])
-        assert IndividualColumnChecker.are_series_values_increasing(series) == False
+        assert IndividualColumnChecker.is_series_increasing_by_one(series) == False
 
     #### is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value
 
@@ -752,13 +752,13 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_given_more_than_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Stream'])
-        result_of_check = IndividualColumnChecker.is_there_only_one_unique_expected_value_in_series(series=df['Stream'], expected_value='trxusd_perp@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=df['Stream'], expected_value='trxusd_perp@depth@100ms')
         assert result_of_check == True
 
     def test_given_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
 
-        result_of_check = IndividualColumnChecker.is_there_only_one_unique_expected_value_in_series(series=df['Symbol'], expected_value='btcusdt@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=df['Symbol'], expected_value='btcusdt@depth@100ms')
         assert result_of_check == False
 
     def test_given_pandas_series_with_non_descending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_true_is_being_returned(self):
@@ -940,12 +940,12 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_series_values_increasing_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_trade_stream_spot_trxusdt_04-03-2025.csv', usecols=['TradeId'])
-        result_of_check = IndividualColumnChecker.are_series_values_increasing(series=df['TradeId'])
+        result_of_check = IndividualColumnChecker.is_series_increasing_by_one(series=df['TradeId'])
         assert result_of_check == True
 
     def test_are_series_values_increasing_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_trade_stream_spot_trxusdt_04-03-2025.csv', usecols=['TradeId'])
-        result_of_check = IndividualColumnChecker.are_series_values_increasing(series=df['TradeId'])
+        result_of_check = IndividualColumnChecker.is_series_increasing_by_one(series=df['TradeId'])
         assert result_of_check == False
 
     #### is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value
