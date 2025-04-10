@@ -186,11 +186,11 @@ class DataQualityChecker:
             are_first_and_last_timestamps_within_5_seconds_from_the_borders = icc.are_first_and_last_timestamps_within_n_seconds_from_the_borders(df['TimestampOfReceive'], date=asset_parameters.date, n_seconds=5, epoch_time_unit=epoch_time_unit)
             report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_5_seconds_from_the_borders", are_first_and_last_timestamps_within_5_seconds_from_the_borders)
 
-        is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['Stream'], f"{asset_parameters.pairs[0]}@depth@100ms")
-        report.add_test_result("Stream", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+        is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Stream'], f"{asset_parameters.pairs[0]}@depth@100ms")
+        report.add_test_result("Stream", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
-        is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['EventType'], "depthUpdate")
-        report.add_test_result("EventType", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+        is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['EventType'], "depthUpdate")
+        report.add_test_result("EventType", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['EventTime'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['EventTime'])
@@ -208,8 +208,8 @@ class DataQualityChecker:
             report.add_test_result("TransactionTime", "is_series_epoch_valid", is_series_epoch_valid)
             report.add_test_result("TransactionTime", "is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms", is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms)
 
-        is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['Symbol'], asset_parameters.pairs[0].upper())
-        report.add_test_result("Symbol", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+        is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Symbol'], asset_parameters.pairs[0].upper())
+        report.add_test_result("Symbol", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['FirstUpdateId'])
         report.add_test_result("FirstUpdateId", "is_series_non_decreasing", is_series_non_decreasing)
@@ -233,15 +233,15 @@ class DataQualityChecker:
         report.add_test_result("IsAsk", "is_series_of_zero_or_one_only", is_series_of_zero_or_one_only)
 
         is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Price'], float)
-        are_price_values_positive = icc.is_series_of_positive_values(df['Price'])
+        is_series_of_positive_values = icc.is_series_of_positive_values(df['Price'])
         is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values = icc.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(df['Price'], 0.0, 1e6)
         report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
-        report.add_test_result("Price", "are_values_positive", are_price_values_positive)
+        report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
         report.add_test_result("Price", "is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values", is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values)
 
         if asset_parameters.market == Market.COIN_M_FUTURES:
-            is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['PSUnknownField'], asset_parameters.pairs[0].replace('_perp', '').upper())
-            report.add_test_result("PSUnknownField", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+            is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['PSUnknownField'], asset_parameters.pairs[0].replace('_perp', '').upper())
+            report.add_test_result("PSUnknownField", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
         is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Quantity'], float)
         is_series_of_non_negative_values = icc.is_series_of_non_negative_values(df['Quantity'])
@@ -326,12 +326,12 @@ class DataQualityChecker:
         report.add_test_result("LastUpdateId", "is_series_non_decreasing", is_series_non_decreasing)
 
         if asset_parameters.market == Market.COIN_M_FUTURES:
-            is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['Symbol'], asset_parameters.pairs[0].upper())
-            report.add_test_result("Symbol", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+            is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Symbol'], asset_parameters.pairs[0].upper())
+            report.add_test_result("Symbol", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
         if asset_parameters.market == Market.COIN_M_FUTURES:
-            is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['Pair'], asset_parameters.pairs[0].replace('_perp', '').upper())
-            report.add_test_result("Pair", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+            is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Pair'], asset_parameters.pairs[0].replace('_perp', '').upper())
+            report.add_test_result("Pair", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
         is_series_of_zero_or_one_only = icc.is_series_of_zero_or_one_only(df['IsAsk'])
         report.add_test_result("IsAsk", "is_series_of_zero_or_one_only", is_series_of_zero_or_one_only)
@@ -384,11 +384,11 @@ class DataQualityChecker:
             are_first_and_last_timestamps_within_5_minutes_from_the_borders = icc.are_first_and_last_timestamps_within_n_seconds_from_the_borders(df['TimestampOfReceive'], date=asset_parameters.date, n_seconds=5 * 60, epoch_time_unit=epoch_time_unit)
             report.add_test_result("TimestampOfReceive", "are_first_and_last_timestamps_within_5_minutes_from_the_borders", are_first_and_last_timestamps_within_5_minutes_from_the_borders)
 
-        is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['Stream'], f"{asset_parameters.pairs[0]}@trade")
-        report.add_test_result("Stream", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+        is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Stream'], f"{asset_parameters.pairs[0]}@trade")
+        report.add_test_result("Stream", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
-        is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['EventType'], "trade")
-        report.add_test_result("EventType", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+        is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['EventType'], "trade")
+        report.add_test_result("EventType", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['EventTime'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['EventTime'])
@@ -408,12 +408,12 @@ class DataQualityChecker:
         report.add_test_result("TransactionTime", "is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms", is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms)
         report.add_test_result("TransactionTime", "is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms", is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms)
 
-        is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['Symbol'], asset_parameters.pairs[0].upper())
-        report.add_test_result("Symbol", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+        is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Symbol'], asset_parameters.pairs[0].upper())
+        report.add_test_result("Symbol", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
-        are_series_values_increasing = icc.are_series_values_increasing(df['TradeId'])
+        is_series_increasing_by_one = icc.is_series_increasing_by_one(df['TradeId'])
         is_each_trade_id_bigger_by_one_than_previous = icc.is_each_series_value_bigger_by_one_than_previous(df['TradeId'])
-        report.add_test_result("TradeId", "are_series_values_increasing", are_series_values_increasing)
+        report.add_test_result("TradeId", "is_series_increasing_by_one", is_series_increasing_by_one)
         report.add_test_result("TradeId", "is_each_trade_id_bigger_by_one_than_previous", is_each_trade_id_bigger_by_one_than_previous)
 
         """
@@ -463,8 +463,8 @@ class DataQualityChecker:
         report.add_test_result("IsBuyerMarketMaker", "is_series_of_zero_or_one_only", is_series_of_zero_or_one_only)
 
         if asset_parameters.market == Market.SPOT:
-            is_there_only_one_unique_expected_value_in_series = icc.is_there_only_one_unique_expected_value_in_series(df['MUnknownParameter'], True)
-            report.add_test_result("MUnknownParameter", "is_there_only_one_unique_expected_value_in_series", is_there_only_one_unique_expected_value_in_series)
+            is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['MUnknownParameter'], True)
+            report.add_test_result("MUnknownParameter", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_series_of_set_of_expected_values_market_insurance_fund_or_na = icc.is_series_of_set_of_expected_values(df['XUnknownParameter'], {"MARKET", "INSURANCE_FUND", 'NA', np.nan})
