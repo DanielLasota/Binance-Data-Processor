@@ -103,7 +103,7 @@ class DepthSnapshotService:
         next_snapshot_time = self._calculate_next_snapshot_time()
 
         while not self.global_shutdown_flag.is_set():
-            target_midnight_utc_epoch_s = self._get_next_midnight_utc_epoch_seconds()
+            target_midnight_utc_epoch_s_plus_10s = self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
             current_time_s = DepthSnapshotService._get_current_utc_epoch_timestamp_in_seconds()
             sleep_duration = next_snapshot_time - current_time_s
 
@@ -113,7 +113,7 @@ class DepthSnapshotService:
 
             self._sleep_with_flag_check(sleep_duration)
 
-            while (remaining_ms := target_midnight_utc_epoch_s * 1000 - DepthSnapshotService._get_current_utc_epoch_timestamp_in_milliseconds()) > 0 and remaining_ms < 1000:
+            while (remaining_ms := target_midnight_utc_epoch_s_plus_10s * 1000 - DepthSnapshotService._get_current_utc_epoch_timestamp_in_milliseconds()) > 0 and remaining_ms < 1000:
                 self.logger.debug('waiting 0.1s to reach midnight')
                 time.sleep(0.1)
 
@@ -121,9 +121,9 @@ class DepthSnapshotService:
 
             next_snapshot_time += self.data_sink_config.time_settings.snapshot_fetcher_interval_seconds
 
-            if next_snapshot_time > self._get_next_midnight_utc_epoch_seconds() - 60:
+            if next_snapshot_time > self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10) - 60:
                 self.logger.info(f'Setting next snapshot fetch to    m i d n i g h t ')
-                next_snapshot_time = self._get_next_midnight_utc_epoch_seconds()
+                next_snapshot_time = self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
 
         self.logger.info("Snapshot daemon for all markets has ended")
 
@@ -171,7 +171,7 @@ class DepthSnapshotService:
     def _calculate_next_snapshot_time(self):
         current_time_s = DepthSnapshotService._get_current_utc_epoch_timestamp_in_seconds()
         snapshot_fetcher_interval_seconds = self.data_sink_config.time_settings.snapshot_fetcher_interval_seconds
-        next_midnight_utc_epoch_seconds = self._get_next_midnight_utc_epoch_seconds()
+        next_midnight_utc_epoch_seconds = self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
 
         next_planned_timestamp_of_fetch = current_time_s + snapshot_fetcher_interval_seconds
 
@@ -182,13 +182,13 @@ class DepthSnapshotService:
         return current_time_s + snapshot_fetcher_interval_seconds
 
     @staticmethod
-    def _get_next_midnight_utc_epoch_seconds() -> int:
+    def _get_next_midnight_utc_epoch_seconds(with_offset_seconds: int = 0) -> int:
         current_time_s = DepthSnapshotService._get_current_utc_epoch_timestamp_in_seconds()
 
         seconds_since_midnight = current_time_s % (24 * 3600)
         seconds_to_midnight = (24 * 3600) - seconds_since_midnight
 
-        return current_time_s + seconds_to_midnight
+        return current_time_s + seconds_to_midnight + with_offset_seconds
 
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 1
