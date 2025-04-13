@@ -62,6 +62,7 @@ class StreamDataSaverAndSender:
                 queue=queue,
                 asset_parameters=asset_parameters
             )
+            time.sleep(2)
 
     def _start_zip_reserve_sender_loop(self, retry_interval_seconds) -> None:
         thread = threading.Thread(
@@ -167,6 +168,7 @@ class StreamDataSaverAndSender:
                 queue,
                 asset_parameters
             )
+            self.logger.info(f'sleepin for {self.data_sink_config.time_settings.file_duration_seconds}s at {asset_parameters}')
             self._sleep_with_flag_check(self.data_sink_config.time_settings.file_duration_seconds)
 
         self._process_queue_data(
@@ -197,6 +199,15 @@ class StreamDataSaverAndSender:
                 match = self._stream_message_pair_pattern.search(message)
                 pair_found_in_message = match.group(1)
                 stream_data[pair_found_in_message].append(message)
+
+            self.logger.info('VVVV')
+            self.logger.info(f'asset_parameters: {asset_parameters}')
+            list_of_lengths = []
+            for pair in stream_data.keys():
+                list_of_lengths.append(f'{pair}: {len(stream_data[pair])}')
+            self.logger.info(list_of_lengths)
+
+            self.logger.info('^^^^')
 
             for pair in list(stream_data.keys()):
                 data = stream_data[pair]
@@ -272,11 +283,11 @@ class StreamDataSaverAndSender:
                     saver()
                     break
                 except Exception as e:
-                    self.logger.debug(f'Attempt {attempt}/{max_retries}: error while sending to blob {file_name}, error: {e}')
+                    self.logger.info(f'Attempt {attempt}/{max_retries}: error while sending to blob {file_name}, error: {e}')
                     if attempt < max_retries:
                         time.sleep(retry_delay_seconds)
                     else:
-                        self.logger.debug(f'Max retries reached for {file_name}. Saving locally.')
+                        self.logger.info(f'Max retries reached for {file_name}. Saving locally.')
                         self.write_data_to_zip_file(
                             json_content=json_content,
                             file_save_catalog=file_save_catalog,
@@ -299,7 +310,7 @@ class StreamDataSaverAndSender:
             self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
     def send_zipped_json_to_backblaze_bucket(self, json_content: str, file_name: str) -> None:
-
+        print('iskdeee')
         self.cloud_storage_client.upload_zipped_jsoned_string(
             data=json_content,
             file_name=file_name
