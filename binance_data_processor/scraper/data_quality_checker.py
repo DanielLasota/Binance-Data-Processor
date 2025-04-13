@@ -411,10 +411,8 @@ class DataQualityChecker:
         is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Symbol'], asset_parameters.pairs[0].upper())
         report.add_test_result("Symbol", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
-        is_series_increasing_by_one = icc.is_series_increasing_by_one(df['TradeId'])
-        is_each_trade_id_bigger_by_one_than_previous = icc.is_each_series_value_bigger_by_one_than_previous(df['TradeId'])
-        report.add_test_result("TradeId", "is_series_increasing_by_one", is_series_increasing_by_one)
-        report.add_test_result("TradeId", "is_each_trade_id_bigger_by_one_than_previous", is_each_trade_id_bigger_by_one_than_previous)
+        is_each_series_value_bigger_by_one_than_previous = icc.is_each_series_value_bigger_by_one_than_previous(df['TradeId'])
+        report.add_test_result("TradeId", "is_each_series_value_bigger_by_one_than_previous", is_each_series_value_bigger_by_one_than_previous)
 
         """
         TimestampOfReceive,Stream,EventType,EventTime,TransactionTime,Symbol,TradeId,Price,Quantity,IsBuyerMarketMaker,XUnknownParameter

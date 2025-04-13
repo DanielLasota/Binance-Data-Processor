@@ -217,16 +217,6 @@ class TestIndividualColumnChecker:
         assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when last timestamp is too early in microseconds"
         assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when both timestamps are out of range in microseconds"
 
-    ####    are_series_values_increasing
-
-    def test_are_series_values_increasing_positive(self):
-        series = pd.Series([1, 2, 3, 4])
-        assert IndividualColumnChecker.is_series_increasing_by_one(series) == True
-
-    def test_are_series_values_increasing_negative(self):
-        series = pd.Series([1, 2, 2, 4])
-        assert IndividualColumnChecker.is_series_increasing_by_one(series) == False
-
     #### is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value
 
     def test_is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value_positive(self):
@@ -935,18 +925,6 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
-
-    #### are_series_values_increasing
-
-    def test_are_series_values_increasing_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_trade_stream_spot_trxusdt_04-03-2025.csv', usecols=['TradeId'])
-        result_of_check = IndividualColumnChecker.is_series_increasing_by_one(series=df['TradeId'])
-        assert result_of_check == True
-
-    def test_are_series_values_increasing_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_trade_stream_spot_trxusdt_04-03-2025.csv', usecols=['TradeId'])
-        result_of_check = IndividualColumnChecker.is_series_increasing_by_one(series=df['TradeId'])
-        assert result_of_check == False
 
     #### is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value
     """Next 2 test needs to consider futures"""

@@ -109,10 +109,6 @@ class IndividualColumnChecker:
         return first_within_range
 
     @staticmethod
-    def is_series_increasing_by_one(series: pd.Series) -> bool:
-        return series.diff().dropna().eq(1).all()
-
-    @staticmethod
     def is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(first_update_id: pd.Series, final_update_id: pd.Series) -> bool:
         return (first_update_id.drop_duplicates().iloc[1:] == final_update_id.drop_duplicates().shift(1).iloc[1:] + 1).all()
 
@@ -163,6 +159,12 @@ class IndividualColumnChecker:
 
     @staticmethod
     def is_each_series_value_bigger_by_one_than_previous(series: pd.Series) -> bool:
+        # diffs = series.diff()[1:]
+        # correct = diffs.eq(1)
+        # if not correct.all():
+        #     print("Występują błędne różnice w następujących wierszach:")
+        #     print(diffs[~correct])
+
         return series.diff()[1:].eq(1).all()
 
     @staticmethod
@@ -371,7 +373,6 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
             is_series_of_only_one_unique_expected_value
 
     ::["data"]["t"] 'TradeId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
-            is_series_increasing_by_one
             is_each_series_value_bigger_by_one_than_previous
 
     ::["data"]["p"] 'Price' [SPOT]
