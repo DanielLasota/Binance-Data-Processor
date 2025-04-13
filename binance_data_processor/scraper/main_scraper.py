@@ -14,10 +14,10 @@ if __name__ == '__main__':
 
     download_csv_data(
         storage_connection_parameters=StorageConnectionParameters(),
-        date_range=['09-04-2025', '09-04-2025'],
+        date_range=['09-04-2025', '10-04-2025'],
         pairs=[
-            "BTCUSDT",
-            # 'ADAUSDT',
+            # "BTCUSDT",
+            'ADAUSDT',
             # "SOLUSDT",
             # "XRPUSDT",
             # "DOGEUSDT",
@@ -25,29 +25,29 @@ if __name__ == '__main__':
             # "SHIBUSDT",
             # "LTCUSDT",
             # "AVAXUSDT",
-            # "TRXUSDT",
+            "TRXUSDT",
             # "DOTUSDT",
             # "BCHUSDT",
             # "SUIUSDT"
         ],
         markets=[
-            'SPOT',
+            # 'SPOT',
             'USD_M_FUTURES',
-            'COIN_M_FUTURES'
+            # 'COIN_M_FUTURES'
         ],
         stream_types=[
             'TRADE_STREAM',
             'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT'
         ],
-        skip_existing=False,
+        skip_existing=True,
         amount_of_files_to_be_downloaded_at_once=20
     )
 
-    conduct_data_quality_analysis_on_specified_csv_list(
-        csv_paths=[
-            'C:/Users/daniel/Documents/binance_archival_data/binance_trade_stream_spot_trxusdt_02-04-2025.csv'
-        ]
-    )
-
-    conduct_data_quality_analysis_on_whole_directory('C:/Users/daniel/Documents/binance_archival_data/')
+    # conduct_data_quality_analysis_on_specified_csv_list(
+    #     csv_paths=[
+    #         'C:/Users/daniel/Documents/binance_archival_data/binance_trade_stream_spot_trxusdt_02-04-2025.csv'
+    #     ]
+    # )
+    #
+    # conduct_data_quality_analysis_on_whole_directory('C:/Users/daniel/Documents/binance_archival_data/')
