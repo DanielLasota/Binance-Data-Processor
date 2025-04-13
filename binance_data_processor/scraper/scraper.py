@@ -141,11 +141,10 @@ class DataScraper:
                 in asset_parameters_to_be_downloaded
                 if asset in asset_parameters_of_existing_files
             ]
-
-            print(f'WARNING! Some of specified asset_parameters already exists')
-            print(f'skipping existing assets:')
-            for asset in asset_parameters_to_be_downloaded_that_already_exists:
-                print(asset)
+            if len(asset_parameters_to_be_downloaded_that_already_exists) > 0:
+                print(f'skip_existing = True ==> skipping existing assets:')
+                for asset in asset_parameters_to_be_downloaded_that_already_exists:
+                    print(asset)
         else:
             asset_parameters_to_be_downloaded_minus_existing_files_asset_parameters = asset_parameters_to_be_downloaded
 
@@ -280,29 +279,30 @@ class DataScraper:
         ]
 
     def _main_download_loop(self, asset_parameters_list: list[AssetParameters], dates: list[str], dump_path: str) -> None:
-        for date in dates:
-            for asset_parameters in asset_parameters_list:
-                print(f'Downloading: {asset_parameters}')
-                dataframe = self._get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(asset_parameters)
-                dataframe_quality_report = get_dataframe_quality_report(
-                    dataframe=dataframe,
-                    asset_parameters=asset_parameters,
-                )
-                print(f'data report status: {dataframe_quality_report.get_data_report_status().value}')
 
-                # minimal_dataframe = self._get_minimal_dataframe(df=rough_dataframe_for_quality_check)
+        for asset_parameters in asset_parameters_list:
+            print(f'Downloading: {asset_parameters}')
+            dataframe = self._get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(asset_parameters)
+            dataframe_quality_report = get_dataframe_quality_report(
+                dataframe=dataframe,
+                asset_parameters=asset_parameters,
+            )
+            print(f'data report status: {dataframe_quality_report.get_data_report_status().value}')
+            print()
 
-                target_file_name = DataScraper._get_base_of_filename(asset_parameters=asset_parameters)
+            # minimal_dataframe = self._get_minimal_dataframe(df=rough_dataframe_for_quality_check)
 
-                self._save_df_to_csv_with_data_quality_report(
-                    dataframe=dataframe,
-                    dataframe_quality_report=dataframe_quality_report,
-                    dump_path=dump_path,
-                    target_file_name=target_file_name
-                )
+            target_file_name = DataScraper._get_base_of_filename(asset_parameters=asset_parameters)
 
-                del dataframe_quality_report
-                del dataframe
+            self._save_df_to_csv_with_data_quality_report(
+                dataframe=dataframe,
+                dataframe_quality_report=dataframe_quality_report,
+                dump_path=dump_path,
+                target_file_name=target_file_name
+            )
+
+            del dataframe_quality_report
+            del dataframe
 
     def _get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(self, asset_parameters: AssetParameters) -> pd.DataFrame:
         list_of_files_with_specified_prefixes_that_should_be_downloaded = (

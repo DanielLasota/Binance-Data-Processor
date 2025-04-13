@@ -199,7 +199,7 @@ class CommandLineInterface:
         output_lines.append("------------------------------------------")
 
         threads = [thread for thread in threading.enumerate() if thread.is_alive()]
-        output_lines.append(str(threads))
+        output_lines.append("\n ".join(str(thread) for thread in threads))
 
         output_lines.append("------------------------------------------")
         output_lines.append("Loaded Modules:")
@@ -207,7 +207,7 @@ class CommandLineInterface:
 
         loaded_modules = [module for module in sys.modules.keys()]
 
-        output_lines.append(", ".join(loaded_modules))
+        output_lines.append("\n ".join(str(module) for module in loaded_modules))
 
         final_output = "\n".join(output_lines)
         self.logger.info(final_output)

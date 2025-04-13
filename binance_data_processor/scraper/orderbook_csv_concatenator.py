@@ -280,9 +280,9 @@ class OrderBookConcatenator:
     def _main_concatenate_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
         for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
             print(f'SINGLE CSV')
-            single_target_csv = OrderBookConcatenator._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
-            single_csv_filename = OrderBookConcatenator._get_single_dataframe_filename(list_of_asset_parameters_for_single_csv)
-            single_target_csv.to_csv(f'{dump_catalog}/{single_csv_filename}', index=False)
+            single_target_df = OrderBookConcatenator._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
+            single_csv_filename = OrderBookConcatenator._get_merged_target_single_csv_filename(list_of_asset_parameters_for_single_csv)
+            single_target_df.to_csv(f'{dump_catalog}/{single_csv_filename}', index=False)
             print()
 
     @staticmethod
@@ -294,90 +294,214 @@ class OrderBookConcatenator:
             pairs_to_be_merged = []
             print(f'         └─single market')
             for pair, params_for_pair in per_pair_dict.items():
-                merged_orders_and_trades = OrderBookConcatenator._concatenate_orders_and_trades_within_single_pair(
+                merged_orders_and_trades = OrderBookConcatenator._concatenate_difference_depth_with_depth_snapshot_with_trade_within_single_pair(
                     asset_parameters_list_for_single_market=params_for_pair,
                     csvs_nest_catalog=csvs_nest_catalog
                 )
                 pairs_to_be_merged.append(merged_orders_and_trades)
             merged_pairs_within_single_market = OrderBookConcatenator._concatenate_pairs_within_single_market(pairs_to_be_merged)
             dataframes_to_be_merged_within_single_csv.append(merged_pairs_within_single_market)
-
         single_target_csv = OrderBookConcatenator._concatenate_markets_within_single_csv(dataframes_to_be_merged_within_single_csv)
         return single_target_csv
 
     @staticmethod
-    def _concatenate_orders_and_trades_within_single_pair(asset_parameters_list_for_single_market: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
+    def _group_asset_parameters_by_market(asset_parameters: list[AssetParameters]) -> dict[Market, list[AssetParameters]]:
+        grouped: dict[Market, list[AssetParameters]] = defaultdict(list)
+        for ap in asset_parameters:
+            grouped[ap.market].append(ap)
+        return dict(grouped)
+
+    @staticmethod
+    def _group_asset_parameters_by_pair(asset_parameters: list[AssetParameters]) -> dict[str, list[AssetParameters]]:
+        grouped: dict[str, list[AssetParameters]] = defaultdict(list)
+        for ap in asset_parameters:
+            grouped[ap.pairs[0]].append(ap)
+        return dict(grouped)
+
+    @staticmethod
+    def _concatenate_difference_depth_with_depth_snapshot_with_trade_within_single_pair(asset_parameters_list_for_single_market: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
         import pandas as pd
 
         print('                       └─single pair')
         for _ in asset_parameters_list_for_single_market:
             print(f'                                   └─{_}')
 
-        difference_depth_asset_parameters = next(
-            (ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM), None
+        difference_depth_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM), None)
+        trade_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.TRADE_STREAM), None)
+        depth_snapshot_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.DEPTH_SNAPSHOT), None)
+
+        final_orderbook_snapshot_from_cpp_binance_orderbook = OrderBookConcatenator._get_final_orderbook_snapshot_from_cpp_binance_orderbook(difference_depth_asset_parameters, csvs_nest_catalog)
+        root_depth_snapshot_dataframe = OrderBookConcatenator._load_depth_snapshot_root_csv(depth_snapshot_asset_parameters, csvs_nest_catalog)
+        root_difference_depth_dataframe = OrderBookConcatenator._load_difference_depth_root_csv(difference_depth_asset_parameters, csvs_nest_catalog)
+        root_trade_dataframe = OrderBookConcatenator._load_trade_root_csv(trade_asset_parameters, csvs_nest_catalog)
+
+        orders_and_trades_df = pd.concat(
+            [
+                root_difference_depth_dataframe,
+                root_trade_dataframe
+            ],
+            ignore_index=True
         )
-        trade_asset_parameters = next(
-            (ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.TRADE_STREAM), None
+        orders_and_trades_df = orders_and_trades_df.sort_values(by=['TimestampOfReceive', 'StreamType', 'aux_idx']).reset_index(drop=True)
+        del root_difference_depth_dataframe, root_trade_dataframe
+
+        insert_condition = (
+                (orders_and_trades_df['StreamType'] == 'DIFFERENCE_DEPTH_STREAM') &
+                (orders_and_trades_df['FinalUpdateId'] > root_depth_snapshot_dataframe['LastUpdateId'].iloc[0])
         )
-        difference_depth_dataframe = OrderBookConcatenator._prepare_single_market_single_pair_trade_or_difference_depth_dataframe(difference_depth_asset_parameters, csvs_nest_catalog)
-        trade_dataframe = OrderBookConcatenator._prepare_single_market_single_pair_trade_or_difference_depth_dataframe(trade_asset_parameters, csvs_nest_catalog)
-        # file_path_for_orderbook_csv = (
-        #         csvs_nest_catalog +
-        #         OrderBookConcatenator._get_base_of_filename(difference_depth_asset_parameters) +
-        #         '.csv'
-        # )
-        #
-        # difference_depth_columns_to_load = OrderBookConcatenator._get_columns_for_specified_asset_parameters(difference_depth_asset_parameters)
-        # difference_depth_dataframe = pd.read_csv(file_path_for_orderbook_csv, comment='#', usecols=difference_depth_columns_to_load)
-        # difference_depth_dataframe['IsOrderBookEvent'] = 1
-        # difference_depth_dataframe['StreamType'] = StreamType.DIFFERENCE_DEPTH_STREAM.name
-        # difference_depth_dataframe['Market'] = difference_depth_asset_parameters.market.name
-        # difference_depth_dataframe['aux_idx'] = range(len(difference_depth_dataframe))
-        # if difference_depth_asset_parameters.market is not Market.SPOT:
-        #     difference_depth_dataframe['TimestampOfReceive'] *= 1000
-        #
-        # file_path_for_trade_csv = (
-        #         csvs_nest_catalog +
-        #         OrderBookConcatenator._get_base_of_filename(trade_asset_parameters) +
-        #         '.csv'
-        # )
-        # trade_columns_to_load = OrderBookConcatenator._get_columns_for_specified_asset_parameters(trade_asset_parameters)
-        # trade_dataframe = pd.read_csv(file_path_for_trade_csv, comment='#', usecols=trade_columns_to_load)
-        # trade_dataframe['IsOrderBookEvent'] = 0
-        # trade_dataframe['StreamType'] = StreamType.TRADE_STREAM.name
-        # trade_dataframe['Market'] = trade_asset_parameters.market.name
-        # trade_dataframe['aux_idx'] = range(len(trade_dataframe))
-        # if trade_asset_parameters.market is not Market.SPOT:
-        #     trade_dataframe['TimestampOfReceive'] *= 1000
-        #
-        # for df in [difference_depth_dataframe, trade_dataframe]:
-        #     for column in df.columns:
-        #         current_dtype = df[column].dtype
-        #         if is_integer_dtype(current_dtype):
-        #             df[column] = df[column].astype('Int64')
-        #         elif is_bool_dtype(current_dtype):
-        #             df[column] = df[column].astype('boolean')
-        #         elif is_float_dtype(current_dtype):
-        #             df[column] = df[column].astype('float64')
 
-        combined_df = pd.concat([difference_depth_dataframe, trade_dataframe], ignore_index=True)
+        insert_idx = orders_and_trades_df[insert_condition].index[0]
 
-        combined_df = combined_df.sort_values(by=['TimestampOfReceive', 'IsOrderBookEvent', 'aux_idx'])
-        # combined_df.drop(columns=['aux_idx'])
+        target_timestamp_of_receive_of_root_depth_snapshot_dataframe = orders_and_trades_df.iloc[insert_idx:]['TimestampOfReceive'].iloc[0]
+        root_depth_snapshot_dataframe['TimestampOfReceive'] = target_timestamp_of_receive_of_root_depth_snapshot_dataframe
 
-        # combined_df.to_csv(f'combined_{asset_parameters_list_for_single_market[0].market.name}_{asset_parameters_list_for_single_market[0].date}.csv', index=False)
-        return combined_df
+        if target_timestamp_of_receive_of_root_depth_snapshot_dataframe < final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceive'].iloc[0]:
+            raise Exception(
+                'snapshot timestamp < target_timestamp_of_receive_of_root_depth_snapshot_dataframe'
+                f"{target_timestamp_of_receive_of_root_depth_snapshot_dataframe} < {final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceive'].iloc[0]}"
+            )
+
+        final_combined_df = pd.concat(
+            [
+                final_orderbook_snapshot_from_cpp_binance_orderbook,
+                orders_and_trades_df.iloc[:insert_idx],
+                root_depth_snapshot_dataframe,
+                orders_and_trades_df.iloc[insert_idx:]
+            ],
+            ignore_index=True
+        ).reset_index(drop=True)
+
+        del final_orderbook_snapshot_from_cpp_binance_orderbook
+
+        # final_combined_df.to_csv(f'combined_{asset_parameters_list_for_single_market[0].market.name}_{asset_parameters_list_for_single_market[0].date}.csv', index=True)
+        final_combined_df['aux_idx'] = range(len(final_combined_df))
+
+        return final_combined_df
 
     @staticmethod
-    def _prepare_single_market_single_pair_trade_or_difference_depth_dataframe(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+    def _get_final_orderbook_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+        import cpp_binance_orderbook
+        import pandas as pd
+        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
+
+        yesterday_date = OrderBookConcatenator._get_yesterday_date(asset_parameter.date)
+        asset_parameter_of_yesterday = AssetParameters(
+            market=asset_parameter.market,
+            stream_type=asset_parameter.stream_type,
+            pairs=asset_parameter.pairs,
+            date=yesterday_date
+        )
+
+        csv_path = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter_of_yesterday)}.csv'
+        orderbook_session_simulator = cpp_binance_orderbook.OrderbookSessionSimulator()
+        final_orderbook_snapshot = orderbook_session_simulator.getFinalOrderBookSnapshot(csv_path)
+
+        list_of_entries = []
+
+        for side in (final_orderbook_snapshot.bids, final_orderbook_snapshot.asks):
+            for entry in side: list_of_entries.append(entry.to_list())
+
+        del final_orderbook_snapshot
+
+        df =  pd.DataFrame(
+            list_of_entries,
+            columns=[
+                "TimestampOfReceive",
+                "Stream",
+                "EventType",
+                "EventTime",
+                "TransactionTime",
+                "Symbol",
+                "FirstUpdateId",
+                "FinalUpdateId",
+                "FinalUpdateIdInLastStream",
+                "IsAsk",
+                "Price",
+                "Quantity",
+                "PSUnknownField"
+            ]
+        )
+        df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
+        df['Market'] = asset_parameter.market.name
+        df['aux_idx'] = range(len(df))
+
+        if asset_parameter.market is not Market.SPOT:
+            df['TimestampOfReceive'] *= 1000
+
+        for column in df.columns:
+            current_dtype = df[column].dtype
+            if is_integer_dtype(current_dtype):
+                df[column] = df[column].astype('Int64')
+            elif is_bool_dtype(current_dtype):
+                df[column] = df[column].astype('boolean')
+            elif is_float_dtype(current_dtype):
+                df[column] = df[column].astype('float64')
+
+        df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
+
+        return df
+
+    @staticmethod
+    def _load_depth_snapshot_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
         from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
         file_path_for_csv = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter)}.csv'
-        columns_to_load = OrderBookConcatenator._get_columns_for_specified_asset_parameters(asset_parameter)
+        df = pd.read_csv(file_path_for_csv, comment='#')
+        df = df[df['TimestampOfRequest'] == df['TimestampOfRequest'].iloc[0]]
+        df['StreamType'] = asset_parameter.stream_type.name
+        df['Market'] = asset_parameter.market.name
+        df['aux_idx'] = range(len(df))
 
-        df = pd.read_csv(file_path_for_csv, comment='#', usecols=columns_to_load)
-        df['IsOrderBookEvent'] = 0 if asset_parameter.stream_type is StreamType.TRADE_STREAM else 1
+        df['TimestampOfReceive'] *= 1000
+
+        if asset_parameter.market is not Market.COIN_M_FUTURES:
+            df['Symbol'] = asset_parameter.pairs[0].upper()
+
+        for column in df.columns:
+            current_dtype = df[column].dtype
+            if is_integer_dtype(current_dtype):
+                df[column] = df[column].astype('Int64')
+            elif is_bool_dtype(current_dtype):
+                df[column] = df[column].astype('boolean')
+            elif is_float_dtype(current_dtype):
+                df[column] = df[column].astype('float64')
+
+        return df
+
+    @staticmethod
+    def _load_difference_depth_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+        import pandas as pd
+        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
+
+        file_path_for_csv = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter)}.csv'
+        df = pd.read_csv(file_path_for_csv, comment='#')
+        df['StreamType'] = asset_parameter.stream_type.name
+        df['Market'] = asset_parameter.market.name
+        df['aux_idx'] = range(len(df))
+
+        if asset_parameter.market is not Market.SPOT:
+            df['TimestampOfReceive'] *= 1000
+
+        for column in df.columns:
+            current_dtype = df[column].dtype
+            if is_integer_dtype(current_dtype):
+                df[column] = df[column].astype('Int64')
+            elif is_bool_dtype(current_dtype):
+                df[column] = df[column].astype('boolean')
+            elif is_float_dtype(current_dtype):
+                df[column] = df[column].astype('float64')
+
+        return df
+
+    @staticmethod
+    def _load_trade_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+        import pandas as pd
+        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
+
+        file_path_for_csv = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter)}.csv'
+        df = pd.read_csv(file_path_for_csv, comment='#')
+
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
         df['aux_idx'] = range(len(df))
@@ -399,41 +523,45 @@ class OrderBookConcatenator:
     @staticmethod
     def _concatenate_pairs_within_single_market(list_of_single_pair_dataframe: list[pd.DataFrame]):
         import pandas as pd
+        from individual_column_checker import IndividualColumnChecker as icc
 
-        if len(list_of_single_pair_dataframe) == 0:
+        print(f'_concatenate_pairs_within_single_market: len(list_of_single_pair_dataframe) {len(list_of_single_pair_dataframe)}')
+
+        if len(list_of_single_pair_dataframe) == 1:
+            print(f'_concatenate_pairs_within_single_market: only 1 df')
             return list_of_single_pair_dataframe[0]
 
         combined_df = pd.concat(list_of_single_pair_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceive', 'Symbol', 'IsOrderBookEvent', 'aux_idx'])
+        combined_df = combined_df.sort_values(by=['TimestampOfReceive', 'Symbol', 'aux_idx'])
+
+        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[combined_df['Symbol'] == 'TRXUSDT']['aux_idx'])
+        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceive'])
+        print(f'hujhuj {result_} {result2_}')
+
         return combined_df
 
     @staticmethod
     def _concatenate_markets_within_single_csv(list_of_single_market_dataframe: list[pd.DataFrame]):
         import pandas as pd
+        from individual_column_checker import IndividualColumnChecker as icc
 
-        if len(list_of_single_market_dataframe) == 0:
+        print(f'_concatenate_markets_within_single_csv: len(list_of_single_market_dataframe) {len(list_of_single_market_dataframe)}')
+
+        if len(list_of_single_market_dataframe) == 1:
+            print(f'_concatenate_markets_within_single_csv: only 1 df')
             return list_of_single_market_dataframe[0]
 
         combined_df = pd.concat(list_of_single_market_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceive', 'Market', 'Symbol', 'IsOrderBookEvent', 'aux_idx'])
+        combined_df = combined_df.sort_values(by=['TimestampOfReceive', 'Market', 'Symbol', 'aux_idx'])
+
+        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[(combined_df['Symbol'] == 'TRXUSDT') & (combined_df['Market'] == 'SPOT')]['aux_idx'])
+        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceive'])
+        print(f'hujhuj {result_} {result2_}')
+
         return combined_df
 
     @staticmethod
-    def _group_asset_parameters_by_market(asset_parameters: list[AssetParameters]) -> dict[Market, list[AssetParameters]]:
-        grouped: dict[Market, list[AssetParameters]] = defaultdict(list)
-        for ap in asset_parameters:
-            grouped[ap.market].append(ap)
-        return dict(grouped)
-
-    @staticmethod
-    def _group_asset_parameters_by_pair(asset_parameters: list[AssetParameters]) -> dict[str, list[AssetParameters]]:
-        grouped: dict[str, list[AssetParameters]] = defaultdict(list)
-        for ap in asset_parameters:
-            grouped[ap.pairs[0]].append(ap)
-        return dict(grouped)
-
-    @staticmethod
-    def _get_single_dataframe_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
+    def _get_merged_target_single_csv_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
         streams = sorted({ap.stream_type.name.lower() for ap in list_of_asset_parameters_for_single_csv})
         markets = sorted({ap.market.name.lower() for ap in list_of_asset_parameters_for_single_csv})
         pairs = sorted({ap.pairs[0].lower() for ap in list_of_asset_parameters_for_single_csv})
@@ -445,8 +573,9 @@ class OrderBookConcatenator:
         mapping = {
             StreamType.DEPTH_SNAPSHOT: {
                 # market: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity', 'LastUpdateId']
-                market: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity']
-                for market in (Market.SPOT, Market.USD_M_FUTURES, Market.COIN_M_FUTURES)
+                Market.SPOT: ['TimestampOfReceive', 'TimestampOfRequest', 'LastUpdateId', 'IsAsk', 'Price', 'Quantity'],
+                Market.USD_M_FUTURES: ['TimestampOfReceive', 'TimestampOfRequest', 'MessageOutputTime', 'TransactionTime', 'LastUpdateId', 'IsAsk', 'Price', 'Quantity'],
+                Market.COIN_M_FUTURES: ['TimestampOfReceive', 'TimestampOfRequest', 'MessageOutputTime', 'TransactionTime', 'LastUpdateId', 'Symbol', 'Pair', 'IsAsk', 'Price', 'Quantity']
             },
             StreamType.DIFFERENCE_DEPTH_STREAM: {
                 # Market.SPOT: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity', 'FirstUpdateId', 'FinalUpdateId'],
@@ -487,6 +616,12 @@ class OrderBookConcatenator:
         }
 
         return mapping[asset_parameters.stream_type][asset_parameters.market]
+
+    @staticmethod
+    def _get_yesterday_date(date: str) -> str:
+        date = datetime.strptime(date, "%d-%m-%Y")
+        yesterday_date = date - timedelta(days=1)
+        return yesterday_date.strftime("%d-%m-%Y")
 
     @staticmethod
     def _get_base_of_filename(asset_parameters: AssetParameters) -> str:
