@@ -310,7 +310,6 @@ class StreamDataSaverAndSender:
             self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
     def send_zipped_json_to_backblaze_bucket(self, json_content: str, file_name: str) -> None:
-        print('iskdeee')
         self.cloud_storage_client.upload_zipped_jsoned_string(
             data=json_content,
             file_name=file_name
