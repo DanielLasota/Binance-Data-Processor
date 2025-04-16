@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta
 
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.asset_parameters import AssetParameters
@@ -25,6 +26,30 @@ def conduct_data_quality_analysis_on_whole_directory(csv_nest_directory: str) ->
 def conduct_data_quality_analysis_on_specified_csv_list(csv_paths: list[str]) -> None:
     data_checker = DataQualityChecker()
     data_checker.conduct_csv_files_data_quality_analysis(csv_paths)
+
+def get_merged_csv_quality_report(csvs_nest_catalog: str, dataframe: pd.DataFrame, asset_parameters_list: list[AssetParameters]) -> list[DataQualityReport]:
+    data_checker = DataQualityChecker()
+
+    data_quality_reports_list = [
+        data_checker.get_main_merged_csv_report(
+            df=dataframe,
+            asset_parameters_list=asset_parameters_list,
+            csvs_nest_catalog=csvs_nest_catalog
+        )
+    ]
+
+    for asset_parameters in asset_parameters_list:
+
+        _source_csv_report = data_checker.get_dataframe_quality_report(
+            dataframe=dataframe[
+                (dataframe['StreamType'] == asset_parameters.stream_type.name) &
+                (dataframe['Market'] == asset_parameters.market.name)
+            ],
+            asset_parameters=asset_parameters
+        )
+        data_quality_reports_list.append(_source_csv_report)
+
+    return data_quality_reports_list
 
 
 class DataQualityChecker:
@@ -83,7 +108,7 @@ class DataQualityChecker:
                         asset_parameters=asset_parameters
                     )
                     file_name = os.path.basename(csv_path)
-                    dataframe_quality_report.set_file_name(file_name)
+                    dataframe_quality_report.file_name = file_name
                     data_quality_report_list.append(dataframe_quality_report)
 
                     bar()
@@ -167,8 +192,79 @@ class DataQualityChecker:
         )
 
     @staticmethod
+    def _get_base_of_filename(asset_parameters: AssetParameters) -> str:
+        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{asset_parameters.date}"
+
+    @staticmethod
+    def _get_yesterday_date(date: str) -> str:
+        date = datetime.strptime(date, "%d-%m-%Y")
+        yesterday_date = date - timedelta(days=1)
+        return yesterday_date.strftime("%d-%m-%Y")
+
+    def get_main_merged_csv_report(self, df: pd.DataFrame, asset_parameters_list: list[AssetParameters], csvs_nest_catalog) -> DataQualityReport:
+        import pandas as pd
+        import cpp_binance_orderbook
+        orderbook_session_simulator = cpp_binance_orderbook.OrderbookSessionSimulator()
+
+        source_csv_reports = []
+        for asset_parameters in asset_parameters_list:
+            source_csv_path = f'{csvs_nest_catalog}/{DataQualityChecker._get_base_of_filename(asset_parameters)}.csv'
+            _df = pd.read_csv(source_csv_path, comment='#')
+            _source_csv_report = self.get_dataframe_quality_report(
+                dataframe=_df if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT else _df[_df['TimestampOfReceive'] == _df.iloc[0]['TimestampOfReceive']],
+                asset_parameters=asset_parameters
+            )
+            source_csv_reports.append(_source_csv_report)
+
+        total_rows_of_source_csv = sum(report.df_shape[0] for report in source_csv_reports)
+
+        final_depth_snapshot_len = 0
+        for asset_parameters in asset_parameters_list:
+            if asset_parameters.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
+                yesterday_date = DataQualityChecker._get_yesterday_date(asset_parameters.date)
+                asset_parameter_of_yesterday = AssetParameters(
+                    market=asset_parameters.market,
+                    stream_type=asset_parameters.stream_type,
+                    pairs=asset_parameters.pairs,
+                    date=yesterday_date
+                )
+                source_csv_path = f'{csvs_nest_catalog}/{DataQualityChecker._get_base_of_filename(asset_parameter_of_yesterday)}.csv'
+                orderbook_snapshot = orderbook_session_simulator.getFinalOrderBookSnapshot(source_csv_path)
+
+                final_depth_snapshot_len += len(orderbook_snapshot.bids)
+                final_depth_snapshot_len += len(orderbook_snapshot.asks)
+
+        total_rows_of_source_csv += final_depth_snapshot_len
+        # final_depth_snapshot_entries_len = df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT'].shape[0]
+
+        # print(f'total_rows_of_source_csv {total_rows_of_source_csv}')
+        # print(f'df  {df.shape[0]}')
+        # print(f'df - FINAL_DEPTH_SNAPSHOT  {df.shape[0] - final_depth_snapshot_entries_len}')
+        # print(f'FINAL_DEPTH_SNAPSHOT  {final_depth_snapshot_entries_len}')
+        # print(f'final_depth_snapshot_len  {final_depth_snapshot_len}')
+
+        report = DataQualityReport(asset_parameters=asset_parameters_list, df_shape=df.shape)
+        epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters_list[0].market is Market.SPOT else EpochTimeUnit.MILLISECONDS
+
+        is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceive'])
+        is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceive'])
+        is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfReceive'], date=asset_parameters_list[0].date, epoch_time_unit=epoch_time_unit)
+        is_merged_df_len_equal_to_single_csvs_combined = total_rows_of_source_csv == df.shape[0]
+        is_whole_set_of_merged_csvs_data_quality_report_positive = all(report.is_data_quality_report_positive() for report in source_csv_reports)
+        report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_series_non_decreasing)
+        report.add_test_result("TimestampOfReceive", "is_series_epoch_valid", is_series_epoch_valid)
+        report.add_test_result("TimestampOfReceive", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
+        report.add_test_result("General", "is_merged_df_len_equal_to_single_csvs_combined", is_merged_df_len_equal_to_single_csvs_combined)
+        report.add_test_result("General", "is_whole_set_of_merged_csvs_data_quality_report_positive", is_whole_set_of_merged_csvs_data_quality_report_positive)
+
+        print(f'DataQualityReport: {report.is_data_quality_report_positive()}')
+
+        return report
+
+    @staticmethod
     def _get_full_difference_depth_dataframe_report(df: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
-        report = DataQualityReport(asset_parameters=asset_parameters)
+        report = DataQualityReport(asset_parameters=asset_parameters, df_shape=df.shape)
+
         epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceive'])
@@ -254,7 +350,8 @@ class DataQualityChecker:
 
     @staticmethod
     def _get_full_depth_snapshot_dataframe_report(df: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
-        report = DataQualityReport(asset_parameters=asset_parameters)
+        report = DataQualityReport(asset_parameters=asset_parameters, df_shape=df.shape)
+
         epoch_time_unit = EpochTimeUnit.MILLISECONDS
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceive'])
@@ -362,8 +459,7 @@ class DataQualityChecker:
     @staticmethod
     def _get_full_trade_dataframe_report(df: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
         import numpy as np
-
-        report = DataQualityReport(asset_parameters=asset_parameters)
+        report = DataQualityReport(asset_parameters=asset_parameters, df_shape=df.shape)
 
         epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
 

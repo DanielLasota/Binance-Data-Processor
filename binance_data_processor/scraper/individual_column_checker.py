@@ -267,8 +267,6 @@ class IndividualColumnChecker:
 '''
 
 '''
-TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
-
     # DEPTH SNAPSHOT CHECK
 
     ::["_rc"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
@@ -392,7 +390,7 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
             is_series_range_reasonable_greater_than_0_less_than_1e9_values
     ::["data"]["q"] 'Quantity' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_positive_values                                            df[df['XUnknownParameter'] == 'MARKET']['Quantity']
-        is_series_of_expected_data_type_float                                       df[df['XUnknownParameter'] == 'MARKET']['Quantity']
+            is_series_of_expected_data_type_float                                   df[df['XUnknownParameter'] == 'MARKET']['Quantity']
             is_series_range_reasonable_greater_than_0_less_than_1e9_values          df[df['XUnknownParameter'] == 'MARKET']['Quantity']
             
     ::["data"]["m"] 'IsBuyerMarketMaker' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
@@ -403,4 +401,18 @@ TimestampOfReceive,MessageOutputTime,TransactionTime,TimestampOfRequest
 
     ::["data"]["X"] 'XUnknownParameter' [USD_M_FUTURES, COIN_M_FUTURES]
             is_whole_series_made_of_set_of_expected_values_market_insurance_fund_or_na
+'''
+
+'''
+    # MERGED CSV [FINAL_DEPTH_SNAPSHOT, DIFFERENCE_DEPTH_STREAM, TRADE_STREAM, DEPTH_SNAPSHOT]
+    
+    ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
+            is_series_non_decreasing
+            is_series_epoch_valid
+            is_series_epoch_within_utc_z_day_range
+            
+    GENERAL
+            is_merged_df_len_equal_to_single_csvs_combined
+            is_whole_set_of_merged_csvs_data_quality_report_positive
+    
 '''

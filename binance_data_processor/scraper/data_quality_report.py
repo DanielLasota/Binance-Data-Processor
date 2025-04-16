@@ -11,20 +11,20 @@ class DataQualityReport:
         'tests_results_register',
         'asset_parameters',
         'informational_data',
-        'file_name'
+        'file_name',
+        'df_shape'
     ]
 
     def __init__(
             self,
-            asset_parameters: AssetParameters
+            asset_parameters: list[AssetParameters] | AssetParameters,
+            df_shape: list[int]
     ):
         self.tests_results_register: {str, {str, bool | str}} = {}
         self.asset_parameters = asset_parameters
         self.informational_data = []
         self.file_name = ...
-
-    def set_file_name(self, file_name) -> None:
-        self.file_name = file_name
+        self.df_shape = df_shape
 
     def is_data_quality_report_positive(self) -> bool:
         return all(
@@ -46,11 +46,17 @@ class DataQualityReport:
 
         data_quality_status = 'POSITIVE' if self.is_data_quality_report_positive() == True else 'NEGATIVE'
 
+        if isinstance(self.asset_parameters, list):
+            asset_parameters_str = "\n".join(str(f'# {param}') for param in self.asset_parameters)
+        else:
+            asset_parameters_str = str(self.asset_parameters)
+
         lines = [
             f"#################################################################",
             f"# Unfazed Binance Data Processor. All Copyrights 2025 Daniel Lasota",
-            f"# Data Quality Report for {self.asset_parameters}",
-            f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-4]}Z"
+            f"# Data Quality Report for: \n{asset_parameters_str}",
+            f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-4]}Z",
+            f"# DataFrame shape: {self.df_shape[0]} x {self.df_shape[1]}"
         ]
 
         if len(self.informational_data) > 0:

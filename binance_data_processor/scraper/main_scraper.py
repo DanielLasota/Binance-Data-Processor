@@ -14,11 +14,11 @@ if __name__ == '__main__':
 
     download_csv_data(
         storage_connection_parameters=StorageConnectionParameters(),
-        date_range=['09-04-2025', '10-04-2025'],
+        date_range=['15-04-2025', '15-04-2025'],
         pairs=[
             # "BTCUSDT",
             'ADAUSDT',
-            # "SOLUSDT",
+            "SOLUSDT",
             # "XRPUSDT",
             # "DOGEUSDT",
             # "ADAUSDT",
@@ -36,9 +36,9 @@ if __name__ == '__main__':
             # 'COIN_M_FUTURES'
         ],
         stream_types=[
-            'TRADE_STREAM',
+            # 'TRADE_STREAM',
             'DIFFERENCE_DEPTH_STREAM',
-            'DEPTH_SNAPSHOT'
+            # 'DEPTH_SNAPSHOT'
         ],
         skip_existing=True,
         amount_of_files_to_be_downloaded_at_once=20

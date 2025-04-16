@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
+from binance_data_processor.scraper.data_quality_checker import get_merged_csv_quality_report
+from binance_data_processor.scraper.data_quality_report import DataQualityReport
 
 
 __all__ = [
@@ -280,10 +282,31 @@ class OrderBookConcatenator:
     def _main_concatenate_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
         for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
             print(f'SINGLE CSV')
-            single_target_df = OrderBookConcatenator._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
-            single_csv_filename = OrderBookConcatenator._get_merged_target_single_csv_filename(list_of_asset_parameters_for_single_csv)
-            single_target_df.to_csv(f'{dump_catalog}/{single_csv_filename}', index=False)
+            single_csv_df = OrderBookConcatenator._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
+            single_csv_filename = OrderBookConcatenator._get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
+
+            dataframe_quality_report_list = get_merged_csv_quality_report(
+                csvs_nest_catalog=csvs_nest_catalog,
+                dataframe=single_csv_df,
+                asset_parameters_list=list_of_asset_parameters_for_single_csv
+            )
+
+            OrderBookConcatenator._save_df_to_csv_with_data_quality_report(
+                dataframe=single_csv_df,
+                dump_catalog=dump_catalog,
+                target_file_name=single_csv_filename,
+                dataframe_quality_report_list=dataframe_quality_report_list
+            )
             print()
+
+    @staticmethod
+    def _save_df_to_csv_with_data_quality_report(dataframe: pd.DataFrame, dump_catalog: str, target_file_name: str, dataframe_quality_report_list: list[DataQualityReport]) -> None:
+        with open(f'{dump_catalog}/{target_file_name}.csv', 'w', newline='') as f:
+            for dataframe_quality_report in dataframe_quality_report_list:
+                f.write(str(dataframe_quality_report))
+                f.write('\n')
+
+            dataframe.to_csv(f, index=False, lineterminator='\n')
 
     @staticmethod
     def _single_target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
@@ -525,10 +548,10 @@ class OrderBookConcatenator:
         import pandas as pd
         from individual_column_checker import IndividualColumnChecker as icc
 
-        print(f'_concatenate_pairs_within_single_market: len(list_of_single_pair_dataframe) {len(list_of_single_pair_dataframe)}')
+        # print(f'_concatenate_pairs_within_single_market: len(list_of_single_pair_dataframe) {len(list_of_single_pair_dataframe)}')
 
         if len(list_of_single_pair_dataframe) == 1:
-            print(f'_concatenate_pairs_within_single_market: only 1 df')
+            # print(f'_concatenate_pairs_within_single_market: only 1 df')
             return list_of_single_pair_dataframe[0]
 
         combined_df = pd.concat(list_of_single_pair_dataframe, ignore_index=True)
@@ -545,10 +568,10 @@ class OrderBookConcatenator:
         import pandas as pd
         from individual_column_checker import IndividualColumnChecker as icc
 
-        print(f'_concatenate_markets_within_single_csv: len(list_of_single_market_dataframe) {len(list_of_single_market_dataframe)}')
+        # print(f'_concatenate_markets_within_single_csv: len(list_of_single_market_dataframe) {len(list_of_single_market_dataframe)}')
 
         if len(list_of_single_market_dataframe) == 1:
-            print(f'_concatenate_markets_within_single_csv: only 1 df')
+            # print(f'_concatenate_markets_within_single_csv: only 1 df')
             return list_of_single_market_dataframe[0]
 
         combined_df = pd.concat(list_of_single_market_dataframe, ignore_index=True)
@@ -561,12 +584,12 @@ class OrderBookConcatenator:
         return combined_df
 
     @staticmethod
-    def _get_merged_target_single_csv_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
+    def _get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
         streams = sorted({ap.stream_type.name.lower() for ap in list_of_asset_parameters_for_single_csv})
         markets = sorted({ap.market.name.lower() for ap in list_of_asset_parameters_for_single_csv})
         pairs = sorted({ap.pairs[0].lower() for ap in list_of_asset_parameters_for_single_csv})
         date = list_of_asset_parameters_for_single_csv[0].date
-        return f"merged_{'_'.join(streams)}_{'_'.join(markets)}_{'_'.join(pairs)}_{date}.csv"
+        return f"merged_{'_'.join(streams)}_{'_'.join(markets)}_{'_'.join(pairs)}_{date}"
 
     @staticmethod
     def _get_columns_for_specified_asset_parameters(asset_parameters: AssetParameters) -> list[str]:

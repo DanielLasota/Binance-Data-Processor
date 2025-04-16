@@ -329,7 +329,7 @@ class DataScraper:
         return dataframe
 
     @staticmethod
-    def _save_df_to_csv_with_data_quality_report(dataframe: pd.DataFrame, dump_path: str, target_file_name: str,dataframe_quality_report: DataQualityReport) -> None:
+    def _save_df_to_csv_with_data_quality_report(dataframe: pd.DataFrame, dump_path: str, target_file_name: str, dataframe_quality_report: DataQualityReport) -> None:
         with open(f'{dump_path}/{target_file_name}.csv', 'w', newline='') as f:
             f.write(str(dataframe_quality_report))
             f.write('\n')
