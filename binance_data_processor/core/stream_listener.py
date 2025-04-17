@@ -5,7 +5,6 @@ import threading
 import time
 import traceback
 import websockets
-from websockets.legacy.client import WebSocketClientProtocol
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
@@ -35,8 +34,23 @@ class StreamListener:
         queue: TradeQueue | DifferenceDepthQueue,
         asset_parameters: AssetParameters
     ):
-
         self.logger = logging.getLogger('binance_data_sink')
+
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+            level=logging.DEBUG,
+        )
+
+        class SkipTextFrames(logging.Filter):
+            import re
+            _re = re.compile(r"(^<\s+TEXT\b)|\bPUT\b")
+
+            def filter(self, record: logging.LogRecord) -> bool:
+                return not self._re.match(record.getMessage())
+        _lg = logging.getLogger("websockets.client")
+        _lg.setLevel(logging.DEBUG)
+        _lg.addFilter(SkipTextFrames())
+
         self.queue: DifferenceDepthQueue | TradeQueue = queue
         self.asset_parameters = asset_parameters
         self.id: StreamListenerId = StreamListenerId(pairs=self.asset_parameters.pairs)
@@ -44,7 +58,7 @@ class StreamListener:
 
         self._stop_event = threading.Event()
         self._ws_lock = threading.Lock()
-        self._ws: WebSocketClientProtocol | None = None
+        self._ws: websockets.ClientConnection | None = None
         self._url = URLFactory.get_stream_url(asset_parameters)
 
     def start_websocket_app(self):
@@ -143,7 +157,7 @@ class StreamListener:
                 with self._ws_lock:
                     self._ws = None
 
-    async def _listen_messages(self, ws: WebSocketClientProtocol):
+    async def _listen_messages(self, ws: websockets.ClientConnection):
 
         while not self._stop_event.is_set():
             try:
