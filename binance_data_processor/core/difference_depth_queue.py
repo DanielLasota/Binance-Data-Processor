@@ -6,6 +6,7 @@ from typing import final, Tuple
 import threading
 from abc import ABC, abstractmethod
 import orjson
+import zlib
 
 from binance_data_processor.core.exceptions import ClassInstancesAmountLimitException
 from binance_data_processor.enums.market_enum import Market
@@ -39,7 +40,8 @@ class ContinuousListeningStrategy(PutDepthMessageStrategy):
         with self.context.lock:
             if stream_listener_id.id_keys == self.context.currently_accepted_stream_id_keys:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.context.queue.put(message_with_timestamp_of_receive)
+                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
+                self.context.queue.put(compressed_message)
 
 
 class SwitchingWebsocketsStrategy(PutDepthMessageStrategy):
@@ -63,7 +65,8 @@ class SwitchingWebsocketsStrategy(PutDepthMessageStrategy):
 
             if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
                 message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.context.queue.put(message_with_timestamp_of_receive)
+                compressed_message = zlib.compress(message_with_timestamp_of_receive.encode('utf-8'), level=9)
+                self.context.queue.put(compressed_message)
 
             self.context.append_message_to_compare_structure(stream_listener_id, message)
 

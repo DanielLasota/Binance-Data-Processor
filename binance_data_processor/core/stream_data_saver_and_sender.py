@@ -8,6 +8,7 @@ import time
 import zipfile
 from collections import defaultdict
 import re
+import zlib
 
 from binance_data_processor import DataSinkConfig
 from binance_data_processor.enums.asset_parameters import AssetParameters
@@ -192,7 +193,8 @@ class StreamDataSaverAndSender:
             stream_data = defaultdict(list)
 
             while not queue.empty():
-                message = queue.get_nowait()
+                compressed_message = queue.get_nowait()
+                message = zlib.decompress(compressed_message).decode('utf-8')
 
                 match = self._stream_message_pair_pattern.search(message)
                 pair_found_in_message = match.group(1)
