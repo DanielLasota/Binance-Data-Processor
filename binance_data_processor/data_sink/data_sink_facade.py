@@ -6,6 +6,7 @@ import threading
 import time
 
 from binance_data_processor.core.command_line_interface import CommandLineInterface
+from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
 from binance_data_processor.enums.data_sink_config import DataSinkConfig
 from binance_data_processor.core.fastapi_manager import FastAPIManager
 from binance_data_processor.core.stream_data_saver_and_sender import StreamDataSaverAndSender
@@ -53,6 +54,8 @@ class BinanceDataSink:
         self._logger = setup_logger(should_dump_logs=True)
         self._logger.info("\n%s", binance_archiver_logo)
         self._logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
+        if self.data_sink_config.data_save_target is DataSaveTarget.BACKBLAZE:
+            self._logger.info(f'Bucket: {data_sink_config.storage_connection_parameters.backblaze_bucket_name}')
 
         self.global_shutdown_flag = threading.Event()
 
