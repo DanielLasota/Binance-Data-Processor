@@ -5,7 +5,8 @@ import threading
 import time
 import traceback
 from logging.handlers import RotatingFileHandler
-
+import os
+import signal
 import websockets
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
@@ -219,7 +220,9 @@ class StreamListener:
                         f"###############################################"
                     )
                     self.logger.error(traceback.format_exc())
-                # break
+                threading.Timer(2, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+                threading.Timer(2, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+                break
 
     def _handle_incoming_message(self, raw_message: str, timestamp_of_receive: int):
         # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
