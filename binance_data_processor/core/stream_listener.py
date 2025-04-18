@@ -57,7 +57,7 @@ class StreamListener:
         )
         file_handler = RotatingFileHandler(
             filename="archiver.log",
-            maxBytes=5*1024*1024,
+            maxBytes=10*1024*1024,
             backupCount=3,
             encoding='utf-8'
         )
