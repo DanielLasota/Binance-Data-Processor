@@ -4,6 +4,8 @@ import logging
 import threading
 import time
 import traceback
+from logging.handlers import RotatingFileHandler
+
 import websockets
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
@@ -47,9 +49,22 @@ class StreamListener:
 
             def filter(self, record: logging.LogRecord) -> bool:
                 return not self._re.match(record.getMessage())
+
+        console_formatter = logging.Formatter(
+            fmt="%(asctime)s.%(msecs)03dZ %(levelname)s -- %(message)s",
+            datefmt='%Y-%m-%dT%H:%M:%S'
+        )
+        file_handler = RotatingFileHandler(
+            filename="archiver.log",
+            maxBytes=5*1024*1024,
+            backupCount=3,
+            encoding='utf-8'
+        )
+        file_handler.setFormatter(console_formatter)
         _lg = logging.getLogger("websockets.client")
         _lg.setLevel(logging.DEBUG)
         _lg.addFilter(SkipTextFrames())
+        _lg.addHandler(file_handler)
 
         self.queue: DifferenceDepthQueue | TradeQueue = queue
         self.asset_parameters = asset_parameters
@@ -203,7 +218,8 @@ class StreamListener:
                         f"###############################################"
                         f"###############################################"
                     )
-                break
+                    self.logger.error(traceback.format_exc())
+                # break
 
     def _handle_incoming_message(self, raw_message: str, timestamp_of_receive: int):
         # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
