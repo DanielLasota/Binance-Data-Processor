@@ -347,8 +347,8 @@ class IndividualColumnChecker:
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
-            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms                           (-1ms, +3s)
-            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                     (-1ms, +3s)
+            is_timestamp_of_receive_not_less_than_event_time_by_one_ms_and_not_greater_by_3000_ms                       (-1ms, +3s)
+            is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_by_3000_ms                 (-1ms, +3s)
     ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES]
             are_first_and_last_timestamps_within_10_seconds_from_the_borders
     ::["_E"] 'TimestampOfReceive' [COIN_M_FUTURES]
@@ -363,14 +363,14 @@ class IndividualColumnChecker:
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
-            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms                           (-1ms, +3s)
-            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                               (-1ms, +3s)
+            is_timestamp_of_receive_not_less_than_event_time_by_one_ms_and_not_greater_by_3000_ms                       (-1ms, +3s)
+            is_event_time_not_less_than_transaction_time_by_one_ms_and_not_greater_by_3000_ms                           (-1ms, +3s)
 
     ::["data"]["T"] 'TransactionTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
-            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                     (-1ms, +3s)
-            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                               (-1ms, +3s)
+            is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_by_3000_ms                 (-1ms, +3s)
+            is_event_time_not_less_than_transaction_time_by_one_ms_and_not_greater_by_3000_ms                           (-1ms, +3s)
             
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_only_one_unique_expected_value
