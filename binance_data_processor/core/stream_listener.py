@@ -157,7 +157,9 @@ class StreamListener:
                         self._url,
                         ping_interval=None,
                         ping_timeout=None,
-                        max_queue=32
+                        max_size=None,
+                        max_queue=None,
+                        write_limit=(2 ** 30, 2 ** 30 - 1)
                 ) as ws:
                     with self._ws_lock:
                         self._ws = ws
@@ -220,8 +222,53 @@ class StreamListener:
                         f"###############################################"
                     )
                     self.logger.error(traceback.format_exc())
-                threading.Timer(2, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
-                threading.Timer(2, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+
+                    # -- DEBUG: wewnętrzna kolejka przychodzących wiadomości ---
+                    try:
+                        internal_queue = getattr(ws, 'messages', None)  # to asyncio.Queue przechowujące przychodzące wiadomości :contentReference[oaicite:0]{index=0}
+                        if internal_queue is not None and hasattr(internal_queue, 'qsize'):
+                            queue_size = internal_queue.qsize()  # aktualna liczba elementów w kolejce :contentReference[oaicite:1]{index=1}
+                            queue_limit = getattr(internal_queue, 'maxsize', None)  # maksymalny rozmiar kolejki (max_queue) :contentReference[oaicite:2]{index=2}
+                        else:
+                            queue_size = None
+                            queue_limit = None
+
+                        self.logger.error(
+                            f"[DEBUG] WebSocket incoming queue size: {queue_size}/{queue_limit}"
+                        )
+                        if queue_limit is not None and queue_size is not None and queue_size >= queue_limit:
+                            self.logger.error("[DEBUG] Incoming messages queue is full or exceeded max_queue limit!")
+                        else:
+                            self.logger.error("[DEBUG] Incoming messages queue within limits.")
+                    except Exception as ie:
+                        self.logger.error(f"[DEBUG] Nie udało się odczytać kolejki WebSocket: {ie}")
+                    # -- DEBUG: bufor zapisu i porównanie z write_limit ---
+                    try:
+                        transport = ws.transport
+                        # ile jest danych w buforze do wysłania
+                        write_buffer_size = transport.get_write_buffer_size()  # :contentReference[oaicite:0]{index=0}
+                        # próby pobrania progów (low, high)
+                        try:
+                            low_water, high_water = transport.get_write_buffer_limits()  # :contentReference[oaicite:1]{index=1}
+                        except Exception:
+                            # jeżeli niedostępne, bierzemy write_limit z obiektu ws
+                            high_water = getattr(ws, 'write_limit', None)         # :contentReference[oaicite:2]{index=2}
+                            low_water = None
+
+                        self.logger.error(
+                            f"[DEBUG] Write buffer size: {write_buffer_size} B; "
+                            f"write_limit (high watermark): {high_water}"
+                        )
+                        if isinstance(high_water, int) and write_buffer_size > high_water:
+                            self.logger.error("[DEBUG] Przekroczono write_limit!")
+                        else:
+                            self.logger.error("[DEBUG] write_buffer w normie")
+                    except Exception as ie:
+                        self.logger.error(f"[DEBUG] Błąd przy odczycie bufora zapisu: {ie}")
+
+                threading.Timer(1, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+                time.sleep(1)
+                threading.Timer(1, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
                 break
 
     def _handle_incoming_message(self, raw_message: str, timestamp_of_receive: int):
