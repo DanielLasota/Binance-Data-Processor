@@ -14,26 +14,26 @@ if __name__ == '__main__':
 
     download_csv_data(
         storage_connection_parameters=StorageConnectionParameters(),
-        date_range=['18-04-2025', '18-04-2025'],
+        date_range=['10-04-2025', '12-04-2025'],
         pairs=[
             # "BTCUSDT",
-            'ADAUSDT',
-            "SOLUSDT",
+            # 'ADAUSDT',
+            # "SOLUSDT",
             # "XRPUSDT",
             # "DOGEUSDT",
             # "ADAUSDT",
             # "SHIBUSDT",
-            "LTCUSDT",
-            "AVAXUSDT",
+            # "LTCUSDT",
+            # "AVAXUSDT",
             "TRXUSDT",
             # "DOTUSDT",
             # "BCHUSDT",
             # "SUIUSDT"
         ],
         markets=[
-            'SPOT',
+            # 'SPOT',
             'USD_M_FUTURES',
-            'COIN_M_FUTURES'
+            # 'COIN_M_FUTURES'
         ],
         stream_types=[
             'TRADE_STREAM',
