@@ -337,7 +337,7 @@ class IndividualColumnChecker:
     ::MISC 'LastUpdateId', 'IsAsk', [SPOT]
             is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side
         [USD_M_FUTURES, COIN_M_FUTURES]
-            is_each_snapshot_price_level_amount_accurate_to_1000
+            is_each_snapshot_price_level_amount_in_specified_range_300_to_1000_per_side
 '''
 
 '''
