@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     download_csv_data(
         storage_connection_parameters=StorageConnectionParameters(),
-        date_range=['15-04-2025', '15-04-2025'],
+        date_range=['18-04-2025', '18-04-2025'],
         pairs=[
             # "BTCUSDT",
             'ADAUSDT',
@@ -23,25 +23,25 @@ if __name__ == '__main__':
             # "DOGEUSDT",
             # "ADAUSDT",
             # "SHIBUSDT",
-            # "LTCUSDT",
-            # "AVAXUSDT",
+            "LTCUSDT",
+            "AVAXUSDT",
             "TRXUSDT",
             # "DOTUSDT",
             # "BCHUSDT",
             # "SUIUSDT"
         ],
         markets=[
-            # 'SPOT',
+            'SPOT',
             'USD_M_FUTURES',
-            # 'COIN_M_FUTURES'
+            'COIN_M_FUTURES'
         ],
         stream_types=[
-            # 'TRADE_STREAM',
+            'TRADE_STREAM',
             'DIFFERENCE_DEPTH_STREAM',
-            # 'DEPTH_SNAPSHOT'
+            'DEPTH_SNAPSHOT'
         ],
-        skip_existing=True,
-        amount_of_files_to_be_downloaded_at_once=20
+        skip_existing=False,
+        amount_of_files_to_be_downloaded_at_once=40
     )
 
     # conduct_data_quality_analysis_on_specified_csv_list(

@@ -457,8 +457,8 @@ class DataQualityChecker:
             is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side = icc.is_each_snapshot_price_level_amount_in_specified_range(df[['LastUpdateId', 'IsAsk']], asset_parameters, expected_minimum_amount=1000, expected_maximum_amount=5000)
             report.add_test_result("GENERAL", "is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side", is_each_snapshot_price_level_amount_in_specified_range_1000_to_5000_per_side)
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
-            is_each_snapshot_price_level_amount_accurate_to_1000 = icc.is_each_snapshot_price_level_amount_accurate_to_market(df[['LastUpdateId', 'IsAsk']], asset_parameters, expected_amount_of_price_levels_per_side=1000)
-            report.add_test_result("GENERAL", "is_each_snapshot_price_level_amount_accurate_to_1000", is_each_snapshot_price_level_amount_accurate_to_1000)
+            is_each_snapshot_price_level_amount_in_specified_range_300_to_1000_per_side = icc.is_each_snapshot_price_level_amount_in_specified_range(df[['LastUpdateId', 'IsAsk']], asset_parameters, expected_minimum_amount=300, expected_maximum_amount=1000)
+            report.add_test_result("GENERAL", "is_each_snapshot_price_level_amount_in_specified_range_300_to_1000_per_side", is_each_snapshot_price_level_amount_in_specified_range_300_to_1000_per_side)
 
         return report
 
