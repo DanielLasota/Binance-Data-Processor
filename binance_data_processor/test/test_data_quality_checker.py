@@ -130,30 +130,30 @@ class TestIndividualColumnChecker:
         event_time = pd.Series([1718196460_656, 1718196461_280, 1718196460_656])
         timestamp_of_receive = pd.Series([1718196460_660, 1718196461_290, 1718196460_660])
 
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == True
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == True
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_positive_microseconds(self):
         event_time = pd.Series([1718196460_656_000, 1718196461_280_000, 1718196460_656_000])
         timestamp_of_receive = pd.Series([1718196460_660_000, 1718196461_290_000, 1718196460_660_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_milliseconds(self):
         event_time              = pd.Series([1718196460_656, 1718196461_280])
         timestamp_of_receive    = pd.Series([1718196461_657, 1718196461_280])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
 
         event_time              = pd.Series([1718196460_656, 1718196461_280])
         timestamp_of_receive    = pd.Series([1718196460_654, 1718196461_280])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_microseconds(self):
         event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
         timestamp_of_receive    = pd.Series([1718196461_656_001, 1718196461_280_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
 
         event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
         timestamp_of_receive    = pd.Series([1718196460_654_999, 1718196461_280_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive, event_time, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
 
     #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
 
@@ -809,9 +809,11 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
+            x_ms=-1,
+            y_ms=1000,
             epoch_time_unit=EpochTimeUnit.MILLISECONDS
         )
 
@@ -820,9 +822,11 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     def test_are_event_times_close_to_receive_times_positive_microseconds(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
 
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
+            x_ms=-1,
+            y_ms=1000,
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
 
@@ -830,9 +834,11 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
+            x_ms=-1,
+            y_ms=1000,
             epoch_time_unit=EpochTimeUnit.MILLISECONDS
         )
 
@@ -840,9 +846,11 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_event_times_close_to_receive_times_negative_microseconds(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(
+        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
+            x_ms=-1,
+            y_ms=1000,
             epoch_time_unit=EpochTimeUnit.MICROSECONDS
         )
 
