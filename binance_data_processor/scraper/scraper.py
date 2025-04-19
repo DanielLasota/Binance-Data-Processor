@@ -113,13 +113,39 @@ class DataScraper:
             f'ought to download {amount_of_files_to_be_made} file(s)\n'
         )
 
+        data_quality_report_list = []
+
         self._main_download_loop(
             asset_parameters_list=asset_parameters_to_be_downloaded,
-            dates=dates_to_be_downloaded,
+            data_quality_report_list=data_quality_report_list,
             dump_path=dump_path
         )
 
-        print(f'\nFinished: {dump_path}')
+        print(f'\nFinished: {dump_path} \n')
+
+        data_quality_positive_report_list = [
+            report for report
+            in data_quality_report_list
+            if report.is_data_quality_report_positive()
+        ]
+
+        positive_reports_percentage = len(data_quality_positive_report_list) / len(data_quality_report_list) * 100
+        print(
+            f'Positive/All: {len(data_quality_positive_report_list)}/{len(data_quality_report_list)} ({positive_reports_percentage}%)')
+
+        i = 1
+        for report in data_quality_report_list:
+            print(f'{i}. {report.asset_parameters}: {report.get_data_report_status()}')
+            i += 1
+
+        while True:
+            try:
+                user_input = input('\n(n/exit): ').strip().lower()
+                if user_input == 'exit':
+                    break
+                print(data_quality_report_list[int(user_input) - 1])
+            except Exception as e:
+                print(e)
 
     def _get_asset_parameters_to_be_downloaded(self, markets: list[str], stream_types: list[str], pairs: list[str], dates_to_be_downloaded: list[str], dump_path: str, skip_existing: bool) -> list[AssetParameters]:
         asset_parameters_to_be_downloaded = self._generate_asset_parameters_list_to_be_downloaded(
@@ -278,7 +304,7 @@ class DataScraper:
             for date in dates
         ]
 
-    def _main_download_loop(self, asset_parameters_list: list[AssetParameters], dates: list[str], dump_path: str) -> None:
+    def _main_download_loop(self, asset_parameters_list: list[AssetParameters], dump_path: str, data_quality_report_list: list) -> None:
 
         for asset_parameters in asset_parameters_list:
             print(f'Downloading: {asset_parameters}')
@@ -289,6 +315,7 @@ class DataScraper:
             )
             print(f'data report status: {dataframe_quality_report.get_data_report_status().value}')
             print()
+            data_quality_report_list.append(dataframe_quality_report)
 
             # minimal_dataframe = self._get_minimal_dataframe(df=rough_dataframe_for_quality_check)
 
