@@ -4,10 +4,10 @@ from orderbook_csv_concatenator import make_concatenated_csvs
 if __name__ == '__main__':
 
     make_concatenated_csvs(
-        date_range=['10-04-2025', '10-04-2025'],
+        date_range=['18-04-2025', '18-04-2025'],
         pairs=[
             'TRXUSDT',
-            'ADAUSDT'
+            # 'ADAUSDT'
         ],
         markets=[
             'SPOT',
