@@ -45,7 +45,7 @@ class IndividualColumnChecker:
         return series.between(day_start_ms, day_end_ms).all()
 
     @staticmethod
-    def is_timestamp_of_column_a_not_greater_than_column_b_by_one_s_and_not_less_by_1_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, epoch_time_unit: EpochTimeUnit) -> bool:
+    def is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, x_ms: int, y_ms: int, epoch_time_unit: EpochTimeUnit) -> bool:
         """
         func checks drift between TimestampOfReceive and EventTime or other combination:
 
@@ -72,9 +72,10 @@ class IndividualColumnChecker:
         1743495203952,1743495203815
         """
 
-        one_second = epoch_time_unit.multiplier_of_second * 1
-        one_millisecond = epoch_time_unit.multiplier_of_second / 1000
-        return (timestamp_of_receive_column - event_time_column).between(-one_millisecond, one_second).all()
+        factor = 1_000 if epoch_time_unit is EpochTimeUnit.MICROSECONDS else 1
+        x_ms *= factor
+        y_ms *= factor
+        return (timestamp_of_receive_column - event_time_column).between(x_ms, y_ms).all()
 
     @staticmethod
     def are_first_and_last_timestamps_within_n_seconds_from_the_borders(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
@@ -209,11 +210,13 @@ class IndividualColumnChecker:
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
-            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms                           // (-1ms,+3s)
         [SPOT, USD_M_FUTURES]
             are_first_and_last_timestamps_within_2_seconds_from_the_borders
         [COIN_M_FUTURES]
             are_first_and_last_timestamps_within_5_seconds_from_the_borders
+        [USD_M_FUTURES, COIN_M_FUTURES]
+                                                                                                                        is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms // (-1ms,+3s)
             
     ::["stream"] 'Stream' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_only_one_unique_expected_value
@@ -224,13 +227,16 @@ class IndividualColumnChecker:
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
+                                                                                                                        is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms // (-1ms,+3s)
+                                                                                                                        
         [USD_M_FUTURES, COIN_M_FUTURES]
-            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                               // (-1ms,+3s)
 
     ::["data"]["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
-            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+                                                                                                                        is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms // (-1ms,+3s)
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                               (-1ms,+3s)
 
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_only_one_unique_expected_value
@@ -274,38 +280,38 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_timestamp_of_receive_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms                 (-1ms, +3s)
         [USD_M_FUTURES, COIN_M_FUTURES]
-            is_timestamp_of_receive_not_greater_than_message_output_time_by_one_s_and_not_less_by_1_ms
-            is_timestamp_of_receive_not_greater_than_message_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_message_output_time_by_one_s_and_not_less_by_1_ms                  (-1ms, +3s)
+            is_timestamp_of_receive_not_greater_than_message_transaction_time_by_one_s_and_not_less_by_1_ms             (-1ms, +5s)
 
     ::["_rq"] 'TimestampOfRequest' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_timestamp_of_receive_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms                 (-1ms, +3s)
     ::["_rq"] 'TimestampOfRequest' [USD_M_FUTURES, COIN_M_FUTURES]
-            is_message_output_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
-            is_transaction_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
+            is_message_output_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms                  (-3s, +3s)
+            is_transaction_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms                     (-3s, +3s)
 
     ::["E"] 'MessageOutputTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_timestamp_of_receive_not_greater_than_message_output_time_by_one_s_and_not_less_by_1_ms
-            is_message_output_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
-            is_message_output_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_message_output_time_by_one_s_and_not_less_by_1_ms                  (-1ms, +3s)
+            is_message_output_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms                  (-3s, +3s)
+            is_message_output_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                      (-1ms, +5s)
             
     ::["T"] 'TransactionTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_timestamp_of_receive_not_greater_than_message_transaction_time_by_one_s_and_not_less_by_1_ms
-            is_message_output_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
-            is_transaction_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_message_transaction_time_by_one_s_and_not_less_by_1_ms             (-1ms, +5s)
+            is_message_output_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                      (-1ms, +5s)
+            is_transaction_time_not_greater_than_timestamp_of_request_by_one_s_and_not_less_by_1_ms                     (-3s, +3s)
             
     ::["lastUpdateId"] 'LastUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
@@ -342,8 +348,8 @@ class IndividualColumnChecker:
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
-            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms
-            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms                           (-1ms, +3s)
+            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                     (-1ms, +3s)
     ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES]
             are_first_and_last_timestamps_within_10_seconds_from_the_borders
     ::["_E"] 'TimestampOfReceive' [COIN_M_FUTURES]
@@ -358,14 +364,14 @@ class IndividualColumnChecker:
     ::["data"]["E"] 'EventTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
-            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms
-            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_event_time_by_one_s_and_not_less_by_1_ms                           (-1ms, +3s)
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                               (-1ms, +3s)
 
     ::["data"]["T"] 'TransactionTime' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
-            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
-            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms
+            is_timestamp_of_receive_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                     (-1ms, +3s)
+            is_event_time_not_greater_than_transaction_time_by_one_s_and_not_less_by_1_ms                               (-1ms, +3s)
             
     ::["data"]["s"] 'Symbol' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_of_only_one_unique_expected_value
