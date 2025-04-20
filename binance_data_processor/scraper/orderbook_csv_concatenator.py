@@ -1,19 +1,28 @@
 from __future__ import annotations
 
-import os
 from collections import defaultdict
-from datetime import datetime, timedelta
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
-from binance_data_processor.scraper.data_quality_checker import get_merged_csv_quality_report
-from binance_data_processor.scraper.data_quality_report import DataQualityReport
-
+from binance_data_processor.data_quality.data_quality_checker import get_merged_csv_quality_report
+from binance_data_processor.utils.file_utils import (
+    prepare_dump_path_catalog,
+    list_files_in_specified_directory,
+    decode_asset_parameters_from_csv_name,
+    get_base_of_root_csv_filename,
+    get_base_of_merged_csv_filename,
+    save_df_with_data_quality_reports
+)
+from binance_data_processor.utils.time_utils import (
+    generate_dates_string_list_from_range,
+    get_yesterday_date
+)
 
 __all__ = [
     'make_concatenated_csvs'
 ]
+
 
 def make_concatenated_csvs(
     date_range: list[str],
@@ -22,8 +31,8 @@ def make_concatenated_csvs(
     stream_types: list[str],
     should_join_pairs_into_one_csv: bool = False,
     should_join_markets_into_one_csv: bool = False,
-    csvs_nest_catalog: str = 'C:/Users/daniel/Documents/binance_archival_data/',
-    dump_catalog: str = 'C:/Users/daniel/Documents/merged_csvs/'
+    csvs_nest_catalog: str | None = None,
+    dump_catalog: str | None = None
 ):
     orderbook_concatenator = OrderBookConcatenator()
 
@@ -58,7 +67,7 @@ class OrderBookConcatenator:
             dump_catalog: str = 'C:/Users/daniel/Documents/merged_csvs/'
     ):
 
-        OrderBookConcatenator._prepare_dump_path_catalog(dump_catalog)
+        prepare_dump_path_catalog(dump_catalog)
 
         existing_asset_parameters_list = (
             OrderBookConcatenator._get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(
@@ -94,80 +103,19 @@ class OrderBookConcatenator:
         )
 
     @staticmethod
-    def _prepare_dump_path_catalog(dump_path) -> str:
-        if not os.path.exists(dump_path):
-            os.makedirs(dump_path)
-        os.startfile(dump_path)
-
-        return dump_path
-
-    @staticmethod
     def _get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(csv_nest: str) -> list[AssetParameters]:
-        local_files = OrderBookConcatenator.list_files_in_specified_directory(csv_nest)
+        local_files = list_files_in_specified_directory(csv_nest)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
         found_asset_parameter_list = []
 
         for csv in local_csv_file_paths:
             try:
-                asset_parameters = OrderBookConcatenator._decode_asset_parameters_from_csv_name(csv)
+                asset_parameters = decode_asset_parameters_from_csv_name(csv)
                 found_asset_parameter_list.append(asset_parameters)
             except Exception as e:
                 print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
 
         return found_asset_parameter_list
-
-    @staticmethod
-    def list_files_in_specified_directory(directory_path: str) -> list:
-        try:
-            files = []
-            for root, _, filenames in os.walk(directory_path):
-                for filename in filenames:
-                    full_path = os.path.join(root, filename)
-                    files.append(full_path)
-            return files
-
-        except Exception as e:
-            print(f"Error whilst listing files: {e}")
-            return []
-
-    @staticmethod
-    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
-        _csv_name = csv_name.replace('.csv', '')
-
-        market_mapping = {
-            'spot': Market.SPOT,
-            'usd_m_futures': Market.USD_M_FUTURES,
-            'coin_m_futures': Market.COIN_M_FUTURES,
-        }
-
-        stream_type_mapping = {
-            'difference_depth': StreamType.DIFFERENCE_DEPTH_STREAM,
-            'trade': StreamType.TRADE_STREAM,
-            'depth_snapshot': StreamType.DEPTH_SNAPSHOT,
-        }
-
-        market = next((value for key, value in market_mapping.items() if key in _csv_name), None)
-        if market is None:
-            raise ValueError(f"Unknown market in CSV name: {_csv_name}")
-
-        stream_type = next((value for key, value in stream_type_mapping.items() if key in _csv_name), None)
-        if stream_type is None:
-            raise ValueError(f"Unknown stream type in CSV name: {_csv_name}")
-
-        pair = (
-            f"{_csv_name.split('_')[-3]}_{_csv_name.split('_')[-2]}"
-            if market is Market.COIN_M_FUTURES
-            else _csv_name.split('_')[-2]
-        )
-
-        date = _csv_name.split('_')[-1]
-
-        return AssetParameters(
-            market=market,
-            stream_type=stream_type,
-            pairs=[pair],
-            date=date
-        )
 
     @staticmethod
     def _get_list_of_asset_parameters_list_to_be_concatenated(
@@ -179,7 +127,7 @@ class OrderBookConcatenator:
             should_join_markets_into_one_csv: bool = False
     ) -> list[list[AssetParameters]]:
 
-        dates = OrderBookConcatenator._generate_dates_string_list_from_range(date_range)
+        dates = generate_dates_string_list_from_range(date_range)
 
         groups = []
 
@@ -254,36 +202,11 @@ class OrderBookConcatenator:
         return groups
 
     @staticmethod
-    def _generate_dates_string_list_from_range(date_range: list[str]) -> list[str]:
-        date_format = "%d-%m-%Y"
-        start_date_str, end_date_str = date_range
-
-        try:
-            start_date = datetime.strptime(start_date_str, date_format)
-            end_date = datetime.strptime(end_date_str, date_format)
-        except ValueError as ve:
-            raise ValueError(f"invalid date format{ve}")
-
-        if start_date > end_date:
-            raise ValueError("start date > end_date")
-
-        date_list = []
-
-        delta = end_date - start_date
-
-        for i in range(delta.days + 1):
-            current_date = start_date + timedelta(days=i)
-            date_str = current_date.strftime(date_format)
-            date_list.append(date_str)
-
-        return date_list
-
-    @staticmethod
     def _main_concatenate_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
         for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
             print(f'SINGLE CSV')
             single_csv_df = OrderBookConcatenator._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
-            single_csv_filename = OrderBookConcatenator._get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
+            single_csv_filename = get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
 
             dataframe_quality_report_list = get_merged_csv_quality_report(
                 csvs_nest_catalog=csvs_nest_catalog,
@@ -291,22 +214,13 @@ class OrderBookConcatenator:
                 asset_parameters_list=list_of_asset_parameters_for_single_csv
             )
 
-            OrderBookConcatenator._save_df_to_csv_with_data_quality_report(
+            save_df_with_data_quality_reports(
                 dataframe=single_csv_df,
+                dataframe_quality_reports=dataframe_quality_report_list,
                 dump_catalog=dump_catalog,
-                target_file_name=single_csv_filename,
-                dataframe_quality_report_list=dataframe_quality_report_list
+                filename=single_csv_filename
             )
             print()
-
-    @staticmethod
-    def _save_df_to_csv_with_data_quality_report(dataframe: pd.DataFrame, dump_catalog: str, target_file_name: str, dataframe_quality_report_list: list[DataQualityReport]) -> None:
-        with open(f'{dump_catalog}/{target_file_name}.csv', 'w', newline='') as f:
-            for dataframe_quality_report in dataframe_quality_report_list:
-                f.write(str(dataframe_quality_report))
-                f.write('\n')
-
-            dataframe.to_csv(f, index=False, lineterminator='\n')
 
     @staticmethod
     def _single_target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
@@ -407,7 +321,7 @@ class OrderBookConcatenator:
         import pandas as pd
         from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
-        yesterday_date = OrderBookConcatenator._get_yesterday_date(asset_parameter.date)
+        yesterday_date = get_yesterday_date(asset_parameter.date)
         asset_parameter_of_yesterday = AssetParameters(
             market=asset_parameter.market,
             stream_type=asset_parameter.stream_type,
@@ -415,7 +329,7 @@ class OrderBookConcatenator:
             date=yesterday_date
         )
 
-        csv_path = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter_of_yesterday)}.csv'
+        csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
         orderbook_session_simulator = cpp_binance_orderbook.OrderbookSessionSimulator()
         final_orderbook_snapshot = orderbook_session_simulator.getFinalOrderBookSnapshot(csv_path)
 
@@ -469,7 +383,7 @@ class OrderBookConcatenator:
         import pandas as pd
         from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
-        file_path_for_csv = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter)}.csv'
+        file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
         df = df[df['TimestampOfRequest'] == df['TimestampOfRequest'].iloc[0]]
         df['StreamType'] = asset_parameter.stream_type.name
@@ -497,7 +411,7 @@ class OrderBookConcatenator:
         import pandas as pd
         from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
-        file_path_for_csv = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter)}.csv'
+        file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
@@ -522,7 +436,7 @@ class OrderBookConcatenator:
         import pandas as pd
         from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
-        file_path_for_csv = f'{csvs_nest_catalog}/{OrderBookConcatenator._get_base_of_filename(asset_parameter)}.csv'
+        file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
 
         df['StreamType'] = asset_parameter.stream_type.name
@@ -546,7 +460,7 @@ class OrderBookConcatenator:
     @staticmethod
     def _concatenate_pairs_within_single_market(list_of_single_pair_dataframe: list[pd.DataFrame]):
         import pandas as pd
-        from individual_column_checker import IndividualColumnChecker as icc
+        from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
 
         # print(f'_concatenate_pairs_within_single_market: len(list_of_single_pair_dataframe) {len(list_of_single_pair_dataframe)}')
 
@@ -566,7 +480,7 @@ class OrderBookConcatenator:
     @staticmethod
     def _concatenate_markets_within_single_csv(list_of_single_market_dataframe: list[pd.DataFrame]):
         import pandas as pd
-        from individual_column_checker import IndividualColumnChecker as icc
+        from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
 
         # print(f'_concatenate_markets_within_single_csv: len(list_of_single_market_dataframe) {len(list_of_single_market_dataframe)}')
 
@@ -582,70 +496,3 @@ class OrderBookConcatenator:
         # print(f'hujhuj {result_} {result2_}')
 
         return combined_df
-
-    @staticmethod
-    def _get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
-        streams = sorted({ap.stream_type.name.lower() for ap in list_of_asset_parameters_for_single_csv})
-        markets = sorted({ap.market.name.lower() for ap in list_of_asset_parameters_for_single_csv})
-        pairs = sorted({ap.pairs[0].lower() for ap in list_of_asset_parameters_for_single_csv})
-        date = list_of_asset_parameters_for_single_csv[0].date
-        return f"merged_{'_'.join(streams)}_{'_'.join(markets)}_{'_'.join(pairs)}_{date}"
-
-    @staticmethod
-    def _get_columns_for_specified_asset_parameters(asset_parameters: AssetParameters) -> list[str]:
-        mapping = {
-            StreamType.DEPTH_SNAPSHOT: {
-                # market: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity', 'LastUpdateId']
-                Market.SPOT: ['TimestampOfReceive', 'TimestampOfRequest', 'LastUpdateId', 'IsAsk', 'Price', 'Quantity'],
-                Market.USD_M_FUTURES: ['TimestampOfReceive', 'TimestampOfRequest', 'MessageOutputTime', 'TransactionTime', 'LastUpdateId', 'IsAsk', 'Price', 'Quantity'],
-                Market.COIN_M_FUTURES: ['TimestampOfReceive', 'TimestampOfRequest', 'MessageOutputTime', 'TransactionTime', 'LastUpdateId', 'Symbol', 'Pair', 'IsAsk', 'Price', 'Quantity']
-            },
-            StreamType.DIFFERENCE_DEPTH_STREAM: {
-                # Market.SPOT: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity', 'FirstUpdateId', 'FinalUpdateId'],
-                Market.SPOT: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity'],
-                **{
-                    # market: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity', 'FirstUpdateId', 'FinalUpdateId', 'FinalUpdateIdInLastStream']
-                    market: ['TimestampOfReceive', 'Symbol', 'IsAsk', 'Price', 'Quantity']
-                    for market in (Market.USD_M_FUTURES, Market.COIN_M_FUTURES)
-                }
-            },
-            StreamType.TRADE_STREAM: {
-                # market: ['TimestampOfReceive', 'Symbol', 'IsBuyerMarketMaker', 'Price', 'Quantity', 'TradeId']
-                market: ['TimestampOfReceive', 'Symbol', 'IsBuyerMarketMaker', 'Price', 'Quantity']
-                for market in (Market.SPOT, Market.USD_M_FUTURES, Market.COIN_M_FUTURES)
-            }
-        }
-
-        return mapping[asset_parameters.stream_type][asset_parameters.market]
-
-    @staticmethod
-    def _get_columns_dtypes_for_specified_asset_parameters(asset_parameters: AssetParameters) -> {str}:
-        mapping = {
-            StreamType.DEPTH_SNAPSHOT: {
-                market: {'TimestampOfReceive': int, 'IsAsk': bool, 'Price':float, 'Quantity':float, 'LastUpdateId': int}
-                for market in (Market.SPOT, Market.USD_M_FUTURES, Market.COIN_M_FUTURES)
-            },
-            StreamType.DIFFERENCE_DEPTH_STREAM: {
-                Market.SPOT: {'TimestampOfReceive': int, 'IsAsk': bool, 'Price':float, 'Quantity':float, 'FirstUpdateId':int, 'FinalUpdateId': int},
-                **{
-                    market: {'TimestampOfReceive': int, 'IsAsk': bool, 'Price':float, 'Quantity':float, 'FirstUpdateId':int, 'FinalUpdateId': int, 'FinalUpdateIdInLastStream': int}
-                    for market in (Market.USD_M_FUTURES, Market.COIN_M_FUTURES)
-                }
-            },
-            StreamType.TRADE_STREAM: {
-                market: {'TimestampOfReceive': int, 'IsBuyerMarketMaker': bool, 'Price': float, 'Quantity': float, 'TradeId': int}
-                for market in (Market.SPOT, Market.USD_M_FUTURES, Market.COIN_M_FUTURES)
-            }
-        }
-
-        return mapping[asset_parameters.stream_type][asset_parameters.market]
-
-    @staticmethod
-    def _get_yesterday_date(date: str) -> str:
-        date = datetime.strptime(date, "%d-%m-%Y")
-        yesterday_date = date - timedelta(days=1)
-        return yesterday_date.strftime("%d-%m-%Y")
-
-    @staticmethod
-    def _get_base_of_filename(asset_parameters: AssetParameters) -> str:
-        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{asset_parameters.date}"

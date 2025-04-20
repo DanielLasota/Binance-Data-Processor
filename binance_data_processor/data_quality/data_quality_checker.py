@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
 
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
-from binance_data_processor.scraper.data_quality_report import DataQualityReport
-from binance_data_processor.scraper.individual_column_checker import IndividualColumnChecker as icc
+from binance_data_processor.data_quality.data_quality_report import DataQualityReport
+from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
+from binance_data_processor.utils.file_utils import (
+    decode_asset_parameters_from_csv_name,
+    get_base_of_root_csv_filename,
+    list_files_in_specified_directory
+)
+from binance_data_processor.utils.time_utils import get_yesterday_date
 
 
 def get_dataframe_quality_report(dataframe: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
@@ -79,7 +84,7 @@ class DataQualityChecker:
 
     def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
         self.print_logo()
-        local_files = self._list_files_in_local_directory(csv_nest_directory)
+        local_files = list_files_in_specified_directory(csv_nest_directory)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
         print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files")
 
@@ -98,7 +103,7 @@ class DataQualityChecker:
             for csv_path in csv_paths:
                 try:
                     csv_name = os.path.basename(csv_path)
-                    asset_parameters = self._decode_asset_parameters_from_csv_name(csv_name)
+                    asset_parameters = decode_asset_parameters_from_csv_name(csv_name)
                     dataframe = pd.read_csv(csv_path, comment='#')
                     dataframe_quality_report = self.get_dataframe_quality_report(
                         dataframe=dataframe,
@@ -135,69 +140,6 @@ class DataQualityChecker:
             except Exception as e:
                 print(e)
 
-    @staticmethod
-    def _list_files_in_local_directory(directory_path: str) -> list:
-        try:
-            files = []
-            for root, _, filenames in os.walk(directory_path):
-                for filename in filenames:
-                    full_path = os.path.join(root, filename)
-                    files.append(full_path)
-            return files
-
-        except Exception as e:
-            print(f"Error whilst listing files: {e}")
-            return []
-
-    @staticmethod
-    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
-        _csv_name = csv_name.replace('.csv', '')
-
-        market_mapping = {
-            'spot': Market.SPOT,
-            'usd_m_futures': Market.USD_M_FUTURES,
-            'coin_m_futures': Market.COIN_M_FUTURES,
-        }
-
-        stream_type_mapping = {
-            'difference_depth': StreamType.DIFFERENCE_DEPTH_STREAM,
-            'trade': StreamType.TRADE_STREAM,
-            'depth_snapshot': StreamType.DEPTH_SNAPSHOT,
-        }
-
-        market = next((value for key, value in market_mapping.items() if key in _csv_name), None)
-        if market is None:
-            raise ValueError(f"Unknown market in CSV name: {_csv_name}")
-
-        stream_type = next((value for key, value in stream_type_mapping.items() if key in _csv_name), None)
-        if stream_type is None:
-            raise ValueError(f"Unknown stream type in CSV name: {_csv_name}")
-
-        pair = (
-            f"{_csv_name.split('_')[-3]}_{_csv_name.split('_')[-2]}"
-            if market is Market.COIN_M_FUTURES
-            else _csv_name.split('_')[-2]
-        )
-
-        date = _csv_name.split('_')[-1]
-
-        return AssetParameters(
-            market=market,
-            stream_type=stream_type,
-            pairs=[pair],
-            date=date
-        )
-
-    @staticmethod
-    def _get_base_of_filename(asset_parameters: AssetParameters) -> str:
-        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{asset_parameters.date}"
-
-    @staticmethod
-    def _get_yesterday_date(date: str) -> str:
-        date = datetime.strptime(date, "%d-%m-%Y")
-        yesterday_date = date - timedelta(days=1)
-        return yesterday_date.strftime("%d-%m-%Y")
-
     def get_main_merged_csv_report(self, df: pd.DataFrame, asset_parameters_list: list[AssetParameters], csvs_nest_catalog) -> DataQualityReport:
         import pandas as pd
         import cpp_binance_orderbook
@@ -205,7 +147,7 @@ class DataQualityChecker:
 
         source_csv_reports = []
         for asset_parameters in asset_parameters_list:
-            source_csv_path = f'{csvs_nest_catalog}/{DataQualityChecker._get_base_of_filename(asset_parameters)}.csv'
+            source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameters)}.csv'
             _df = pd.read_csv(source_csv_path, comment='#')
             _source_csv_report = self.get_dataframe_quality_report(
                 dataframe=_df if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT else _df[_df['TimestampOfReceive'] == _df.iloc[0]['TimestampOfReceive']],
@@ -218,14 +160,14 @@ class DataQualityChecker:
         final_depth_snapshot_len = 0
         for asset_parameters in asset_parameters_list:
             if asset_parameters.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
-                yesterday_date = DataQualityChecker._get_yesterday_date(asset_parameters.date)
+                yesterday_date = get_yesterday_date(asset_parameters.date)
                 asset_parameter_of_yesterday = AssetParameters(
                     market=asset_parameters.market,
                     stream_type=asset_parameters.stream_type,
                     pairs=asset_parameters.pairs,
                     date=yesterday_date
                 )
-                source_csv_path = f'{csvs_nest_catalog}/{DataQualityChecker._get_base_of_filename(asset_parameter_of_yesterday)}.csv'
+                source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
                 orderbook_snapshot = orderbook_session_simulator.getFinalOrderBookSnapshot(source_csv_path)
 
                 final_depth_snapshot_len += len(orderbook_snapshot.bids)

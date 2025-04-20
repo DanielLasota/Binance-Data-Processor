@@ -1,4 +1,4 @@
-from binance_data_processor.continuity_register.continuity_register import ContinuityRegister
+from binance_data_processor.continuity_registry.continuity_registry import ContinuityRegister
 
 
 if __name__ == '__main__':
