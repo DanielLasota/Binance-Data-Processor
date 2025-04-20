@@ -206,7 +206,6 @@ class OrderBookConcatenator:
         for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
             print(f'SINGLE CSV')
             single_csv_df = OrderBookConcatenator._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
-            single_csv_filename = get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
 
             dataframe_quality_report_list = get_merged_csv_quality_report(
                 csvs_nest_catalog=csvs_nest_catalog,
@@ -218,7 +217,7 @@ class OrderBookConcatenator:
                 dataframe=single_csv_df,
                 dataframe_quality_reports=dataframe_quality_report_list,
                 dump_catalog=dump_catalog,
-                filename=single_csv_filename
+                filename=get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
             )
             print()
 
@@ -279,7 +278,7 @@ class OrderBookConcatenator:
             ],
             ignore_index=True
         )
-        orders_and_trades_df = orders_and_trades_df.sort_values(by=['TimestampOfReceive', 'StreamType', 'aux_idx']).reset_index(drop=True)
+        orders_and_trades_df = orders_and_trades_df.sort_values(by=['TimestampOfReceiveUS', 'StreamType', 'ServiceId']).reset_index(drop=True)
         del root_difference_depth_dataframe, root_trade_dataframe
 
         insert_condition = (
@@ -289,13 +288,13 @@ class OrderBookConcatenator:
 
         insert_idx = orders_and_trades_df[insert_condition].index[0]
 
-        target_timestamp_of_receive_of_root_depth_snapshot_dataframe = orders_and_trades_df.iloc[insert_idx:]['TimestampOfReceive'].iloc[0]
-        root_depth_snapshot_dataframe['TimestampOfReceive'] = target_timestamp_of_receive_of_root_depth_snapshot_dataframe
+        target_timestamp_of_receive_of_root_depth_snapshot_dataframe = orders_and_trades_df.iloc[insert_idx:]['TimestampOfReceiveUS'].iloc[0]
+        root_depth_snapshot_dataframe['TimestampOfReceiveUS'] = target_timestamp_of_receive_of_root_depth_snapshot_dataframe
 
-        if target_timestamp_of_receive_of_root_depth_snapshot_dataframe < final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceive'].iloc[0]:
+        if target_timestamp_of_receive_of_root_depth_snapshot_dataframe < final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceiveUS'].iloc[0]:
             raise Exception(
                 'snapshot timestamp < target_timestamp_of_receive_of_root_depth_snapshot_dataframe'
-                f"{target_timestamp_of_receive_of_root_depth_snapshot_dataframe} < {final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceive'].iloc[0]}"
+                f"{target_timestamp_of_receive_of_root_depth_snapshot_dataframe} < {final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceiveUS'].iloc[0]}"
             )
 
         final_combined_df = pd.concat(
@@ -311,7 +310,7 @@ class OrderBookConcatenator:
         del final_orderbook_snapshot_from_cpp_binance_orderbook
 
         # final_combined_df.to_csv(f'combined_{asset_parameters_list_for_single_market[0].market.name}_{asset_parameters_list_for_single_market[0].date}.csv', index=True)
-        final_combined_df['aux_idx'] = range(len(final_combined_df))
+        final_combined_df['ServiceId'] = range(len(final_combined_df))
 
         return final_combined_df
 
@@ -360,10 +359,12 @@ class OrderBookConcatenator:
         )
         df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
         df['Market'] = asset_parameter.market.name
-        df['aux_idx'] = range(len(df))
+        df['ServiceId'] = range(len(df))
 
         if asset_parameter.market is not Market.SPOT:
-            df['TimestampOfReceive'] *= 1000
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
+        else:
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
 
         for column in df.columns:
             current_dtype = df[column].dtype
@@ -375,7 +376,7 @@ class OrderBookConcatenator:
                 df[column] = df[column].astype('float64')
 
         df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
-
+        df['TimestampOfReceiveUS'] = df['TimestampOfReceiveUS'].max()
         return df
 
     @staticmethod
@@ -388,9 +389,12 @@ class OrderBookConcatenator:
         df = df[df['TimestampOfRequest'] == df['TimestampOfRequest'].iloc[0]]
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
-        df['aux_idx'] = range(len(df))
+        df['ServiceId'] = range(len(df))
 
-        df['TimestampOfReceive'] *= 1000
+        if asset_parameter.market is not Market.SPOT:
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
+        else:
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
 
         if asset_parameter.market is not Market.COIN_M_FUTURES:
             df['Symbol'] = asset_parameter.pairs[0].upper()
@@ -415,10 +419,12 @@ class OrderBookConcatenator:
         df = pd.read_csv(file_path_for_csv, comment='#')
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
-        df['aux_idx'] = range(len(df))
+        df['ServiceId'] = range(len(df))
 
         if asset_parameter.market is not Market.SPOT:
-            df['TimestampOfReceive'] *= 1000
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
+        else:
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
 
         for column in df.columns:
             current_dtype = df[column].dtype
@@ -441,10 +447,12 @@ class OrderBookConcatenator:
 
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
-        df['aux_idx'] = range(len(df))
+        df['ServiceId'] = range(len(df))
 
         if asset_parameter.market is not Market.SPOT:
-            df['TimestampOfReceive'] *= 1000
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
+        else:
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
 
         for column in df.columns:
             current_dtype = df[column].dtype
@@ -469,10 +477,10 @@ class OrderBookConcatenator:
             return list_of_single_pair_dataframe[0]
 
         combined_df = pd.concat(list_of_single_pair_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceive', 'Symbol', 'aux_idx'])
+        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Symbol', 'ServiceId'])
 
-        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[combined_df['Symbol'] == 'TRXUSDT']['aux_idx'])
-        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceive'])
+        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[combined_df['Symbol'] == 'TRXUSDT']['ServiceId'])
+        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceiveUS'])
         print(f'hujhuj {result_} {result2_}')
 
         return combined_df
@@ -489,10 +497,10 @@ class OrderBookConcatenator:
             return list_of_single_market_dataframe[0]
 
         combined_df = pd.concat(list_of_single_market_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceive', 'Market', 'Symbol', 'aux_idx'])
+        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Market', 'Symbol', 'ServiceId'])
 
-        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[(combined_df['Symbol'] == 'TRXUSDT') & (combined_df['Market'] == 'SPOT')]['aux_idx'])
-        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceive'])
+        # result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[(combined_df['Symbol'] == 'TRXUSDT') & (combined_df['Market'] == 'SPOT')]['ServiceId'])
+        # result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceiveUS'])
         # print(f'hujhuj {result_} {result2_}')
 
         return combined_df

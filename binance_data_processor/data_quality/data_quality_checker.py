@@ -49,12 +49,6 @@ def get_merged_csv_quality_report(csvs_nest_catalog: str, dataframe: pd.DataFram
         _df = dataframe[(dataframe['StreamType'] == ap.stream_type.name) & (dataframe['Market'] == ap.market.name)]
         _source_csv_report = data_checker.get_dataframe_quality_report(dataframe=_df,asset_parameters=ap)
         data_quality_reports_list.append(_source_csv_report)
-        # print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        # print(f'asset_parameters: {ap}')
-        # print(_df)
-        # print(_source_csv_report)
-        # _df.to_csv(f'{ap.stream_type.value}_{ap.market.value}_{ap.date}.csv', index=False)
-        # print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
 
     return data_quality_reports_list
 
@@ -176,16 +170,15 @@ class DataQualityChecker:
         total_rows_of_source_csv += final_depth_snapshot_len
 
         report = DataQualityReport(asset_parameters=asset_parameters_list, df_shape=df.shape)
-        epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters_list[0].market is Market.SPOT else EpochTimeUnit.MILLISECONDS
 
-        is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceive'])
-        is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceive'])
-        is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfReceive'], date=asset_parameters_list[0].date, epoch_time_unit=epoch_time_unit)
+        is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceiveUS'])
+        is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceiveUS'])
+        is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df[df['StreamType'] != 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'], date=asset_parameters_list[0].date, epoch_time_unit=EpochTimeUnit.MICROSECONDS)
         is_merged_df_len_equal_to_single_csvs_combined = total_rows_of_source_csv == df.shape[0]
         is_whole_set_of_merged_csvs_data_quality_report_positive = all(report.is_data_quality_report_positive() for report in source_csv_reports)
-        report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_series_non_decreasing)
-        report.add_test_result("TimestampOfReceive", "is_series_epoch_valid", is_series_epoch_valid)
-        report.add_test_result("TimestampOfReceive", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
+        report.add_test_result("TimestampOfReceiveUS", "is_series_non_decreasing", is_series_non_decreasing)
+        report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_valid", is_series_epoch_valid)
+        report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         report.add_test_result("General", "is_merged_df_len_equal_to_single_csvs_combined", is_merged_df_len_equal_to_single_csvs_combined)
         report.add_test_result("General", "is_whole_set_of_merged_csvs_data_quality_report_positive", is_whole_set_of_merged_csvs_data_quality_report_positive)
 
