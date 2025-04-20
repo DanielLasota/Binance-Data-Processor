@@ -112,7 +112,7 @@ class ContinuityRegister:
         ax.set_xlabel('Date')
         ax.xaxis_date()
         ax.xaxis.set_major_locator(mdates.DayLocator())
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M:%S'))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         fig.autofmt_xdate()
 
         # 6. Pionowe linie na północy – rysowane NA WIERZCHU (zorder=3)
@@ -132,6 +132,3 @@ class ContinuityRegister:
 
         plt.tight_layout()
         plt.show()
-
-
-
