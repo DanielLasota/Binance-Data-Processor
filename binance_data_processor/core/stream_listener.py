@@ -5,7 +5,6 @@ import threading
 import time
 import traceback
 import websockets
-from websockets.legacy.client import WebSocketClientProtocol
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
@@ -48,7 +47,7 @@ class StreamListener:
 
         self._stop_event = threading.Event()
         self._ws_lock = threading.Lock()
-        self._ws: WebSocketClientProtocol | None = None
+        self._ws: websockets.ClientConnection | None = None
         self._url = URLFactory.get_stream_url(asset_parameters)
 
     def start_websocket_app(self):
@@ -131,7 +130,9 @@ class StreamListener:
                         self._url,
                         ping_interval=None,
                         ping_timeout=None,
-                        max_queue=32
+                        max_size=None,
+                        max_queue=None,
+                        write_limit=(2 ** 30, 2 ** 30 - 1)
                 ) as ws:
                     with self._ws_lock:
                         self._ws = ws
@@ -147,7 +148,7 @@ class StreamListener:
                 with self._ws_lock:
                     self._ws = None
 
-    async def _listen_messages(self, ws: WebSocketClientProtocol):
+    async def _listen_messages(self, ws: websockets.ClientConnection):
 
         while not self._stop_event.is_set():
             try:
