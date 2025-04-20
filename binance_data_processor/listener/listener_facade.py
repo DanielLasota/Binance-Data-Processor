@@ -5,13 +5,13 @@ import time
 import threading
 
 from binance_data_processor.core.logo import binance_archiver_logo
-from binance_data_processor import DataSinkConfig
 from binance_data_processor.core.listener_observer_updater import ListenerObserverUpdater
 from binance_data_processor.core.queue_pool import ListenerQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
 from binance_data_processor.core.abstract_base_classes import Subject, Observer
 from binance_data_processor.core.snapshot_manager import ListenerDepthSnapshotStrategy, DepthSnapshotService
 from binance_data_processor.core.stream_service import StreamService
+from binance_data_processor.enums.data_sink_config import DataSinkConfig
 
 __all__ = [
     'launch_data_listener',

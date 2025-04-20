@@ -6,8 +6,8 @@ import re
 from abc import ABC, abstractmethod
 
 from binance_data_processor.core.exceptions import ClassInstancesAmountLimitException
-from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.core.stream_listener_id import StreamListenerId
+from binance_data_processor.enums.market_enum import Market
 
 
 class PutTradeMessageStrategy(ABC):

@@ -17,8 +17,14 @@ from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
-from binance_data_processor.scraper.data_quality_checker import get_dataframe_quality_report
-from binance_data_processor.scraper.data_quality_report import DataQualityReport
+from binance_data_processor.data_quality.data_quality_checker import get_dataframe_quality_report
+from binance_data_processor.utils.file_utils import (
+    prepare_dump_path_catalog,
+    list_files_in_specified_directory,
+    decode_asset_parameters_from_csv_name,
+    get_base_of_root_csv_filename, save_df_with_data_quality_reports
+)
+from binance_data_processor.utils.time_utils import generate_dates_string_list_from_range
 
 
 __all__ = [
@@ -28,15 +34,15 @@ __all__ = [
 
 def download_csv_data(
         date_range: list[str],
-        pairs: list[str] | None = None,
-        markets: list[str] | None = None,
-        stream_types: list[str] | None = None,
+        pairs: list[str],
+        markets: list[str],
+        stream_types: list[str],
         skip_existing: bool = True,
         amount_of_files_to_be_downloaded_at_once: int = 10,
         dump_path: str | None = None
 ) -> None:
 
-    data_scraper = DataScraper(StorageConnectionParameters())
+    data_scraper = DataScraper()
 
     data_scraper.run(
         markets=markets,
@@ -56,11 +62,8 @@ class DataScraper:
         'amount_of_files_to_be_downloaded_at_once'
     ]
 
-    def __init__(
-            self,
-            storage_connection_parameters
-    ) -> None:
-
+    def __init__(self) -> None:
+        storage_connection_parameters = StorageConnectionParameters()
         if storage_connection_parameters.azure_blob_parameters_with_key is not None:
             self.storage_client = AzureClient(
                 blob_connection_string=storage_connection_parameters.azure_blob_parameters_with_key,
@@ -84,18 +87,19 @@ class DataScraper:
             stream_types: list[str],
             pairs: list[str],
             date_range: list[str],
-            dump_path: str | None,
+            dump_path: str | None = None,
             skip_existing: bool = True,
             amount_of_files_to_be_downloaded_at_once: int = 10
     ) -> None:
+        print(f'\033[35m{binance_archiver_logo}')
 
         self.amount_of_files_to_be_downloaded_at_once = amount_of_files_to_be_downloaded_at_once
 
-        print(f'\033[35m{binance_archiver_logo}')
+        default_dump_path = os.path.join(os.path.expanduser("~"), "Documents", "binance_archival_data").replace('\\', '/')
+        dump_path = dump_path or default_dump_path
+        prepare_dump_path_catalog(dump_path)
 
-        dump_path = self._prepare_dump_path_catalog(dump_path=dump_path)
-
-        dates_to_be_downloaded = self._generate_dates_string_list_from_range(date_range)
+        dates_to_be_downloaded = generate_dates_string_list_from_range(date_range)
 
         asset_parameters_to_be_downloaded = self._get_asset_parameters_to_be_downloaded(
             markets=markets,
@@ -107,10 +111,7 @@ class DataScraper:
         )
         amount_of_files_to_be_made = len(asset_parameters_to_be_downloaded)
 
-        print(
-            f'\033[36m\n'
-            f'ought to download {amount_of_files_to_be_made} file(s)\n'
-        )
+        print(f'\033[36m\n ought to download {amount_of_files_to_be_made} file(s)\n')
 
         data_quality_report_list = []
 
@@ -132,8 +133,7 @@ class DataScraper:
         ]
 
         positive_reports_percentage = len(data_quality_positive_report_list) / len(data_quality_report_list) * 100
-        print(
-            f'Positive/All: {len(data_quality_positive_report_list)}/{len(data_quality_report_list)} ({positive_reports_percentage}%)')
+        print(f'Positive/All: {len(data_quality_positive_report_list)}/{len(data_quality_report_list)} ({positive_reports_percentage}%)')
 
         i = 1
         for report in data_quality_report_list:
@@ -179,22 +179,8 @@ class DataScraper:
         return asset_parameters_to_be_downloaded_minus_existing_files_asset_parameters
 
     @staticmethod
-    def _prepare_dump_path_catalog(dump_path) -> str:
-        if dump_path is None:
-            dump_path = os.path.join(
-                os.path.expanduser("~"),
-                "Documents",
-                "binance_archival_data"
-            ).replace('\\', '/')
-        if not os.path.exists(dump_path):
-            os.makedirs(dump_path)
-        os.startfile(dump_path)
-
-        return dump_path
-
-    @staticmethod
     def _get_existing_in_nest_files_catalog_asset_parameters_list(csv_nest: str) -> list[AssetParameters]:
-        local_files = DataScraper._list_files_in_local_directory(csv_nest)
+        local_files = list_files_in_specified_directory(csv_nest)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
         print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files\n")
 
@@ -202,90 +188,12 @@ class DataScraper:
 
         for csv in local_csv_file_paths:
             try:
-                asset_parameters = DataScraper._decode_asset_parameters_from_csv_name(csv)
+                asset_parameters = decode_asset_parameters_from_csv_name(csv)
                 found_asset_parameter_list.append(asset_parameters)
             except Exception as e:
                 print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
 
         return found_asset_parameter_list
-
-    @staticmethod
-    def _list_files_in_local_directory(directory_path: str) -> list:
-        try:
-            files = []
-            for root, _, filenames in os.walk(directory_path):
-                for filename in filenames:
-                    full_path = os.path.join(root, filename)
-                    files.append(full_path)
-            return files
-
-        except Exception as e:
-            print(f"Error whilst listing files: {e}")
-            return []
-
-    @staticmethod
-    def _decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
-        _csv_name = csv_name.replace('.csv', '')
-
-        market_mapping = {
-            'spot': Market.SPOT,
-            'usd_m_futures': Market.USD_M_FUTURES,
-            'coin_m_futures': Market.COIN_M_FUTURES,
-        }
-
-        stream_type_mapping = {
-            'difference_depth': StreamType.DIFFERENCE_DEPTH_STREAM,
-            'trade': StreamType.TRADE_STREAM,
-            'depth_snapshot': StreamType.DEPTH_SNAPSHOT,
-        }
-
-        market = next((value for key, value in market_mapping.items() if key in _csv_name), None)
-        if market is None:
-            raise ValueError(f"Unknown market in CSV name: {_csv_name}")
-
-        stream_type = next((value for key, value in stream_type_mapping.items() if key in _csv_name), None)
-        if stream_type is None:
-            raise ValueError(f"Unknown stream type in CSV name: {_csv_name}")
-
-        pair = (
-            f"{_csv_name.split('_')[-3]}_{_csv_name.split('_')[-2]}"
-            if market is Market.COIN_M_FUTURES
-            else _csv_name.split('_')[-2]
-        )
-
-        date = _csv_name.split('_')[-1]
-
-        return AssetParameters(
-            market=market,
-            stream_type=stream_type,
-            pairs=[pair],
-            date=date
-        )
-
-    @staticmethod
-    def _generate_dates_string_list_from_range(date_range: list[str]) -> list[str]:
-        date_format = "%d-%m-%Y"
-        start_date_str, end_date_str = date_range
-
-        try:
-            start_date = datetime.strptime(start_date_str, date_format)
-            end_date = datetime.strptime(end_date_str, date_format)
-        except ValueError as ve:
-            raise ValueError(f"invalid date format{ve}")
-
-        if start_date > end_date:
-            raise ValueError("start date > end_date")
-
-        date_list = []
-
-        delta = end_date - start_date
-
-        for i in range(delta.days + 1):
-            current_date = start_date + timedelta(days=i)
-            date_str = current_date.strftime(date_format)
-            date_list.append(date_str)
-
-        return date_list
 
     @staticmethod
     def _generate_asset_parameters_list_to_be_downloaded(markets: list[str], stream_types: list[str], pairs: list[str], dates: list[str]) -> list[AssetParameters]:
@@ -321,13 +229,13 @@ class DataScraper:
 
             # minimal_dataframe = self._get_minimal_dataframe(df=rough_dataframe_for_quality_check)
 
-            target_file_name = DataScraper._get_base_of_filename(asset_parameters=asset_parameters)
+            target_file_name = get_base_of_root_csv_filename(asset_parameters=asset_parameters)
 
-            self._save_df_to_csv_with_data_quality_report(
+            save_df_with_data_quality_reports(
                 dataframe=dataframe,
-                dataframe_quality_report=dataframe_quality_report,
-                dump_path=dump_path,
-                target_file_name=target_file_name
+                dataframe_quality_reports=dataframe_quality_report,
+                dump_catalog=dump_path,
+                filename=target_file_name
             )
 
             del dataframe_quality_report
@@ -358,13 +266,6 @@ class DataScraper:
         return dataframe
 
     @staticmethod
-    def _save_df_to_csv_with_data_quality_report(dataframe: pd.DataFrame, dump_path: str, target_file_name: str, dataframe_quality_report: DataQualityReport) -> None:
-        with open(f'{dump_path}/{target_file_name}.csv', 'w', newline='') as f:
-            f.write(str(dataframe_quality_report))
-            f.write('\n')
-            dataframe.to_csv(f, index=False, lineterminator='\n')
-
-    @staticmethod
     def _cut_dataframe_to_the_range_of_single_day(dataframe: pd.DataFrame, target_day: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> pd.DataFrame:
         import pandas as pd
 
@@ -381,32 +282,14 @@ class DataScraper:
         ]
 
     @staticmethod
-    def _get_minimal_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-        return df.drop(
-            columns=[
-                'Stream',
-                'EventType',
-                'Symbol',
-                'PSUnknownField',
-                'XUnknownParameter',
-                'MUnknownParameter'
-            ],
-            errors='ignore'
-        )
-
-    @staticmethod
-    def _get_base_of_filename(asset_parameters: AssetParameters) -> str:
-        return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{asset_parameters.date}"
-
-    @staticmethod
     def _get_prefix_of_files_that_should_be_downloaded_for_specified_single_date(asset_parameters: AssetParameters) -> list[str]:
         one_date_after = (datetime.strptime(asset_parameters.date, '%d-%m-%Y') + timedelta(days=1)).strftime('%d-%m-%Y')
 
         asset_parameters_for_the_next_day = copy.copy(asset_parameters)
         asset_parameters_for_the_next_day.date = one_date_after
 
-        target_day_date_prefix = DataScraper._get_base_of_filename(asset_parameters=asset_parameters)
-        day_date_one_after_prefix = DataScraper._get_base_of_filename(asset_parameters=asset_parameters_for_the_next_day) + 'T00-0'
+        target_day_date_prefix = get_base_of_root_csv_filename(asset_parameters=asset_parameters)
+        day_date_one_after_prefix = get_base_of_root_csv_filename(asset_parameters=asset_parameters_for_the_next_day) + 'T00-0'
 
         return [target_day_date_prefix, day_date_one_after_prefix]
 

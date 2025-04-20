@@ -105,10 +105,3 @@ class DataQualityReport:
 
     def add_informational_data_to_report(self, column: str, information: str) -> None:
         self.informational_data.append(f'{column}: {information}')
-
-    def is_valid(self) -> bool:
-        return all(
-            isinstance(result, bool) and result
-            for tests in self.tests_results_register.values()
-            for result in tests.values()
-        )
