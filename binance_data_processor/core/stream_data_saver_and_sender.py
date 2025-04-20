@@ -9,15 +9,15 @@ import zipfile
 from collections import defaultdict
 import re
 
-from binance_data_processor import DataSinkConfig
-from binance_data_processor.enums.asset_parameters import AssetParameters
-from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
-from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
-from binance_data_processor.core.exceptions import BadStorageConnectionParameters
-from binance_data_processor.core.queue_pool import ListenerQueuePool, DataSinkQueuePool
-from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
-from binance_data_processor.core.timestamps_generator import TimestampsGenerator
 from binance_data_processor.core.trade_queue import TradeQueue
+from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
+from binance_data_processor.core.queue_pool import ListenerQueuePool, DataSinkQueuePool
+from binance_data_processor.core.exceptions import BadStorageConnectionParameters
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
+from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.utils.file_utils import get_base_of_blob_file_name
 
 
 class StreamDataSaverAndSender:
@@ -200,7 +200,7 @@ class StreamDataSaverAndSender:
 
             for pair in list(stream_data.keys()):
                 data = stream_data[pair]
-                file_name = self.get_file_name(
+                file_name = get_base_of_blob_file_name(
                     asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
                 )
                 self.save_data(
@@ -308,18 +308,3 @@ class StreamDataSaverAndSender:
     def send_existing_file_to_backblaze_bucket(self, file_path: str) -> None:
         self.cloud_storage_client.upload_existing_file(file_path=file_path)
         # self.logger.info(f'Successfully sent  missing file: {file_path} \n')
-
-    @staticmethod
-    def get_file_name(asset_parameters: AssetParameters) -> str:
-
-        if len(asset_parameters.pairs) != 1:
-            raise Exception(f"asset_parameters.pairs should've been a string")
-
-        formatted_now_timestamp = TimestampsGenerator.get_utc_formatted_timestamp_for_file_name()
-        return (
-            f"binance"
-            f"_{asset_parameters.stream_type.name.lower()}"
-            f"_{asset_parameters.market.name.lower()}"
-            f"_{asset_parameters.pairs[0].lower()}"
-            f"_{formatted_now_timestamp}"
-        )

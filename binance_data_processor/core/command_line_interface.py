@@ -15,9 +15,9 @@ import threading
 # from operator import itemgetter
 
 import binance_data_processor.data_sink.data_sink_facade
-from binance_data_processor import DataSinkConfig
-from binance_data_processor.enums.commands_registry_enum import CommandsRegistry
 from binance_data_processor.core.stream_service import StreamService
+from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.enums.commands_registry_enum import CommandsRegistry
 from binance_data_processor.enums.market_enum import Market
 
 

@@ -8,11 +8,16 @@ from queue import Queue
 import requests
 
 from binance_data_processor.core.stream_data_saver_and_sender import StreamDataSaverAndSender
-from binance_data_processor.core.timestamps_generator import TimestampsGenerator
 from binance_data_processor.core.url_factory import URLFactory
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.stream_type_enum import StreamType
-from binance_data_processor import DataSinkConfig
+from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.utils.file_utils import get_base_of_blob_file_name
+from binance_data_processor.utils.time_utils import (
+    get_utc_timestamp_epoch_milliseconds,
+    get_utc_timestamp_epoch_seconds,
+    get_next_midnight_utc_epoch_seconds
+)
 
 
 class DepthSnapshotStrategy(ABC):
@@ -103,8 +108,8 @@ class DepthSnapshotService:
         next_snapshot_time = self._calculate_next_snapshot_time()
 
         while not self.global_shutdown_flag.is_set():
-            target_midnight_utc_epoch_s_plus_10s = self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
-            current_time_s = DepthSnapshotService._get_current_utc_epoch_timestamp_in_seconds()
+            target_midnight_utc_epoch_s_plus_10s = get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
+            current_time_s = get_utc_timestamp_epoch_seconds()
             sleep_duration = next_snapshot_time - current_time_s
 
             if sleep_duration < 0:
@@ -113,7 +118,7 @@ class DepthSnapshotService:
 
             self._sleep_with_flag_check(sleep_duration)
 
-            while (remaining_ms := target_midnight_utc_epoch_s_plus_10s * 1000 - DepthSnapshotService._get_current_utc_epoch_timestamp_in_milliseconds()) > 0 and remaining_ms < 1000:
+            while (remaining_ms := target_midnight_utc_epoch_s_plus_10s * 1000 - get_utc_timestamp_epoch_milliseconds()) > 0 and remaining_ms < 1000:
                 self.logger.debug('waiting 0.1s to reach midnight')
                 time.sleep(0.1)
 
@@ -121,19 +126,11 @@ class DepthSnapshotService:
 
             next_snapshot_time += self.data_sink_config.time_settings.snapshot_fetcher_interval_seconds
 
-            if next_snapshot_time > self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10) - 60:
+            if next_snapshot_time > get_next_midnight_utc_epoch_seconds(with_offset_seconds=10) - 60:
                 self.logger.info(f'Setting next snapshot fetch to    m i d n i g h t ')
-                next_snapshot_time = self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
+                next_snapshot_time = get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
 
         self.logger.info("Snapshot daemon for all markets has ended")
-
-    @staticmethod
-    def _get_current_utc_epoch_timestamp_in_seconds():
-        return int((time.time_ns() + 5e8) // 1e9)
-
-    @staticmethod
-    def _get_current_utc_epoch_timestamp_in_milliseconds():
-        return int((time.time_ns() + 5e5) // 1e6)
 
     def _fetch_and_save_snapshots(self):
         all_snapshots = []
@@ -149,7 +146,7 @@ class DepthSnapshotService:
                     snapshot = self._request_snapshot_with_timestamps(
                         asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
                     )
-                    file_name = StreamDataSaverAndSender.get_file_name(
+                    file_name = get_base_of_blob_file_name(
                         asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
                     )
                     all_snapshots.append((snapshot, file_name))
@@ -169,9 +166,9 @@ class DepthSnapshotService:
         del all_snapshots
 
     def _calculate_next_snapshot_time(self):
-        current_time_s = DepthSnapshotService._get_current_utc_epoch_timestamp_in_seconds()
+        current_time_s = get_utc_timestamp_epoch_seconds()
         snapshot_fetcher_interval_seconds = self.data_sink_config.time_settings.snapshot_fetcher_interval_seconds
-        next_midnight_utc_epoch_seconds = self._get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
+        next_midnight_utc_epoch_seconds = get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
 
         next_planned_timestamp_of_fetch = current_time_s + snapshot_fetcher_interval_seconds
 
@@ -180,15 +177,6 @@ class DepthSnapshotService:
             return next_midnight_utc_epoch_seconds
 
         return current_time_s + snapshot_fetcher_interval_seconds
-
-    @staticmethod
-    def _get_next_midnight_utc_epoch_seconds(with_offset_seconds: int = 0) -> int:
-        current_time_s = DepthSnapshotService._get_current_utc_epoch_timestamp_in_seconds()
-
-        seconds_since_midnight = current_time_s % (24 * 3600)
-        seconds_to_midnight = (24 * 3600) - seconds_since_midnight
-
-        return current_time_s + seconds_to_midnight + with_offset_seconds
 
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 1
@@ -210,9 +198,9 @@ class DepthSnapshotService:
         url = URLFactory.get_difference_depth_snapshot_url(asset_parameters)
 
         try:
-            request_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
+            request_timestamp = get_utc_timestamp_epoch_milliseconds()
             response = self._session.get(url, timeout=5)
-            receive_timestamp = TimestampsGenerator.get_utc_timestamp_epoch_milliseconds()
+            receive_timestamp = get_utc_timestamp_epoch_milliseconds()
             response.raise_for_status()
 
             message = (

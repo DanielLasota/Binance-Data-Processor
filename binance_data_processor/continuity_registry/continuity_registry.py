@@ -4,7 +4,7 @@ import os
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 
-from binance_data_processor.continuity_register.continuity_entry import ContinuityEntry
+from binance_data_processor.continuity_registry.continuity_entry import ContinuityEntry
 from binance_data_processor.enums.continuity_event_type import ContinuityEventType
 
 

@@ -14,6 +14,10 @@ from binance_data_processor.core.difference_depth_queue import DifferenceDepthQu
 from binance_data_processor.core.trade_queue import TradeQueue
 from binance_data_processor.core.stream_listener_id import StreamListenerId
 from binance_data_processor.core.url_factory import URLFactory
+from binance_data_processor.utils.time_utils import (
+    round_epoch_nanoseconds_to_milliseconds,
+    round_epoch_nanoseconds_to_microseconds
+)
 
 
 class StreamListener:
@@ -149,11 +153,11 @@ class StreamListener:
             try:
                 message = await ws.recv()
 
-                raw_timestamp_of_receive_ns = time.time_ns()
+                ns = time.time_ns()
                 timestamp_of_receive_rounded = (
-                    (raw_timestamp_of_receive_ns + 500) // 1_000
+                    round_epoch_nanoseconds_to_microseconds(ns)
                     if self.asset_parameters.market is Market.SPOT
-                    else (raw_timestamp_of_receive_ns + 500_000) // 1_000_000
+                    else round_epoch_nanoseconds_to_milliseconds(ns)
                 )
 
                 self._handle_incoming_message(

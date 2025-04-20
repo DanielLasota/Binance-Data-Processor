@@ -7,7 +7,7 @@ from binance_data_processor import DataSinkConfig
 from binance_data_processor import launch_data_sink
 from binance_data_processor import StorageConnectionParameters
 
-env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-ba1-v2-test.env')
+env_path = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-ba2-v2-test.env')
 if 'prod' in env_path: raise Exception('prod .env not allowed locally')
 load_dotenv(env_path)
 
