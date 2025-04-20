@@ -194,6 +194,13 @@ class StreamListener:
                 )
 
             except websockets.exceptions.ConnectionClosed as e:
+                self.logger.info('\n')
+                self.logger.info('##########################################################')
+                self.logger.info('##########################################################')
+                self.logger.info('entered except websockets.exceptions.ConnectionClosed as e:')
+                self.logger.info('##########################################################')
+                self.logger.info('##########################################################')
+                self.logger.info('\n')
                 if not self._stop_event.is_set():
                     self.logger.info(
                         f"###############################################"
@@ -265,11 +272,10 @@ class StreamListener:
                             self.logger.error("[DEBUG] write_buffer w normie")
                     except Exception as ie:
                         self.logger.error(f"[DEBUG] Błąd przy odczycie bufora zapisu: {ie}")
-
-                threading.Timer(1, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
-                time.sleep(1)
-                threading.Timer(1, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
-                break
+                    threading.Timer(1, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+                    time.sleep(1)
+                    threading.Timer(1, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+                    break
 
     def _handle_incoming_message(self, raw_message: str, timestamp_of_receive: int):
         # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
