@@ -30,24 +30,26 @@ def conduct_data_quality_analysis_on_specified_csv_list(csv_paths: list[str]) ->
 def get_merged_csv_quality_report(csvs_nest_catalog: str, dataframe: pd.DataFrame, asset_parameters_list: list[AssetParameters]) -> list[DataQualityReport]:
     data_checker = DataQualityChecker()
 
-    data_quality_reports_list = [
-        data_checker.get_main_merged_csv_report(
-            df=dataframe,
-            asset_parameters_list=asset_parameters_list,
-            csvs_nest_catalog=csvs_nest_catalog
-        )
-    ]
+    data_quality_reports_list = []
 
-    for asset_parameters in asset_parameters_list:
+    merged_csv_report = data_checker.get_main_merged_csv_report(
+        df=dataframe,
+        asset_parameters_list=asset_parameters_list,
+        csvs_nest_catalog=csvs_nest_catalog
+    )
 
-        _source_csv_report = data_checker.get_dataframe_quality_report(
-            dataframe=dataframe[
-                (dataframe['StreamType'] == asset_parameters.stream_type.name) &
-                (dataframe['Market'] == asset_parameters.market.name)
-            ],
-            asset_parameters=asset_parameters
-        )
+    data_quality_reports_list.append(merged_csv_report)
+
+    for ap in asset_parameters_list:
+        _df = dataframe[(dataframe['StreamType'] == ap.stream_type.name) & (dataframe['Market'] == ap.market.name)]
+        _source_csv_report = data_checker.get_dataframe_quality_report(dataframe=_df,asset_parameters=ap)
         data_quality_reports_list.append(_source_csv_report)
+        # print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        # print(f'asset_parameters: {ap}')
+        # print(_df)
+        # print(_source_csv_report)
+        # _df.to_csv(f'{ap.stream_type.value}_{ap.market.value}_{ap.date}.csv', index=False)
+        # print(f'>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
 
     return data_quality_reports_list
 
@@ -71,12 +73,7 @@ class DataQualityChecker:
         }
         handler = stream_type_handlers.get(asset_parameters.stream_type)
         return handler(
-            df=dataframe.astype(
-                {
-                    'Price': float,
-                    'Quantity': float
-                }
-            ),
+            df=dataframe.astype({'Price': float, 'Quantity': float}),
             asset_parameters=asset_parameters
         )
 
@@ -235,13 +232,6 @@ class DataQualityChecker:
                 final_depth_snapshot_len += len(orderbook_snapshot.asks)
 
         total_rows_of_source_csv += final_depth_snapshot_len
-        # final_depth_snapshot_entries_len = df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT'].shape[0]
-
-        # print(f'total_rows_of_source_csv {total_rows_of_source_csv}')
-        # print(f'df  {df.shape[0]}')
-        # print(f'df - FINAL_DEPTH_SNAPSHOT  {df.shape[0] - final_depth_snapshot_entries_len}')
-        # print(f'FINAL_DEPTH_SNAPSHOT  {final_depth_snapshot_entries_len}')
-        # print(f'final_depth_snapshot_len  {final_depth_snapshot_len}')
 
         report = DataQualityReport(asset_parameters=asset_parameters_list, df_shape=df.shape)
         epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters_list[0].market is Market.SPOT else EpochTimeUnit.MILLISECONDS

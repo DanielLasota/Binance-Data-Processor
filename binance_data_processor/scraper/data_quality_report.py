@@ -54,7 +54,7 @@ class DataQualityReport:
         lines = [
             f"#################################################################",
             f"# Unfazed Binance Data Processor. All Copyrights 2025 Daniel Lasota",
-            f"# Data Quality Report for: \n{asset_parameters_str}",
+            f"# Data Quality Report for: \n# {asset_parameters_str}",
             f"# Generated on: {datetime.utcnow().strftime('%d-%m-%YT%H:%M:%S.%fZ')[:-4]}Z",
             f"# DataFrame shape: {self.df_shape[0]} x {self.df_shape[1]}"
         ]

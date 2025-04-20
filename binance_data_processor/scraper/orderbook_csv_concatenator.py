@@ -23,7 +23,7 @@ def make_concatenated_csvs(
     should_join_pairs_into_one_csv: bool = False,
     should_join_markets_into_one_csv: bool = False,
     csvs_nest_catalog: str = 'C:/Users/daniel/Documents/binance_archival_data/',
-    dump_catalog: str = 'C:/Users/daniel/Documents/sample_merged_csvs_for_ob/'
+    dump_catalog: str = 'C:/Users/daniel/Documents/merged_csvs/'
 ):
     orderbook_concatenator = OrderBookConcatenator()
 
@@ -55,7 +55,7 @@ class OrderBookConcatenator:
             should_join_pairs_into_one_csv: bool = False,
             should_join_markets_into_one_csv: bool = False,
             csvs_nest_catalog: str = 'C:/Users/daniel/Documents/binance_archival_data/',
-            dump_catalog: str = 'C:/Users/daniel/Documents/sample_merged_csvs_for_ob/'
+            dump_catalog: str = 'C:/Users/daniel/Documents/merged_csvs/'
     ):
 
         OrderBookConcatenator._prepare_dump_path_catalog(dump_catalog)
@@ -579,7 +579,7 @@ class OrderBookConcatenator:
 
         result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[(combined_df['Symbol'] == 'TRXUSDT') & (combined_df['Market'] == 'SPOT')]['aux_idx'])
         result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceive'])
-        print(f'hujhuj {result_} {result2_}')
+        # print(f'hujhuj {result_} {result2_}')
 
         return combined_df
 
