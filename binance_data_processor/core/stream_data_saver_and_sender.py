@@ -8,6 +8,7 @@ import time
 import zipfile
 from collections import defaultdict
 import re
+import zlib
 
 from binance_data_processor.core.trade_queue import TradeQueue
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
@@ -192,7 +193,8 @@ class StreamDataSaverAndSender:
             stream_data = defaultdict(list)
 
             while not queue.empty():
-                message = queue.get_nowait()
+                compressed_message = queue.get_nowait()
+                message = zlib.decompress(compressed_message).decode('utf-8')
 
                 match = self._stream_message_pair_pattern.search(message)
                 pair_found_in_message = match.group(1)
