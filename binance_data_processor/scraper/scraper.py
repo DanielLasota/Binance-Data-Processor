@@ -27,7 +27,6 @@ __all__ = [
 
 
 def download_csv_data(
-        storage_connection_parameters: StorageConnectionParameters,
         date_range: list[str],
         pairs: list[str] | None = None,
         markets: list[str] | None = None,
@@ -37,7 +36,7 @@ def download_csv_data(
         dump_path: str | None = None
 ) -> None:
 
-    data_scraper = DataScraper(storage_connection_parameters)
+    data_scraper = DataScraper(StorageConnectionParameters())
 
     data_scraper.run(
         markets=markets,
@@ -106,7 +105,7 @@ class DataScraper:
             dump_path=dump_path,
             skip_existing=skip_existing
         )
-        amount_of_files_to_be_made = len(asset_parameters_to_be_downloaded) * len(dates_to_be_downloaded)
+        amount_of_files_to_be_made = len(asset_parameters_to_be_downloaded)
 
         print(
             f'\033[36m\n'
@@ -120,6 +119,9 @@ class DataScraper:
             data_quality_report_list=data_quality_report_list,
             dump_path=dump_path
         )
+
+        if len(data_quality_report_list) == 0:
+            return
 
         print(f'\nFinished: {dump_path} \n')
 

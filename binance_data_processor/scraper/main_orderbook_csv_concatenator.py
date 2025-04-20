@@ -4,14 +4,14 @@ from orderbook_csv_concatenator import make_concatenated_csvs
 if __name__ == '__main__':
 
     make_concatenated_csvs(
-        date_range=['18-04-2025', '18-04-2025'],
+        date_range=['14-04-2025', '14-04-2025'],
         pairs=[
             'TRXUSDT',
             # 'ADAUSDT'
         ],
         markets=[
-            'SPOT',
-            # 'USD_M_FUTURES',
+            # 'SPOT',
+            'USD_M_FUTURES',
             # 'COIN_M_FUTURES'
         ],
         stream_types=[
@@ -22,5 +22,5 @@ if __name__ == '__main__':
         should_join_pairs_into_one_csv=False,
         should_join_markets_into_one_csv=False,
         csvs_nest_catalog='C:/Users/daniel/Documents/binance_archival_data/',
-        dump_catalog='C:/Users/daniel/Documents/sample_merged_csvs_for_ob/'
+        dump_catalog='C:/Users/daniel/Documents/merged_csvs/'
     )
