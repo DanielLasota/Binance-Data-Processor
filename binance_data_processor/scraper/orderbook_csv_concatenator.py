@@ -399,6 +399,7 @@ class BinanceDataMerger:
         df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
+        df['IsLast'] = (df.index == df.index[-1]).astype(int)
 
         if asset_parameter.market is not Market.SPOT:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
@@ -429,6 +430,7 @@ class BinanceDataMerger:
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
+        df['IsLast'] = (df.groupby(['LastUpdateId']).cumcount(ascending=False) == 0).astype(int)
 
         if asset_parameter.market is not Market.SPOT:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
@@ -459,11 +461,13 @@ class BinanceDataMerger:
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
+        df['IsLast'] = (df.groupby(['FinalUpdateId']).cumcount(ascending=False) == 0).astype(int)
 
         if asset_parameter.market is not Market.SPOT:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
         else:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
+
 
         for column in df.columns:
             current_dtype = df[column].dtype
@@ -487,11 +491,13 @@ class BinanceDataMerger:
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
+        df['IsLast'] = 1
 
         if asset_parameter.market is not Market.SPOT:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
         else:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
+
 
         for column in df.columns:
             current_dtype = df[column].dtype
@@ -530,6 +536,7 @@ class BinanceDataMerger:
             "LastUpdateId",
             "StreamType",
             "Market",
+            "IsLast",
             "ServiceId"
         ]
 
