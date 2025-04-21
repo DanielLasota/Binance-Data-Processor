@@ -1,9 +1,9 @@
-from orderbook_csv_concatenator import make_concatenated_csvs
+from orderbook_csv_concatenator import make_merged_csvs
 
 
 if __name__ == '__main__':
 
-    make_concatenated_csvs(
+    make_merged_csvs(
         date_range=['14-04-2025', '14-04-2025'],
         pairs=[
             'TRXUSDT',
