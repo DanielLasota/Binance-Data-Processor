@@ -283,53 +283,61 @@ class BinanceDataMerger:
         orders_and_trades_df = orders_and_trades_df.sort_values(by=['TimestampOfReceiveUS', 'StreamType', 'ServiceId']).reset_index(drop=True)
         del root_difference_depth_dataframe, root_trade_dataframe
 
-        insert_condition = (
-                (orders_and_trades_df['StreamType'] == 'DIFFERENCE_DEPTH_STREAM') &
-                (orders_and_trades_df['FinalUpdateId'] > root_depth_snapshot_dataframe['LastUpdateId'].iloc[0])
-        )
-
-        insert_idx = orders_and_trades_df[insert_condition].index[0]
-
-        target_timestamp_of_receive_of_root_depth_snapshot_dataframe = orders_and_trades_df.iloc[insert_idx:]['TimestampOfReceiveUS'].iloc[0]
-        root_depth_snapshot_dataframe['TimestampOfReceiveUS'] = target_timestamp_of_receive_of_root_depth_snapshot_dataframe
-
-        if target_timestamp_of_receive_of_root_depth_snapshot_dataframe < final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceiveUS'].iloc[0]:
-            raise Exception(
-                'snapshot timestamp < target_timestamp_of_receive_of_root_depth_snapshot_dataframe'
-                f"{target_timestamp_of_receive_of_root_depth_snapshot_dataframe} < {final_orderbook_snapshot_from_cpp_binance_orderbook['TimestampOfReceiveUS'].iloc[0]}"
-            )
+        orders_trades_snapshots = BinanceDataMerger.inject_snapshots_into_orders_and_trades(orders_and_trades_df, root_depth_snapshot_dataframe)
+        del orders_and_trades_df, root_depth_snapshot_dataframe
 
         final_combined_df = pd.concat(
             [
                 final_orderbook_snapshot_from_cpp_binance_orderbook,
-                orders_and_trades_df.iloc[:insert_idx],
-                root_depth_snapshot_dataframe,
-                orders_and_trades_df.iloc[insert_idx:]
+                orders_trades_snapshots
             ],
             ignore_index=True
         ).reset_index(drop=True)
 
-        del final_orderbook_snapshot_from_cpp_binance_orderbook
+        del final_orderbook_snapshot_from_cpp_binance_orderbook, orders_trades_snapshots
 
-        # final_combined_df.to_csv(f'combined_{asset_parameters_list_for_single_market[0].market.name}_{asset_parameters_list_for_single_market[0].date}.csv', index=True)
         final_combined_df['ServiceId'] = range(len(final_combined_df))
 
         return final_combined_df
 
     @staticmethod
+    def inject_snapshots_into_orders_and_trades(
+            orders_and_trades_df: pd.DataFrame,
+            root_snapshots_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        import pandas as pd
+
+        final = orders_and_trades_df.copy()
+
+        for last_id, snap_group in root_snapshots_df.groupby('LastUpdateId'):
+            mask = ((final['StreamType'] == 'DIFFERENCE_DEPTH_STREAM') & (final['FinalUpdateId'] > last_id))
+            idxs = final[mask].index
+            if idxs.empty:
+                raise Exception (f'no place to inject snapshot: {last_id}')
+                # continue
+            insert_idx = idxs[0]
+
+            target_ts = final.iloc[insert_idx]['TimestampOfReceiveUS']
+            snap_group = snap_group.copy()
+            snap_group['TimestampOfReceiveUS'] = target_ts
+
+            final = pd.concat([
+                final.iloc[:insert_idx],
+                snap_group,
+                final.iloc[insert_idx:]
+            ], ignore_index=True)
+
+        return final
+
+    @staticmethod
     def _merge_pairs_within_single_market(list_of_single_pair_dataframe: list[pd.DataFrame]):
         import pandas as pd
-        from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
 
         if len(list_of_single_pair_dataframe) == 1:
             return list_of_single_pair_dataframe[0]
 
         combined_df = pd.concat(list_of_single_pair_dataframe, ignore_index=True)
         combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Symbol', 'ServiceId'])
-
-        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[combined_df['Symbol'] == 'TRXUSDT']['ServiceId'])
-        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceiveUS'])
-        print(f'hujhuj {result_} {result2_}')
 
         return combined_df
 
@@ -417,7 +425,7 @@ class BinanceDataMerger:
 
         file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
-        df = df[df['TimestampOfRequest'] == df['TimestampOfRequest'].iloc[0]]
+
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
@@ -498,6 +506,7 @@ class BinanceDataMerger:
 
     @staticmethod
     def _reorder_columns(df: pd.DataFrame) -> pd.DataFrame:
+
         desired_order = [
             "TimestampOfReceiveUS",
             "TimestampOfReceive",
@@ -527,7 +536,7 @@ class BinanceDataMerger:
         existing = [col for col in desired_order if col in df.columns]
         if len(df.columns) != len(df[existing].columns):
             raise Exception(
-                f'Columns amount is not the same after reorder'
+                f'Columns amount is not the same after reorder '
                 f'len(df.columns) != len(df[existing].columns) {len(df.columns)} != {len(df[existing].columns)}'
             )
 
