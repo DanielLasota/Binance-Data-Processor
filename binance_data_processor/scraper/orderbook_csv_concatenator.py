@@ -20,11 +20,11 @@ from binance_data_processor.utils.time_utils import (
 )
 
 __all__ = [
-    'make_concatenated_csvs'
+    'make_merged_csvs'
 ]
 
 
-def make_concatenated_csvs(
+def make_merged_csvs(
     date_range: list[str],
     pairs: list[str],
     markets: list[str],
@@ -34,9 +34,9 @@ def make_concatenated_csvs(
     csvs_nest_catalog: str | None = None,
     dump_catalog: str | None = None
 ):
-    orderbook_concatenator = OrderBookConcatenator()
+    bdm = BinanceDataMerger()
 
-    orderbook_concatenator.run_concatenation(
+    bdm.merge(
         date_range=date_range,
         pairs=pairs,
         markets=[Market(market.lower()) for market in markets],
@@ -48,14 +48,14 @@ def make_concatenated_csvs(
     )
 
 
-class OrderBookConcatenator:
+class BinanceDataMerger:
 
     __slots__ = []
 
     def __init__(self):
         ...
 
-    def run_concatenation(
+    def merge(
             self,
             date_range: list[str],
             pairs: list[str],
@@ -70,13 +70,13 @@ class OrderBookConcatenator:
         prepare_dump_path_catalog(dump_catalog)
 
         existing_asset_parameters_list = (
-            OrderBookConcatenator._get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(
+            BinanceDataMerger._get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(
                 csvs_nest_catalog
             )
         )
 
-        list_of_asset_parameters_list_to_be_concatenated = (
-            OrderBookConcatenator._get_list_of_asset_parameters_list_to_be_concatenated(
+        list_of_asset_parameters_list_to_be_merged = (
+            BinanceDataMerger._get_list_of_asset_parameters_list_to_be_merged(
                 date_range=date_range,
                 pairs=pairs,
                 markets=markets,
@@ -87,7 +87,7 @@ class OrderBookConcatenator:
         )
 
         unreachable_csv_asset_parameter_list = []
-        for csv in list_of_asset_parameters_list_to_be_concatenated:
+        for csv in list_of_asset_parameters_list_to_be_merged:
             for asset_parameter in csv:
                 if asset_parameter not in existing_asset_parameters_list:
                     unreachable_csv_asset_parameter_list.append(asset_parameter)
@@ -96,8 +96,8 @@ class OrderBookConcatenator:
             missing_csv_str = "\n".join(str(asset_parameter) for asset_parameter in unreachable_csv_asset_parameter_list)
             raise Exception(f"Missing csv of parameters:\n{missing_csv_str}")
 
-        OrderBookConcatenator._main_concatenate_loop(
-            list_of_asset_parameters_list=list_of_asset_parameters_list_to_be_concatenated,
+        BinanceDataMerger._main_merge_loop(
+            list_of_asset_parameters_list=list_of_asset_parameters_list_to_be_merged,
             csvs_nest_catalog=csvs_nest_catalog,
             dump_catalog=dump_catalog
         )
@@ -118,7 +118,7 @@ class OrderBookConcatenator:
         return found_asset_parameter_list
 
     @staticmethod
-    def _get_list_of_asset_parameters_list_to_be_concatenated(
+    def _get_list_of_asset_parameters_list_to_be_merged(
             date_range: list[str],
             pairs: list[str],
             markets: list[Market],
@@ -202,10 +202,10 @@ class OrderBookConcatenator:
         return groups
 
     @staticmethod
-    def _main_concatenate_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
+    def _main_merge_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
         for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
             print(f'SINGLE CSV')
-            single_csv_df = OrderBookConcatenator._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
+            single_csv_df = BinanceDataMerger._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
 
             dataframe_quality_report_list = get_merged_csv_quality_report(
                 csvs_nest_catalog=csvs_nest_catalog,
@@ -224,20 +224,22 @@ class OrderBookConcatenator:
     @staticmethod
     def _single_target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
         dataframes_to_be_merged_within_single_csv = []
-        per_market_dict = OrderBookConcatenator._group_asset_parameters_by_market(list_of_asset_parameters_for_single_csv)
+        per_market_dict = BinanceDataMerger._group_asset_parameters_by_market(list_of_asset_parameters_for_single_csv)
         for market, params_for_market in per_market_dict.items():
-            per_pair_dict = OrderBookConcatenator._group_asset_parameters_by_pair(params_for_market)
+            per_pair_dict = BinanceDataMerger._group_asset_parameters_by_pair(params_for_market)
             pairs_to_be_merged = []
             print(f'         └─single market')
             for pair, params_for_pair in per_pair_dict.items():
-                merged_orders_and_trades = OrderBookConcatenator._concatenate_difference_depth_with_depth_snapshot_with_trade_within_single_pair(
+                merged_orders_and_trades = BinanceDataMerger._merge_difference_depth_with_depth_snapshot_with_trade_within_single_pair(
                     asset_parameters_list_for_single_market=params_for_pair,
                     csvs_nest_catalog=csvs_nest_catalog
                 )
                 pairs_to_be_merged.append(merged_orders_and_trades)
-            merged_pairs_within_single_market = OrderBookConcatenator._concatenate_pairs_within_single_market(pairs_to_be_merged)
+            merged_pairs_within_single_market = BinanceDataMerger._merge_pairs_within_single_market(pairs_to_be_merged)
             dataframes_to_be_merged_within_single_csv.append(merged_pairs_within_single_market)
-        single_target_csv = OrderBookConcatenator._concatenate_markets_within_single_csv(dataframes_to_be_merged_within_single_csv)
+        single_target_csv = BinanceDataMerger._merge_markets_within_target_csv(dataframes_to_be_merged_within_single_csv)
+
+        single_target_csv = BinanceDataMerger._reorder_columns(single_target_csv)
         return single_target_csv
 
     @staticmethod
@@ -255,7 +257,7 @@ class OrderBookConcatenator:
         return dict(grouped)
 
     @staticmethod
-    def _concatenate_difference_depth_with_depth_snapshot_with_trade_within_single_pair(asset_parameters_list_for_single_market: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
+    def _merge_difference_depth_with_depth_snapshot_with_trade_within_single_pair(asset_parameters_list_for_single_market: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
         import pandas as pd
 
         print('                       └─single pair')
@@ -266,10 +268,10 @@ class OrderBookConcatenator:
         trade_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.TRADE_STREAM), None)
         depth_snapshot_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.DEPTH_SNAPSHOT), None)
 
-        final_orderbook_snapshot_from_cpp_binance_orderbook = OrderBookConcatenator._get_final_orderbook_snapshot_from_cpp_binance_orderbook(difference_depth_asset_parameters, csvs_nest_catalog)
-        root_depth_snapshot_dataframe = OrderBookConcatenator._load_depth_snapshot_root_csv(depth_snapshot_asset_parameters, csvs_nest_catalog)
-        root_difference_depth_dataframe = OrderBookConcatenator._load_difference_depth_root_csv(difference_depth_asset_parameters, csvs_nest_catalog)
-        root_trade_dataframe = OrderBookConcatenator._load_trade_root_csv(trade_asset_parameters, csvs_nest_catalog)
+        final_orderbook_snapshot_from_cpp_binance_orderbook = BinanceDataMerger._get_final_orderbook_snapshot_from_cpp_binance_orderbook(difference_depth_asset_parameters, csvs_nest_catalog)
+        root_depth_snapshot_dataframe = BinanceDataMerger._load_depth_snapshot_root_csv(depth_snapshot_asset_parameters, csvs_nest_catalog)
+        root_difference_depth_dataframe = BinanceDataMerger._load_difference_depth_root_csv(difference_depth_asset_parameters, csvs_nest_catalog)
+        root_trade_dataframe = BinanceDataMerger._load_trade_root_csv(trade_asset_parameters, csvs_nest_catalog)
 
         orders_and_trades_df = pd.concat(
             [
@@ -313,6 +315,35 @@ class OrderBookConcatenator:
         final_combined_df['ServiceId'] = range(len(final_combined_df))
 
         return final_combined_df
+
+    @staticmethod
+    def _merge_pairs_within_single_market(list_of_single_pair_dataframe: list[pd.DataFrame]):
+        import pandas as pd
+        from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
+
+        if len(list_of_single_pair_dataframe) == 1:
+            return list_of_single_pair_dataframe[0]
+
+        combined_df = pd.concat(list_of_single_pair_dataframe, ignore_index=True)
+        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Symbol', 'ServiceId'])
+
+        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[combined_df['Symbol'] == 'TRXUSDT']['ServiceId'])
+        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceiveUS'])
+        print(f'hujhuj {result_} {result2_}')
+
+        return combined_df
+
+    @staticmethod
+    def _merge_markets_within_target_csv(list_of_single_market_dataframe: list[pd.DataFrame]):
+        import pandas as pd
+
+        if len(list_of_single_market_dataframe) == 1:
+            return list_of_single_market_dataframe[0]
+
+        combined_df = pd.concat(list_of_single_market_dataframe, ignore_index=True)
+        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Market', 'Symbol', 'ServiceId'])
+
+        return combined_df
 
     @staticmethod
     def _get_final_orderbook_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
@@ -466,41 +497,38 @@ class OrderBookConcatenator:
         return df
 
     @staticmethod
-    def _concatenate_pairs_within_single_market(list_of_single_pair_dataframe: list[pd.DataFrame]):
-        import pandas as pd
-        from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
+    def _reorder_columns(df: pd.DataFrame) -> pd.DataFrame:
+        desired_order = [
+            "TimestampOfReceiveUS",
+            "TimestampOfReceive",
+            "Stream",
+            "EventType",
+            "EventTime",
+            "TransactionTime",
+            "Symbol",
+            "FirstUpdateId",
+            "FinalUpdateId",
+            "FinalUpdateIdInLastStream",
+            "IsAsk",
+            "Price",
+            "Quantity",
+            "PSUnknownField",
+            "TradeId",
+            "IsBuyerMarketMaker",
+            "XUnknownParameter",
+            "TimestampOfRequest",
+            "MessageOutputTime",
+            "LastUpdateId",
+            "StreamType",
+            "Market",
+            "ServiceId"
+        ]
 
-        # print(f'_concatenate_pairs_within_single_market: len(list_of_single_pair_dataframe) {len(list_of_single_pair_dataframe)}')
+        existing = [col for col in desired_order if col in df.columns]
+        if len(df.columns) != len(df[existing].columns):
+            raise Exception(
+                f'Columns amount is not the same after reorder'
+                f'len(df.columns) != len(df[existing].columns) {len(df.columns)} != {len(df[existing].columns)}'
+            )
 
-        if len(list_of_single_pair_dataframe) == 1:
-            # print(f'_concatenate_pairs_within_single_market: only 1 df')
-            return list_of_single_pair_dataframe[0]
-
-        combined_df = pd.concat(list_of_single_pair_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Symbol', 'ServiceId'])
-
-        result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[combined_df['Symbol'] == 'TRXUSDT']['ServiceId'])
-        result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceiveUS'])
-        print(f'hujhuj {result_} {result2_}')
-
-        return combined_df
-
-    @staticmethod
-    def _concatenate_markets_within_single_csv(list_of_single_market_dataframe: list[pd.DataFrame]):
-        import pandas as pd
-        from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
-
-        # print(f'_concatenate_markets_within_single_csv: len(list_of_single_market_dataframe) {len(list_of_single_market_dataframe)}')
-
-        if len(list_of_single_market_dataframe) == 1:
-            # print(f'_concatenate_markets_within_single_csv: only 1 df')
-            return list_of_single_market_dataframe[0]
-
-        combined_df = pd.concat(list_of_single_market_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Market', 'Symbol', 'ServiceId'])
-
-        # result_ = icc.is_each_series_value_bigger_by_one_than_previous(combined_df[(combined_df['Symbol'] == 'TRXUSDT') & (combined_df['Market'] == 'SPOT')]['ServiceId'])
-        # result2_ = icc.is_series_non_decreasing(combined_df['TimestampOfReceiveUS'])
-        # print(f'hujhuj {result_} {result2_}')
-
-        return combined_df
+        return df[existing]
