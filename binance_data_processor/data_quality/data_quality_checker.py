@@ -144,7 +144,7 @@ class DataQualityChecker:
             source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameters)}.csv'
             _df = pd.read_csv(source_csv_path, comment='#')
             _source_csv_report = self.get_dataframe_quality_report(
-                dataframe=_df if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT else _df[_df['TimestampOfReceive'] == _df.iloc[0]['TimestampOfReceive']],
+                dataframe=_df,
                 asset_parameters=asset_parameters
             )
             source_csv_reports.append(_source_csv_report)
@@ -182,7 +182,7 @@ class DataQualityChecker:
         report.add_test_result("General", "is_merged_df_len_equal_to_single_csvs_combined", is_merged_df_len_equal_to_single_csvs_combined)
         report.add_test_result("General", "is_whole_set_of_merged_csvs_data_quality_report_positive", is_whole_set_of_merged_csvs_data_quality_report_positive)
 
-        print(f'DataQualityReport: {report.is_data_quality_report_positive()}')
+        print(f'DataQualityReport: {report.get_data_report_status()}')
 
         return report
 
