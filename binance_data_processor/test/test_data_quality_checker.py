@@ -775,6 +775,68 @@ class TestIndividualColumnChecker:
         ])
         assert IndividualColumnChecker.is_islast_column_valid_for_merged(df) is False
 
+    #### is_snapshot_injection_valid_for_merged
+
+    def test_real_example_snapshot_injection_positive(self):
+        data = """
+        StreamType,Market,Symbol,FirstUpdateId,FinalUpdateId,FinalUpdateIdInLastStream,LastUpdateId,TimestampOfReceiveUS
+        DIFFERENCE_DEPTH_STREAM,USD_M_FUTURES,TRXUSDT,7267631275717,7267631291190,7267631271246,,1744588800109
+        DIFFERENCE_DEPTH_STREAM,USD_M_FUTURES,TRXUSDT,7267631275717,7267631291190,7267631271246,,1744588800109
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588804536
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588804536
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588804536
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588804536
+        DIFFERENCE_DEPTH_STREAM,USD_M_FUTURES,TRXUSDT,7267633912566,7267633953296,7267631291190,,1744588804536
+        """
+        df = pd.read_csv(io.StringIO(data), skipinitialspace=True)
+        assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is True
+
+    def test_real_example_snapshot_injection_negative(self):
+        data = """
+        StreamType,Market,Symbol,FirstUpdateId,FinalUpdateId,FinalUpdateIdInLastStream,LastUpdateId,TimestampOfReceiveUS
+        DIFFERENCE_DEPTH_STREAM,USD_M_FUTURES,TRXUSDT,7267631275717,7267631291190,7267631271246,,1744588800109
+        DIFFERENCE_DEPTH_STREAM,USD_M_FUTURES,TRXUSDT,7267631275717,7267631291190,7267631271246,,1744588800109
+        DIFFERENCE_DEPTH_STREAM,USD_M_FUTURES,TRXUSDT,7267633912566,7267633953296,7267631291190,,1744588804536
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588800595
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588800595
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588800595
+        DEPTH_SNAPSHOT,USD_M_FUTURES,TRXUSDT,,,,7267631291190,1744588800595
+        """
+        df = pd.read_csv(io.StringIO(data), skipinitialspace=True)
+        assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is False
+
+    def test_multiple_markets_and_symbols_positive(self):
+        data = """
+        StreamType,Market,Symbol,FirstUpdateId,FinalUpdateId,FinalUpdateIdInLastStream,LastUpdateId,TimestampOfReceiveUS
+        DIFFERENCE_DEPTH_STREAM,SPOT,BTCUSDT,100,110,0,,1000
+        DEPTH_SNAPSHOT,SPOT,BTCUSDT,,,,150,1500
+        DEPTH_SNAPSHOT,SPOT,BTCUSDT,,,,150,1500
+        DIFFERENCE_DEPTH_STREAM,SPOT,BTCUSDT,101,250,200,,1500
+        
+        DIFFERENCE_DEPTH_STREAM,COIN_M_FUTURES,ADAUSD_PERP,500,550,400,,2000
+        DEPTH_SNAPSHOT,COIN_M_FUTURES,ADAUSD_PERP,,,,550,2500
+        DEPTH_SNAPSHOT,COIN_M_FUTURES,ADAUSD_PERP,,,,550,2500
+        DIFFERENCE_DEPTH_STREAM,COIN_M_FUTURES,ADAUSD_PERP,501,700,600,,2500
+        """
+        df = pd.read_csv(io.StringIO(data), skipinitialspace=True)
+        assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is True
+
+    def test_multiple_markets_and_symbols_negative(self):
+        data = """
+        StreamType,Market,Symbol,FirstUpdateId,FinalUpdateId,FinalUpdateIdInLastStream,LastUpdateId,TimestampOfReceiveUS
+        DIFFERENCE_DEPTH_STREAM,SPOT,BTCUSDT,100,200,0,,1000
+        DEPTH_SNAPSHOT,SPOT,BTCUSDT,,,,150,1500
+        DEPTH_SNAPSHOT,SPOT,BTCUSDT,,,,150,1500
+        DIFFERENCE_DEPTH_STREAM,SPOT,BTCUSDT,101,250,200,,1500
+        
+        DEPTH_SNAPSHOT,COIN_M_FUTURES,ADAUSD_PERP,,,,550,2500
+        DEPTH_SNAPSHOT,COIN_M_FUTURES,ADAUSD_PERP,,,,550,2500
+        DIFFERENCE_DEPTH_STREAM,COIN_M_FUTURES,ADAUSD_PERP,500,600,400,,2000
+        DIFFERENCE_DEPTH_STREAM,COIN_M_FUTURES,ADAUSD_PERP,501,700,600,,2500
+        """
+        df = pd.read_csv(io.StringIO(data), skipinitialspace=True)
+        assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is False
+
 class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_given_more_than_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
@@ -1252,3 +1314,38 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         )
         result = IndividualColumnChecker.is_islast_column_valid_for_merged(df)
         assert result is False, "Oczekiwano False, bo przynajmniej jedna grupa ma sumę IsLast != 1"
+
+
+    def test_snapshot_injection_valid_for_merged_positive_csv(self):
+        df = pd.read_csv(
+            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv',
+            usecols=[
+                'StreamType',
+                'Market',
+                'Symbol',
+                'FirstUpdateId',
+                'FinalUpdateId',
+                'FinalUpdateIdInLastStream',
+                'LastUpdateId',
+                'TimestampOfReceiveUS'
+            ],
+            comment='#'
+        )
+        assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is True
+
+    def test_snapshot_injection_valid_for_merged_negative_csv(self):
+        df = pd.read_csv(
+            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv',
+            usecols=[
+                'StreamType',
+                'Market',
+                'Symbol',
+                'FirstUpdateId',
+                'FinalUpdateId',
+                'FinalUpdateIdInLastStream',
+                'LastUpdateId',
+                'TimestampOfReceiveUS'
+            ],
+            comment='#'
+        )
+        assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is False
