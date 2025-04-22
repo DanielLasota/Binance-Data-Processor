@@ -12,41 +12,41 @@ load_dotenv(env_path)
 
 if __name__ == '__main__':
 
-    download_csv_data(
-        date_range=['19-04-2025', '19-04-2025'],
-        pairs=[
-            # "BTCUSDT",
-            # 'ADAUSDT',
-            # "SOLUSDT",
-            # "XRPUSDT",
-            # "DOGEUSDT",
-            # "ADAUSDT",
-            # "SHIBUSDT",
-            # "LTCUSDT",
-            # "AVAXUSDT",
-            "TRXUSDT",
-            # "DOTUSDT",
-            # "BCHUSDT",
-            # "SUIUSDT"
-        ],
-        markets=[
-            'SPOT',
-            # 'USD_M_FUTURES',
-            # 'COIN_M_FUTURES'
-        ],
-        stream_types=[
-            # 'TRADE_STREAM',
-            # 'DIFFERENCE_DEPTH_STREAM',
-            'DEPTH_SNAPSHOT'
-        ],
-        skip_existing=True,
-        amount_of_files_to_be_downloaded_at_once=40
-    )
+    # download_csv_data(
+    #     date_range=['19-04-2025', '19-04-2025'],
+    #     pairs=[
+    #         # "BTCUSDT",
+    #         # 'ADAUSDT',
+    #         # "SOLUSDT",
+    #         # "XRPUSDT",
+    #         # "DOGEUSDT",
+    #         # "ADAUSDT",
+    #         # "SHIBUSDT",
+    #         # "LTCUSDT",
+    #         # "AVAXUSDT",
+    #         "TRXUSDT",
+    #         # "DOTUSDT",
+    #         # "BCHUSDT",
+    #         # "SUIUSDT"
+    #     ],
+    #     markets=[
+    #         'SPOT',
+    #         # 'USD_M_FUTURES',
+    #         # 'COIN_M_FUTURES'
+    #     ],
+    #     stream_types=[
+    #         # 'TRADE_STREAM',
+    #         # 'DIFFERENCE_DEPTH_STREAM',
+    #         'DEPTH_SNAPSHOT'
+    #     ],
+    #     skip_existing=True,
+    #     amount_of_files_to_be_downloaded_at_once=40
+    # )
 
     # conduct_data_quality_analysis_on_specified_csv_list(
     #     csv_paths=[
     #         'C:/Users/daniel/Documents/binance_archival_data/binance_trade_stream_spot_trxusdt_02-04-2025.csv'
     #     ]
     # )
-    #
-    # conduct_data_quality_analysis_on_whole_directory('C:/Users/daniel/Documents/binance_archival_data/')
+
+    conduct_data_quality_analysis_on_whole_directory('C:/Users/daniel/Documents/binance_archival_data/')
