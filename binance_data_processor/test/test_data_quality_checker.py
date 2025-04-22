@@ -738,6 +738,43 @@ class TestIndividualColumnChecker:
         except Exception as e:
             assert str(e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
 
+    #### is_islast_column_valid_for_merged
+
+    def test_is_islast_column_valid_for_merged_positive(self):
+        # poprawny merged DataFrame
+        df = pd.DataFrame([
+            # DIFFERENCE_DEPTH_STREAM: jedna flaga IsLast=1 na grupę (Market, Symbol, FinalUpdateId)
+            {'StreamType': 'DIFFERENCE_DEPTH_STREAM', 'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': 1, 'LastUpdateId': None, 'IsLast': 0},
+            {'StreamType': 'DIFFERENCE_DEPTH_STREAM', 'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': 1, 'LastUpdateId': None, 'IsLast': 1},
+            # DEPTH_SNAPSHOT: jedna flaga IsLast=1 na grupę (Market, Symbol, LastUpdateId)
+            {'StreamType': 'DEPTH_SNAPSHOT',          'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 10,   'IsLast': 0},
+            {'StreamType': 'DEPTH_SNAPSHOT',          'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 10,   'IsLast': 1},
+            # FINAL_DEPTH_SNAPSHOT: jedna flaga IsLast=1 na grupę (Market, Symbol, LastUpdateId)
+            {'StreamType': 'FINAL_DEPTH_SNAPSHOT',    'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 20,   'IsLast': 1},
+            {'StreamType': 'FINAL_DEPTH_SNAPSHOT',    'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 20,   'IsLast': 0},
+            # TRADE_STREAM: wszystkie wiersze muszą mieć IsLast=1
+            {'StreamType': 'TRADE_STREAM',            'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': None, 'IsLast': 1},
+            {'StreamType': 'TRADE_STREAM',            'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': None, 'IsLast': 1},
+        ])
+        assert IndividualColumnChecker.is_islast_column_valid_for_merged(df) is True
+
+    def test_is_islast_column_valid_for_merged_negative(self):
+        # niepoprawny merged DataFrame:
+        # - za dużo IsLast=1 w DIFFERENCE_DEPTH_STREAM,
+        # - brak IsLast=1 w DEPTH_SNAPSHOT,
+        # - jeden IsLast=0 w TRADE_STREAM
+        df = pd.DataFrame([
+            {'StreamType': 'DIFFERENCE_DEPTH_STREAM', 'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': 2, 'LastUpdateId': None, 'IsLast': 1},
+            {'StreamType': 'DIFFERENCE_DEPTH_STREAM', 'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': 2, 'LastUpdateId': None, 'IsLast': 1},
+            {'StreamType': 'DEPTH_SNAPSHOT',          'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 11,   'IsLast': 0},
+            {'StreamType': 'DEPTH_SNAPSHOT',          'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 11,   'IsLast': 0},
+            {'StreamType': 'FINAL_DEPTH_SNAPSHOT',    'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 21,   'IsLast': 1},
+            {'StreamType': 'FINAL_DEPTH_SNAPSHOT',    'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': 21,   'IsLast': 0},
+            {'StreamType': 'TRADE_STREAM',            'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': None, 'IsLast': 1},
+            {'StreamType': 'TRADE_STREAM',            'Market': 'SPOT', 'Symbol': 'BTCUSDT', 'FinalUpdateId': None, 'LastUpdateId': None, 'IsLast': 0},
+        ])
+        assert IndividualColumnChecker.is_islast_column_valid_for_merged(df) is False
+
 class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_given_more_than_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
@@ -1195,3 +1232,23 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             assert False, "Expected an exception for wrong stream type"
         except Exception as e:
             assert str(e) == 'is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT'
+
+    #### is_islast_column_valid_for_merged
+
+    def test_is_islast_column_valid_for_merged_positive(self):
+        df = pd.read_csv(
+            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv',
+            usecols=['StreamType', 'Market', 'Symbol', 'FinalUpdateId', 'LastUpdateId', 'IsLast'],
+            comment='#'
+        )
+        result = IndividualColumnChecker.is_islast_column_valid_for_merged(df)
+        assert result is True, "Oczekiwano True, bo we wszystkich grupach jest dokładnie jedno IsLast==1"
+
+    def test_is_islast_column_valid_for_merged_negative(self):
+        df = pd.read_csv(
+            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv',
+            usecols=['StreamType', 'Market', 'Symbol', 'FinalUpdateId', 'LastUpdateId', 'IsLast'],
+            comment='#'
+        )
+        result = IndividualColumnChecker.is_islast_column_valid_for_merged(df)
+        assert result is False, "Oczekiwano False, bo przynajmniej jedna grupa ma sumę IsLast != 1"

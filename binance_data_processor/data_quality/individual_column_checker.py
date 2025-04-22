@@ -186,6 +186,28 @@ class IndividualColumnChecker:
 
         return ((price_level_counts >= expected_minimum_amount) & (price_level_counts <= expected_maximum_amount)).all()
 
+    @staticmethod
+    def is_islast_column_valid_for_merged(df: pd.DataFrame) -> bool:
+        checks = []
+
+        diff = df[df['StreamType'] == 'DIFFERENCE_DEPTH_STREAM']
+        grp_diff = diff.groupby(['Market', 'Symbol', 'FinalUpdateId'])['IsLast'].sum()
+        checks.append((grp_diff == 1).all())
+
+        snap = df[df['StreamType'] == 'DEPTH_SNAPSHOT']
+        grp_snap = snap.groupby(['Market', 'Symbol', 'LastUpdateId'])['IsLast'].sum()
+        checks.append((grp_snap == 1).all())
+
+        final = df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']
+        grp_final = final.groupby(['Market', 'Symbol'])['IsLast'].sum()
+        checks.append((grp_final == 1).all())
+
+        trade = df[df['StreamType'] == 'TRADE_STREAM']
+        checks.append(trade['IsLast'].eq(1).all())
+
+        return all(checks)
+
+
 '''
     is_timestamp_of_receive_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(df['TimestampOfReceive'])
     report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_column_non_decreasing)
