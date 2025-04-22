@@ -207,6 +207,70 @@ class IndividualColumnChecker:
 
         return all(checks)
 
+    @staticmethod
+    def is_snapshot_injection_valid_for_merged(df: pd.DataFrame) -> bool:
+
+        if df.empty:
+            return True
+
+        for (market, symbol), group in df.groupby(['Market', 'Symbol']):
+            grp = group.reset_index(drop=True)
+            snaps = grp[grp['StreamType'] == 'DEPTH_SNAPSHOT']
+            if snaps.empty:
+                continue
+
+            diff_idxs = grp[grp['StreamType'] == 'DIFFERENCE_DEPTH_STREAM'].index.tolist()
+
+            for last_id, snap_group in snaps.groupby('LastUpdateId'):
+                idxs = snap_group.index.tolist()
+                i0 = idxs[0]
+                n = len(idxs)
+
+                # find next diff pos
+                # looking in diff_idxs first one that > i0+n-1
+                after_snapshot = [i for i in diff_idxs if i > i0 + n - 1]
+                if not after_snapshot:
+                    print(f"[ERROR] [{market}/{symbol}] last_id={last_id}: brak diff-a po snapshotach")
+                    return False
+                next_idx = after_snapshot[0]
+                next_row = grp.iloc[next_idx]
+
+                # condition FinalUpdateId > last_id
+                if next_row['FinalUpdateId'] <= last_id:
+                    print(f"[ERROR] [{market}/{symbol}] last_id={last_id}: "
+                          f"diff na idx={next_idx} ma FinalUpdateId={next_row['FinalUpdateId']} "
+                          f"<= {last_id}")
+                    return False
+
+                # find previous diff before i0
+                before_snapshot = [i for i in diff_idxs if i < i0]
+                if before_snapshot:
+                    prev_idx = before_snapshot[-1]
+                    prev = grp.iloc[prev_idx]
+                    if prev['FinalUpdateId'] > last_id:
+                        print(f"[ERROR] [{market}/{symbol}] last_id={last_id}: "
+                              f"diff przed snapshot na idx={prev_idx} ma FinalUpdateId={prev['FinalUpdateId']} "
+                              f"> {last_id}")
+                        return False
+
+                # check timestamps
+                ts = next_row['TimestampOfReceiveUS']
+                bad = snap_group[snap_group['TimestampOfReceiveUS'] != ts].index.tolist()
+                if bad:
+                    print(f"[ERROR] [{market}/{symbol}] last_id={last_id}: "
+                          f"snapshoty na idx={bad} mają TS różne od {ts}")
+                    return False
+
+            # verify diff order monotonic
+            diffs = grp[grp['StreamType'] == 'DIFFERENCE_DEPTH_STREAM']
+            if not diffs['FinalUpdateId'].is_monotonic_increasing:
+                print(f"[ERROR] [{market}/{symbol}]: "
+                      f"FinalUpdateId diff-ów nie jest rosnący: "
+                      f"{diffs['FinalUpdateId'].tolist()}")
+                return False
+
+        return True
+
 
 '''
     is_timestamp_of_receive_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(df['TimestampOfReceive'])

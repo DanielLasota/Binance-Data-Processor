@@ -177,12 +177,14 @@ class DataQualityChecker:
         is_merged_df_len_equal_to_single_csvs_combined = total_rows_of_source_csv == df.shape[0]
         is_whole_set_of_merged_csvs_data_quality_report_positive = all(report.is_data_quality_report_positive() for report in source_csv_reports)
         is_islast_column_valid_for_merged = icc.is_islast_column_valid_for_merged(df)
+        is_snapshot_injection_valid = icc.is_snapshot_injection_valid_for_merged(df)
         report.add_test_result("TimestampOfReceiveUS", "is_series_non_decreasing", is_series_non_decreasing)
         report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_valid", is_series_epoch_valid)
         report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         report.add_test_result("General", "is_merged_df_len_equal_to_single_csvs_combined", is_merged_df_len_equal_to_single_csvs_combined)
         report.add_test_result("General", "is_whole_set_of_merged_csvs_data_quality_report_positive", is_whole_set_of_merged_csvs_data_quality_report_positive)
         report.add_test_result("General", "is_islast_column_valid_for_merged", is_islast_column_valid_for_merged)
+        report.add_test_result("General", "is_snapshot_injection_valid", is_snapshot_injection_valid)
         print(f'DataQualityReport: {report.get_data_report_status()}')
 
         return report
