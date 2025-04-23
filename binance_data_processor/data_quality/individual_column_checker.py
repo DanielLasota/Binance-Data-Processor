@@ -397,8 +397,8 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
-            is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_3000_ms               (-1ms, +3s)
+            is_last_timestamp_within_5400_seconds_from_the_utc_date_end
+            is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms               (-1ms, +5s)
         [USD_M_FUTURES, COIN_M_FUTURES]
             is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms                (-1ms, +5s)
             is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_than_by_5000_ms            (-1ms, +5s)
@@ -408,18 +408,18 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
-            is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_3000_ms               (-1ms, +3s)
+            is_last_timestamp_within_5400_seconds_from_the_utc_date_end
+            is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms               (-1ms, +5s)
     ::["_rq"] 'TimestampOfRequest' [USD_M_FUTURES, COIN_M_FUTURES]
             is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms             (-3s, +5s)
-            is_transaction_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_3000_ms                (-3s, +3s)
+            is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms                (-5s, +3s)
 
     ::["E"] 'MessageOutputTime' [USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
+            is_last_timestamp_within_5400_seconds_from_the_utc_date_end
             is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms                (-1ms, +5s)
             is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms              (-3s, +5s)
             is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms                   (-1ms, +5s)
@@ -429,9 +429,9 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
+            is_last_timestamp_within_5400_seconds_from_the_utc_date_end
             is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_than_by_5000_ms            (-1ms, +5s)
-            is_transaction_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_3000_ms                (-3s, +3s)
+            is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms                (-5s, +3s)
             is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms                   (-1ms, +5s)
             
     ::["lastUpdateId"] 'LastUpdateId' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
