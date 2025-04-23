@@ -32,7 +32,7 @@ class IndividualColumnChecker:
         )
 
     @staticmethod
-    def is_series_epoch_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def is_series_epoch_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -78,36 +78,68 @@ class IndividualColumnChecker:
         return (timestamp_of_receive_column - event_time_column).between(x_ms, y_ms).all()
 
     @staticmethod
-    def are_first_and_last_timestamps_within_n_seconds_from_the_borders(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def are_first_and_last_timestamps_within_n_seconds_from_the_borders(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
+        multiplier_of_second = epoch_time_unit.multiplier_of_second
         day_length = 86_400 * epoch_time_unit.multiplier_of_second
-        day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
+        day_start_ms = int(day_start.timestamp() * multiplier_of_second)
         day_end_ms = day_start_ms + day_length - 1
-        sixty_seconds = 1 * epoch_time_unit.multiplier_of_second * n_seconds
+        _n_seconds = multiplier_of_second * n_seconds
 
         first_timestamp = series.iloc[0]
         last_timestamp = series.iloc[-1]
 
-        first_within_range = day_start_ms <= first_timestamp <= day_start_ms + sixty_seconds
-        last_within_range = day_end_ms - sixty_seconds <= last_timestamp <= day_end_ms
+        first_within_range = day_start_ms <= first_timestamp <= day_start_ms + _n_seconds
+        last_within_range = day_end_ms - _n_seconds <= last_timestamp <= day_end_ms
 
         return first_within_range and last_within_range
 
     @staticmethod
-    def is_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> bool:
+    def is_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
-        n_seconds = 1 * epoch_time_unit.multiplier_of_second * n_seconds
+        _n_seconds = 1 * epoch_time_unit.multiplier_of_second * n_seconds
 
         first_timestamp = series.iloc[0]
 
-        first_within_range = day_start_ms <= first_timestamp <= day_start_ms + n_seconds
+        first_within_range = day_start_ms <= first_timestamp <= day_start_ms + _n_seconds
 
         return first_within_range
+
+    @staticmethod
+    def is_last_timestamp_within_n_seconds_from_the_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
+        import pandas as pd
+
+        day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
+        multiplier_of_second = epoch_time_unit.multiplier_of_second
+        day_length = 86_400 * epoch_time_unit.multiplier_of_second
+        day_start_ms = int(day_start.timestamp() * multiplier_of_second)
+        day_end_ms = day_start_ms + day_length - 1
+        _n_seconds = multiplier_of_second * n_seconds
+
+        last_timestamp = series.iloc[-1]
+
+        last_within_range = day_end_ms - _n_seconds <= last_timestamp <= day_end_ms
+
+        return last_within_range
+
+    @staticmethod
+    def is_series_within_n_seconds_before_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
+        import pandas as pd
+
+        day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
+        multiplier = epoch_time_unit.multiplier_of_second
+
+        day_start_ts = int(day_start.timestamp() * multiplier)
+        day_end_ts = day_start_ts + (86_400 * multiplier) - 1
+
+        window_start = day_end_ts - (n_seconds * multiplier)
+
+        return series.between(window_start, day_end_ts).all()
 
     @staticmethod
     def is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(first_update_id: pd.Series, final_update_id: pd.Series) -> bool:
@@ -365,6 +397,7 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
             is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_3000_ms               (-1ms, +3s)
         [USD_M_FUTURES, COIN_M_FUTURES]
             is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms                (-1ms, +5s)
@@ -375,6 +408,7 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
             is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_3000_ms               (-1ms, +3s)
     ::["_rq"] 'TimestampOfRequest' [USD_M_FUTURES, COIN_M_FUTURES]
             is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms             (-3s, +5s)
@@ -385,6 +419,7 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
             is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms                (-1ms, +5s)
             is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms              (-3s, +5s)
             is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms                   (-1ms, +5s)
@@ -394,6 +429,7 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
+            is_last_timestamp_within_3600_seconds_from_the_utc_date_end
             is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_than_by_5000_ms            (-1ms, +5s)
             is_transaction_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_3000_ms                (-3s, +3s)
             is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms                   (-1ms, +5s)

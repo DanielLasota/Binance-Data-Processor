@@ -837,6 +837,196 @@ class TestIndividualColumnChecker:
         df = pd.read_csv(io.StringIO(data), skipinitialspace=True)
         assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is False
 
+    #### is_series_within_n_seconds_before_utc_date_end
+
+    def test_is_series_within_60_seconds_before_utc_date_end_positive_milliseconds(self):
+        # wszystkie timestampy w przedziale od 23:59:00 do 23:59:59.999 UTC
+        series = pd.Series([
+            1718236785000,  # 12-06-2024 23:59:45.000 UTC
+            1718236799999   # 12-06-2024 23:59:59.999 UTC
+        ])
+        result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=series,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result == True
+
+    def test_is_series_within_60_seconds_before_utc_date_end_negative_milliseconds(self):
+        # jeden timestamp zbyt wcześnie, drugi – poza końcem dnia
+        series1 = pd.Series([1718236739998, 1718236799999])
+        series2 = pd.Series([1718236740000, 1718236800000])
+        assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=series1,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        ) == False
+        assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=series2,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        ) == False
+
+    def test_is_series_within_60_seconds_before_utc_date_end_positive_microseconds(self):
+        # wszystkie timestampy w przedziale od 23:59:00.000000 do 23:59:59.999999 UTC
+        series = pd.Series([
+            1718236785000000,  # 12-06-2024 23:59:45.000000 UTC
+            1718236799999999   # 12-06-2024 23:59:59.999999 UTC
+        ])
+        result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=series,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        )
+        assert result == True
+
+    def test_is_series_within_60_seconds_before_utc_date_end_negative_microseconds(self):
+        # jeden timestamp zbyt wcześnie, drugi – poza końcem dnia
+        series1 = pd.Series([1718236739999998, 1718236799999999])
+        series2 = pd.Series([1718236740000000, 1718236800000000])
+        assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=series1,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        ) == False
+        assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=series2,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        ) == False
+
+    #### is_last_timestamp_within_n_seconds_from_the_utc_date_start
+
+    def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_positive_milliseconds(self):
+        # date = 12-06-2024; window dla n_seconds=60 to [1718236739999, 1718236799999]
+        series = pd.Series([0, 1718236785000])  # ostatni timestamp 23:59:45 UTC
+        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=series,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result == True
+
+    def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_negative_milliseconds(self):
+        # poniżej okna
+        series1 = pd.Series([0, 1718236739998])  # 23:58:59.998 UTC → za wcześnie
+        # powyżej końca dnia
+        series2 = pd.Series([0, 1718236800000])  # 24:00:00.000 UTC → poza zakresem
+        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=series1,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        ) == False
+        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=series2,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        ) == False
+
+    def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_positive_microseconds(self):
+        # date = 12-06-2024; window dla n_seconds=60 to [1718236739999999, 1718236799999999]
+        series = pd.Series([0, 1718236785000000])  # ostatni timestamp 23:59:45.000000 UTC
+        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=series,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        )
+        assert result == True
+
+    def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_negative_microseconds(self):
+        # poniżej okna
+        series1 = pd.Series([0, 1718236739999998])  # 23:58:59.999998 UTC → za wcześnie
+        # powyżej końca dnia
+        series2 = pd.Series([0, 1718236800000000])  # 24:00:00.000000 UTC → poza zakresem
+        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=series1,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        ) == False
+        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=series2,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        ) == False
+
+    #### is_first_timestamp_within_n_seconds_from_the_utc_date_start
+
+    def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_positive_milliseconds(self):
+        # date = 12-06-2024; window dla n_seconds=60 to [1718150400000, 1718150460000]
+        series = pd.Series([
+            1718150420000,  # 00:00:20 UTC – w oknie
+            1718193600000   # dowolna dalsza wartość
+        ])
+        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=series,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result == True
+
+    def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_negative_milliseconds(self):
+        # poniżej dolnej granicy
+        series1 = pd.Series([1718150399999, 1718193600000])
+        # powyżej górnej granicy
+        series2 = pd.Series([1718150460001, 1718193600000])
+        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=series1,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        ) == False
+        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=series2,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        ) == False
+
+    def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_positive_microseconds(self):
+        # date = 12-06-2024; window dla n_seconds=60 to [1718150400000000, 1718150460000000]
+        series = pd.Series([
+            1718150420000000,  # 00:00:20.000000 UTC – w oknie
+            1718193600000000   # dowolna dalsza wartość
+        ])
+        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=series,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        )
+        assert result == True
+
+    def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_negative_microseconds(self):
+        # poniżej dolnej granicy
+        series1 = pd.Series([1718150399999000, 1718193600000000])
+        # powyżej górnej granicy
+        series2 = pd.Series([1718150460000001, 1718193600000000])
+        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=series1,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        ) == False
+        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=series2,
+            date="12-06-2024",
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        ) == False
+
 class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_given_more_than_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
@@ -886,12 +1076,12 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025')
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MILLISECONDS)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_milliseconds_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025')
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MILLISECONDS)
         assert result_of_check == False
 
     def test_are_all_within_utc_z_day_range_microseconds_positive(self):
@@ -1175,14 +1365,15 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_positive(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
-            usecols=['LastUpdateId', 'IsAsk']
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk'],
+            comment='#'
         )
         asset_params = AssetParameters(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
-            date='11-03-2025'
+            date='14-04-2025'
         )
         result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
             df=df,
@@ -1193,14 +1384,15 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_exceeds_limit(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
-            usecols=['LastUpdateId', 'IsAsk']
+            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk'],
+            comment='#'
         )
         asset_params = AssetParameters(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
-            date='11-03-2025'
+            date='14-04-2025'
         )
         result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
             df=df,
@@ -1212,14 +1404,15 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_raises_exception_for_wrong_stream_type(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
-            usecols=['LastUpdateId', 'IsAsk']
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk'],
+            comment='#'
         )
         asset_params = AssetParameters(
             market=Market.SPOT,
             stream_type=StreamType.TRADE_STREAM,
             pairs=['BTCUSDT'],
-            date='11-03-2025'
+            date='14-04-2025'
         )
         try:
             IndividualColumnChecker.is_each_snapshot_price_level_amount_accurate_to_market(
@@ -1236,14 +1429,15 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_in_specified_range_positive(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
-            usecols=['LastUpdateId', 'IsAsk']
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk'],
+            comment='#'
         )
         asset_params = AssetParameters(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
-            date='11-03-2025'
+            date='14-04-2025'
         )
         result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
             df=df,
@@ -1255,14 +1449,15 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_in_specified_range_negative_exceeds_limit(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
-            usecols=['LastUpdateId', 'IsAsk']
+            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk'],
+            comment='#'
         )
         asset_params = AssetParameters(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
-            date='11-03-2025'
+            date='14-04-2025'
         )
         result_of_check = IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
             df=df,
@@ -1275,14 +1470,15 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_in_specified_range_raises_exception_for_wrong_stream_type(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_11-03-2025.csv',
-            usecols=['LastUpdateId', 'IsAsk']
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['LastUpdateId', 'IsAsk'],
+            comment='#'
         )
         asset_params = AssetParameters(
             market=Market.SPOT,
             stream_type=StreamType.TRADE_STREAM,
             pairs=['BTCUSDT'],
-            date='11-03-2025'
+            date='14-04-2025'
         )
         try:
             IndividualColumnChecker.is_each_snapshot_price_level_amount_in_specified_range(
@@ -1314,7 +1510,6 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         )
         result = IndividualColumnChecker.is_islast_column_valid_for_merged(df)
         assert result is False, "Oczekiwano False, bo przynajmniej jedna grupa ma sumę IsLast != 1"
-
 
     def test_snapshot_injection_valid_for_merged_positive_csv(self):
         df = pd.read_csv(
@@ -1349,3 +1544,86 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             comment='#'
         )
         assert IndividualColumnChecker.is_snapshot_injection_valid_for_merged(df) is False
+
+    #### is_series_within_n_seconds_before_utc_date_end
+
+    def test_is_series_within_60_seconds_before_utc_date_end_positive_microseconds(self):
+        df = pd.read_csv('test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
+        print(df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'])
+        result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
+            date="13-04-2025",
+            n_seconds=5,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        )
+        assert result == True
+
+    def test_is_series_within_60_seconds_before_utc_date_end_negative_microseconds(self):
+        df = pd.read_csv('test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
+
+        assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
+            series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
+            date="13-04-2025",
+            n_seconds=5,
+            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+        ) == False
+
+    #### is_last_timestamp_within_n_seconds_from_the_utc_date_start
+
+    def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_positive_milliseconds_csv(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['TimestampOfReceive'],
+            comment='#'
+        )
+        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=df['TimestampOfReceive'],
+            date='14-04-2025',
+            n_seconds=3600*2,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result == True, "Oczekiwano True, bo w pozytywnym CSV ostatni timestamp jest w ciągu 60s od 00:00 UTC"
+
+    def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_negative_milliseconds_csv(self):
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['TimestampOfReceive'],
+            comment='#'
+        )
+        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
+            series=df['TimestampOfReceive'],
+            date='14-04-2025',
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result == False, "Oczekiwano False, bo w negatywnym CSV ostatni timestamp jest poza 60s od 00:00 UTC"
+
+    #### is_first_timestamp_within_n_seconds_from_the_utc_date_start
+
+    def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_positive_milliseconds_csv(self):
+        df = pd.read_csv(
+            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['TimestampOfReceive'],
+            comment='#'
+        )
+        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=df['TimestampOfReceive'],
+            date='14-04-2025',
+            n_seconds=60,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result == True, "Oczekiwano True, bo w pozytywnym CSV pierwszy timestamp jest w ciągu 60s od 00:00 UTC"
+
+    def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_negative_milliseconds_csv(self):
+        df = pd.read_csv(
+            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            usecols=['TimestampOfReceive'],
+            comment='#'
+        )
+        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
+            series=df['TimestampOfReceive'],
+            date='14-04-2025',
+            n_seconds=1,
+            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+        )
+        assert result == False, "Oczekiwano False, bo w negatywnym CSV pierwszy timestamp jest poza 60s od 00:00 UTC"

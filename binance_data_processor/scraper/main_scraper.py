@@ -13,10 +13,10 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['13-04-2025', '14-04-2025'],
+        date_range=['18-04-2025', '22-04-2025'],
         pairs=[
-            # "BTCUSDT",
-            'ADAUSDT',
+            "BTCUSDT",
+            # 'ADAUSDT',
             # "SOLUSDT",
             # "XRPUSDT",
             # "DOGEUSDT",
@@ -32,11 +32,11 @@ if __name__ == '__main__':
         markets=[
             'SPOT',
             'USD_M_FUTURES',
-            # 'COIN_M_FUTURES'
+            'COIN_M_FUTURES'
         ],
         stream_types=[
-            'TRADE_STREAM',
-            'DIFFERENCE_DEPTH_STREAM',
+            # 'TRADE_STREAM',
+            # 'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT'
         ],
         skip_existing=True,
