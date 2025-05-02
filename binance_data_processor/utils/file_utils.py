@@ -67,9 +67,6 @@ def decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
         date=date
     )
 
-def get_base_of_root_csv_filename(asset_parameters: AssetParameters) -> str:
-    return f"binance_{asset_parameters.stream_type.name.lower()}_{asset_parameters.market.name.lower()}_{asset_parameters.pairs[0].lower()}_{asset_parameters.date}"
-
 def get_base_of_blob_file_name(asset_parameters: AssetParameters) -> str:
 
     if len(asset_parameters.pairs) != 1:
@@ -84,12 +81,27 @@ def get_base_of_blob_file_name(asset_parameters: AssetParameters) -> str:
         f"_{formatted_now_timestamp}"
     )
 
+def get_base_of_root_csv_filename(asset_parameters: AssetParameters) -> str:
+    return (
+        f"binance"
+        f"_{asset_parameters.stream_type.name.lower()}"
+        f"_{asset_parameters.market.name.lower()}"
+        f"_{asset_parameters.pairs[0].lower()}"
+        f"_{asset_parameters.date}"
+    )
+
 def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
-    streams = sorted({ap.stream_type.name.lower() for ap in list_of_asset_parameters_for_single_csv})
+    stream_types = sorted({ap.stream_type.name.lower() for ap in list_of_asset_parameters_for_single_csv})
     markets = sorted({ap.market.name.lower() for ap in list_of_asset_parameters_for_single_csv})
     pairs = sorted({ap.pairs[0].lower() for ap in list_of_asset_parameters_for_single_csv})
     date = list_of_asset_parameters_for_single_csv[0].date
-    return f"merged_{'_'.join(streams)}_{'_'.join(markets)}_{'_'.join(pairs)}_{date}"
+    return (
+        f"binance"
+        f"_{'_'.join(stream_types)}"
+        f"_{'_'.join(markets)}"
+        f"_{'_'.join(pairs)}"
+        f"_{date}"
+    )
 
 def save_df_with_data_quality_reports(
     dataframe: pd.DataFrame,
