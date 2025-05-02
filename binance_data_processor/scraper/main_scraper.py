@@ -13,9 +13,9 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['18-04-2025', '22-04-2025'],
+        date_range=['23-04-2025', '24-04-2025'],
         pairs=[
-            "BTCUSDT",
+            # "BTCUSDT",
             # 'ADAUSDT',
             # "SOLUSDT",
             # "XRPUSDT",
@@ -35,12 +35,12 @@ if __name__ == '__main__':
             'COIN_M_FUTURES'
         ],
         stream_types=[
-            # 'TRADE_STREAM',
-            # 'DIFFERENCE_DEPTH_STREAM',
+            'TRADE_STREAM',
+            'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT'
         ],
         skip_existing=True,
-        amount_of_files_to_be_downloaded_at_once=40
+        amount_of_files_to_be_downloaded_at_once=80
     )
 
     # conduct_data_quality_analysis_on_specified_csv_list(
