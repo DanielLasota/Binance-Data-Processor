@@ -137,7 +137,7 @@ class DataQualityChecker:
     def get_main_merged_csv_report(self, df: pd.DataFrame, asset_parameters_list: list[AssetParameters], csvs_nest_catalog) -> DataQualityReport:
         import pandas as pd
         import cpp_binance_orderbook
-        orderbook_session_simulator = cpp_binance_orderbook.OrderbookSessionSimulator()
+        orderbook_session_simulator = cpp_binance_orderbook.OrderBookSessionSimulator()
 
         source_csv_reports = []
         for asset_parameters in asset_parameters_list:
@@ -162,10 +162,10 @@ class DataQualityChecker:
                     date=yesterday_date
                 )
                 source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
-                orderbook_snapshot = orderbook_session_simulator.getFinalOrderBookSnapshot(source_csv_path)
+                orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(source_csv_path)
 
-                final_depth_snapshot_len += len(orderbook_snapshot.bids)
-                final_depth_snapshot_len += len(orderbook_snapshot.asks)
+                final_depth_snapshot_len += len(orderbook_snapshot.bids())
+                final_depth_snapshot_len += len(orderbook_snapshot.asks())
 
         total_rows_of_source_csv += final_depth_snapshot_len
 
