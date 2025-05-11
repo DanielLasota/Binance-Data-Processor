@@ -4,7 +4,7 @@ from orderbook_csv_concatenator import make_merged_csvs
 if __name__ == '__main__':
 
     make_merged_csvs(
-        date_range=['24-04-2025', '24-04-2025'],
+        date_range=['14-04-2025', '14-04-2025'],
         pairs=[
             'TRXUSDT',
             # 'ADAUSDT'
