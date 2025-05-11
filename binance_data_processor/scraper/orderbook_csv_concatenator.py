@@ -368,13 +368,13 @@ class BinanceDataMerger:
         )
 
         csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
-        orderbook_session_simulator = cpp_binance_orderbook.OrderbookSessionSimulator()
-        final_orderbook_snapshot = orderbook_session_simulator.getFinalOrderBookSnapshot(csv_path)
+        orderbook_session_simulator = cpp_binance_orderbook.OrderBookSessionSimulator()
+        final_orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(csv_path)
 
         list_of_entries = []
 
-        for side in (final_orderbook_snapshot.bids, final_orderbook_snapshot.asks):
-            for entry in side: list_of_entries.append(entry.to_list())
+        for side in (final_orderbook_snapshot.bids(), final_orderbook_snapshot.asks()):
+            for entry in side: list_of_entries.append(entry.to_list()[:-1])
 
         del final_orderbook_snapshot
 
