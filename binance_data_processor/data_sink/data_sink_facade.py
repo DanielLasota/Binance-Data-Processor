@@ -105,10 +105,8 @@ class BinanceDataSink:
 
     @staticmethod
     def _check_if_there_is_no_huge_library_imported():
-        modules = list(sys.modules.keys())
-
         for library in ['pandas', 'numpy', 'alive_progress']:
-            if library in modules:
+            if library in list(sys.modules.keys()):
                 raise Exception(f'Imported {library} whilst running data sink. Check the imports')
 
     def shutdown(self):

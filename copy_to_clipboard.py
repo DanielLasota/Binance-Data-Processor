@@ -27,10 +27,14 @@ def copy_sources_to_clipboard(directories):
 
 if __name__ == '__main__':
     dirs_to_scan = [
+        './binance_data_processor/cloud_storage_clients/',
+        # './binance_data_processor/continuity_registry/',
         './binance_data_processor/core/',
+        # './binance_data_processor/data_quality/',
         './binance_data_processor/data_sink/',
         './binance_data_processor/enums/',
         # './binance_data_processor/listener/',
         # './binance_data_processor/scraper/',
+        # './binance_data_processor/utils/',
     ]
     copy_sources_to_clipboard(dirs_to_scan)

@@ -47,7 +47,7 @@ class DataQualityReport:
         data_quality_status = 'POSITIVE' if self.is_data_quality_report_positive() == True else 'NEGATIVE'
 
         if isinstance(self.asset_parameters, list):
-            asset_parameters_str = "\n".join(str(f' {param}') for param in self.asset_parameters)
+            asset_parameters_str = "\n# ".join(str(f'{param}') for param in self.asset_parameters)
         else:
             asset_parameters_str = str(self.asset_parameters)
 
