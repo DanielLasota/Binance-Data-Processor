@@ -9,6 +9,7 @@ import zipfile
 from collections import defaultdict
 import re
 import zlib
+from queue import Empty
 
 from binance_data_processor.core.trade_queue import TradeQueue
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
@@ -164,16 +165,16 @@ class StreamDataSaverAndSender:
         asset_parameters: AssetParameters
     ) -> None:
         while not self.global_shutdown_flag.is_set():
-            self._process_queue_data(
-                queue,
-                asset_parameters
-            )
-            self._sleep_with_flag_check(self.data_sink_config.time_settings.file_duration_seconds)
-
-        self._process_queue_data(
-            queue,
-            asset_parameters
-        )
+            try:
+                self._sleep_with_flag_check(self.data_sink_config.time_settings.file_duration_seconds)
+                self._process_queue_data(queue, asset_parameters)
+            except Exception as e:
+                self.logger.info(f'Unexpected general error: {asset_parameters}: {e}')
+                time.sleep(1)
+        try:
+            self._process_queue_data(queue, asset_parameters)
+        except Exception as e:
+            self.logger.info(f'Unexpected general error: {asset_parameters}: {e}')
 
         self.logger.info(f"{asset_parameters.market} {asset_parameters.stream_type}: ended _stream_writer")
 
@@ -185,34 +186,48 @@ class StreamDataSaverAndSender:
             time.sleep(interval)
 
     def _process_queue_data(
-        self,
-        queue: DifferenceDepthQueue | TradeQueue,
-        asset_parameters: AssetParameters
+            self,
+            queue: DifferenceDepthQueue | TradeQueue,
+            asset_parameters: AssetParameters
     ) -> None:
-        if not queue.empty():
-            stream_data = defaultdict(list)
+        stream_data: dict[str, list[str]] = defaultdict(list)
 
-            while not queue.empty():
-                compressed_message = queue.get_nowait()
-                message = zlib.decompress(compressed_message).decode('utf-8')
+        try:
+            while True:
+                try:
+                    compressed_message = queue.get_nowait()
+                except Empty:
+                    break
+
+                try:
+                    message = zlib.decompress(compressed_message).decode('utf-8')
+                except zlib.error as e:
+                    self.logger.info(f"Error whilst decompressing decompressing message, skipping: {asset_parameters}: {e}")
+                    continue
 
                 match = self._stream_message_pair_pattern.search(message)
-                pair_found_in_message = match.group(1)
-                stream_data[pair_found_in_message].append(message)
+                if match:
+                    pair = match.group(1)
+                    stream_data[pair].append(message)
+                else:
+                    self.logger.info(f"No match during self._stream_message_pair_pattern.search(message) for: {asset_parameters} : {message}")
 
-            for pair in list(stream_data.keys()):
-                data = stream_data[pair]
+        except Exception as e:
+            self.logger.info(f"unexpected error whilst processing queue for:{asset_parameters} : {e}")
+
+        for pair, messages in stream_data.items():
+            try:
                 file_name = get_base_of_blob_file_name(
                     asset_parameters=asset_parameters.get_asset_parameter_with_specified_pair(pair=pair)
                 )
+                json_payload = '[' + ','.join(messages) + ']'
                 self.save_data(
-                    json_content='[' + ','.join(data) + ']',
+                    json_content=json_payload,
                     file_save_catalog=self.data_sink_config.file_save_catalog,
                     file_name=file_name
                 )
-                del stream_data[pair]
-                del data
-            del stream_data
+            except Exception as e:
+                self.logger.info(f"Error whilst saving for: {asset_parameters}: {e}")
 
     def save_data(
             self,
@@ -267,18 +282,18 @@ class StreamDataSaverAndSender:
 
         if saver:
             max_retries = 5
-            retry_delay_seconds = 3
+            retry_delay_seconds = 5
 
             for attempt in range(1, max_retries + 1):
                 try:
                     saver()
                     break
                 except Exception as e:
-                    self.logger.debug(f'Attempt {attempt}/{max_retries}: error while sending to blob {file_name}, error: {e}')
+                    self.logger.info(f'Attempt {attempt}/{max_retries}: error while sending to blob {file_name}, error: {e}')
                     if attempt < max_retries:
                         time.sleep(retry_delay_seconds)
                     else:
-                        self.logger.debug(f'Max retries reached for {file_name}. Saving locally.')
+                        self.logger.info(f'Max retries reached for {file_name}. Saving locally.')
                         self.write_data_to_zip_file(
                             json_content=json_content,
                             file_save_catalog=file_save_catalog,
@@ -286,7 +301,6 @@ class StreamDataSaverAndSender:
                         )
 
     def send_zipped_json_to_azure_container(self, json_content: str, file_name: str) -> None:
-
         try:
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
@@ -301,11 +315,14 @@ class StreamDataSaverAndSender:
             self.logger.error(f"Error during sending ZIP to Azure Blob: {file_name} {e}")
 
     def send_zipped_json_to_backblaze_bucket(self, json_content: str, file_name: str) -> None:
-
-        self.cloud_storage_client.upload_zipped_jsoned_string(
-            data=json_content,
-            file_name=file_name
-        )
+        try:
+            self.cloud_storage_client.upload_zipped_jsoned_string(
+                data=json_content,
+                file_name=file_name
+            )
+        except Exception as e:
+            print(f'send_zipped_json_to_backblaze_bucket: error: {e}')
+            raise Exception(f'send_zipped_json_to_backblaze_bucket: error: {e}')
 
     def send_existing_file_to_backblaze_bucket(self, file_path: str) -> None:
         self.cloud_storage_client.upload_existing_file(file_path=file_path)

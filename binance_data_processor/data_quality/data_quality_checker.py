@@ -46,8 +46,12 @@ def get_merged_csv_quality_report(csvs_nest_catalog: str, dataframe: pd.DataFram
     data_quality_reports_list.append(merged_csv_report)
 
     for ap in asset_parameters_list:
-        _df = dataframe[(dataframe['StreamType'] == ap.stream_type.name) & (dataframe['Market'] == ap.market.name)]
-        _source_csv_report = data_checker.get_dataframe_quality_report(dataframe=_df,asset_parameters=ap)
+        _df = dataframe[
+            (dataframe['StreamType'] == ap.stream_type.name)
+            & (dataframe['Market'] == ap.market.name)
+            & (dataframe['Symbol'] == ap.pairs[0].upper())
+        ]
+        _source_csv_report = data_checker.get_dataframe_quality_report(dataframe=_df, asset_parameters=ap)
         data_quality_reports_list.append(_source_csv_report)
 
     return data_quality_reports_list

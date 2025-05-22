@@ -96,7 +96,7 @@ def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: lis
     pairs = sorted({ap.pairs[0].lower() for ap in list_of_asset_parameters_for_single_csv})
     date = list_of_asset_parameters_for_single_csv[0].date
     return (
-        f"binance"
+        f"binance_merged"
         f"_{'_'.join(stream_types)}"
         f"_{'_'.join(markets)}"
         f"_{'_'.join(pairs)}"

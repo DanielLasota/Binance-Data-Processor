@@ -143,11 +143,16 @@ class S3Client:
         }
         url = self.storage_connection_parameters.backblaze_endpoint_url + canonical_uri
 
-        response = self._session.put(url, data=payload, headers=headers)
+        response = None
         try:
+            response = self._session.put(url, data=payload, headers=headers, timeout=120)
             response.raise_for_status()
+        except Exception as e:
+            print(f"Backblaze upload failed for {object_name}: {e}")
+            raise RuntimeError(f"Backblaze upload failed for {object_name}: {e}")
         finally:
-            response.close()
+            if response is not None:
+                response.close()
 
     def shutdown(self) -> None:
         self._session.close()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import os
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
@@ -95,6 +96,36 @@ class BinanceDataMerger:
         if unreachable_csv_asset_parameter_list:
             missing_csv_str = "\n".join(str(asset_parameter) for asset_parameter in unreachable_csv_asset_parameter_list)
             raise Exception(f"Missing csv of parameters:\n{missing_csv_str}")
+
+            # print(f"Missing csv of parameters:\n{missing_csv_str}")
+            #
+            # from binance_data_processor.scraper.scraper import download_csv_data
+            # import os
+            # from dotenv import load_dotenv
+            # env_path = os.path.join(os.path.expanduser('~'), 'Documents/env/binance-archiver-ba2-v2-prod.env')
+            # load_dotenv(env_path)
+            #
+            # unique_dates = list(set(str(asset_parameter.date) for asset_parameter in unreachable_csv_asset_parameter_list))
+            # unique_pairs = list(set(str(asset_parameter.pairs[0]) for asset_parameter in unreachable_csv_asset_parameter_list))
+            # unique_markets = list(set(str(asset_parameter.market.value) for asset_parameter in unreachable_csv_asset_parameter_list))
+            # unique_stream_types = list(set(str(asset_parameter.stream_type.value) for asset_parameter in unreachable_csv_asset_parameter_list))
+            #
+            # if len(unique_dates) == 1:
+            #     unique_dates = [unique_dates[0], unique_dates[0]]
+            #
+            # print(unique_dates)
+            # print(unique_pairs)
+            # print(unique_markets)
+            # print(unique_stream_types)
+            #
+            # download_csv_data(
+            #     date_range=unique_dates,
+            #     pairs=unique_pairs,
+            #     markets=unique_markets,
+            #     stream_types=unique_stream_types,
+            #     skip_existing=True,
+            #     amount_of_files_to_be_downloaded_at_once=80
+            # )
 
         BinanceDataMerger._main_merge_loop(
             list_of_asset_parameters_list=list_of_asset_parameters_list_to_be_merged,
@@ -283,7 +314,7 @@ class BinanceDataMerger:
         orders_and_trades_df = orders_and_trades_df.sort_values(by=['TimestampOfReceiveUS', 'StreamType', 'ServiceId']).reset_index(drop=True)
         del root_difference_depth_dataframe, root_trade_dataframe
 
-        orders_trades_snapshots = BinanceDataMerger.inject_snapshots_into_orders_and_trades(orders_and_trades_df, root_depth_snapshot_dataframe)
+        orders_trades_snapshots = BinanceDataMerger._inject_snapshots_into_orders_and_trades(orders_and_trades_df, root_depth_snapshot_dataframe)
         del orders_and_trades_df, root_depth_snapshot_dataframe
 
         final_combined_df = pd.concat(
@@ -301,10 +332,7 @@ class BinanceDataMerger:
         return final_combined_df
 
     @staticmethod
-    def inject_snapshots_into_orders_and_trades(
-            orders_and_trades_df: pd.DataFrame,
-            root_snapshots_df: pd.DataFrame
-    ) -> pd.DataFrame:
+    def _inject_snapshots_into_orders_and_trades(orders_and_trades_df: pd.DataFrame, root_snapshots_df: pd.DataFrame) -> pd.DataFrame:
         import pandas as pd
 
         final = orders_and_trades_df.copy()
@@ -368,13 +396,18 @@ class BinanceDataMerger:
         )
 
         csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
+
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f'file {csv_path} - the day before for ob cpp does not exist')
+
         orderbook_session_simulator = cpp_binance_orderbook.OrderBookSessionSimulator()
         final_orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(csv_path)
 
         list_of_entries = []
 
         for side in (final_orderbook_snapshot.bids(), final_orderbook_snapshot.asks()):
-            for entry in side: list_of_entries.append(entry.to_list()[:-1])
+            for entry in side:
+                list_of_entries.append(entry.to_list()[:-1])
 
         del final_orderbook_snapshot
 
@@ -396,6 +429,7 @@ class BinanceDataMerger:
                 "PSUnknownField"
             ]
         )
+
         df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))

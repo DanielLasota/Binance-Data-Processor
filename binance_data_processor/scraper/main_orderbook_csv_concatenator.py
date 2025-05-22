@@ -7,7 +7,7 @@ if __name__ == '__main__':
         date_range=['14-04-2025', '14-04-2025'],
         pairs=[
             'TRXUSDT',
-            # 'ADAUSDT'
+            'ADAUSDT'
         ],
         markets=[
             # 'SPOT',
@@ -19,7 +19,7 @@ if __name__ == '__main__':
             'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT'
         ],
-        should_join_pairs_into_one_csv=False,
+        should_join_pairs_into_one_csv=True,
         should_join_markets_into_one_csv=False,
         csvs_nest_catalog='C:/Users/daniel/Documents/binance_archival_data/',
         dump_catalog='C:/Users/daniel/Documents/merged_csvs/'
