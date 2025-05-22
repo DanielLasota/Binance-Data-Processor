@@ -13,7 +13,7 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['13-04-2025', '14-04-2025'],
+        date_range=['17-05-2025', '20-05-2025'],
         pairs=[
             # "BTCUSDT",
             # 'ADAUSDT',
@@ -39,7 +39,7 @@ if __name__ == '__main__':
             'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT'
         ],
-        skip_existing=True,
+        skip_existing=False,
         amount_of_files_to_be_downloaded_at_once=80
     )
 
