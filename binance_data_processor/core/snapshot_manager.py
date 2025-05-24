@@ -197,9 +197,11 @@ class DepthSnapshotService:
         self._refresh_session_if_needed()
         url = URLFactory.get_difference_depth_snapshot_url(asset_parameters)
 
+        response = None
+
         try:
             request_timestamp = get_utc_timestamp_epoch_milliseconds()
-            response = self._session.get(url, timeout=5)
+            response = self._session.get(url, timeout=10)
             receive_timestamp = get_utc_timestamp_epoch_milliseconds()
             response.raise_for_status()
 
@@ -213,7 +215,8 @@ class DepthSnapshotService:
         except Exception as e:
             raise Exception(f"Error fetching snapshot: {e}")
         finally:
-            response.close()
+            if response is not None:
+                response.close()
 
     def shutdown(self) -> None:
         self.global_shutdown_flag.set()
