@@ -289,7 +289,7 @@ class StreamDataSaverAndSender:
                     saver()
                     break
                 except Exception as e:
-                    self.logger.info(f'Attempt {attempt}/{max_retries}: error while sending to blob {file_name}, error: {e}')
+                    self.logger.debug(f'Attempt {attempt}/{max_retries}: error while sending to blob {file_name}, error: {e}')
                     if attempt < max_retries:
                         time.sleep(retry_delay_seconds)
                     else:
@@ -321,7 +321,7 @@ class StreamDataSaverAndSender:
                 file_name=file_name
             )
         except Exception as e:
-            print(f'send_zipped_json_to_backblaze_bucket: error: {e}')
+            self.logger.debug(f'send_zipped_json_to_backblaze_bucket: error: {e}')
             raise Exception(f'send_zipped_json_to_backblaze_bucket: error: {e}')
 
     def send_existing_file_to_backblaze_bucket(self, file_path: str) -> None:
