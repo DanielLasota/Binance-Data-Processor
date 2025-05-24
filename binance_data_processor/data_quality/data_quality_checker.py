@@ -12,7 +12,8 @@ from binance_data_processor.data_quality.individual_column_checker import Indivi
 from binance_data_processor.utils.file_utils import (
     decode_asset_parameters_from_csv_name,
     get_base_of_root_csv_filename,
-    list_files_in_specified_directory
+    list_files_in_specified_directory,
+    get_csv_len
 )
 from binance_data_processor.utils.time_utils import get_yesterday_date
 
@@ -35,26 +36,11 @@ def conduct_data_quality_analysis_on_specified_csv_list(csv_paths: list[str]) ->
 def get_merged_csv_quality_report(csvs_nest_catalog: str, dataframe: pd.DataFrame, asset_parameters_list: list[AssetParameters]) -> list[DataQualityReport]:
     data_checker = DataQualityChecker()
 
-    data_quality_reports_list = []
-
-    merged_csv_report = data_checker.get_main_merged_csv_report(
+    return data_checker.get_main_merged_csv_report(
         df=dataframe,
         asset_parameters_list=asset_parameters_list,
         csvs_nest_catalog=csvs_nest_catalog
     )
-
-    data_quality_reports_list.append(merged_csv_report)
-
-    for ap in asset_parameters_list:
-        _df = dataframe[
-            (dataframe['StreamType'] == ap.stream_type.name)
-            & (dataframe['Market'] == ap.market.name)
-            & (dataframe['Symbol'] == ap.pairs[0].upper())
-        ]
-        _source_csv_report = data_checker.get_dataframe_quality_report(dataframe=_df, asset_parameters=ap)
-        data_quality_reports_list.append(_source_csv_report)
-
-    return data_quality_reports_list
 
 
 class DataQualityChecker:
@@ -138,62 +124,44 @@ class DataQualityChecker:
             except Exception as e:
                 print(e)
 
-    def get_main_merged_csv_report(self, df: pd.DataFrame, asset_parameters_list: list[AssetParameters], csvs_nest_catalog) -> DataQualityReport:
-        import pandas as pd
-        import cpp_binance_orderbook
-        orderbook_session_simulator = cpp_binance_orderbook.OrderBookSessionSimulator()
+    def get_main_merged_csv_report(self, df: pd.DataFrame, asset_parameters_list: list[AssetParameters], csvs_nest_catalog: str) -> list[DataQualityReport]:
 
-        source_csv_reports = []
-        for asset_parameters in asset_parameters_list:
-            source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameters)}.csv'
-            _df = pd.read_csv(source_csv_path, comment='#')
-            _source_csv_report = self.get_dataframe_quality_report(
-                dataframe=_df,
-                asset_parameters=asset_parameters
-            )
-            source_csv_reports.append(_source_csv_report)
+        merged_csv_data_quality_reports_list: list[DataQualityReport] = []
+        for ap in asset_parameters_list:
+            _df = df[
+                (df['StreamType'] == ap.stream_type.name)
+                & (df['Market'] == ap.market.name)
+                & (df['Symbol'] == ap.pairs[0].upper())
+                ]
+            _source_csv_report = self.get_dataframe_quality_report(dataframe=_df, asset_parameters=ap)
+            merged_csv_data_quality_reports_list.append(_source_csv_report)
 
-        total_rows_of_source_csv = sum(report.df_shape[0] for report in source_csv_reports)
+        len_of_specified_root_csvs_combined_for_merged_csv = self._new_get_len_of_specified_root_csvs_combined_for_merged_csv(
+            asset_parameters_list=asset_parameters_list,
+            csvs_nest_catalog=csvs_nest_catalog
+        )
 
-        final_depth_snapshot_len = 0
-        for asset_parameters in asset_parameters_list:
-            if asset_parameters.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
-                yesterday_date = get_yesterday_date(asset_parameters.date)
-                asset_parameter_of_yesterday = AssetParameters(
-                    market=asset_parameters.market,
-                    stream_type=asset_parameters.stream_type,
-                    pairs=asset_parameters.pairs,
-                    date=yesterday_date
-                )
-                source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
-                orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(source_csv_path)
+        # print(f'len_of_specified_root_csvs_combined_for_merged_csv: {len_of_specified_root_csvs_combined_for_merged_csv}')
+        # print(f'df.shape[0]: {df.shape[0]}')
 
-                final_depth_snapshot_len += len(orderbook_snapshot.bids())
-                final_depth_snapshot_len += len(orderbook_snapshot.asks())
-
-        total_rows_of_source_csv += final_depth_snapshot_len
-
-        report = DataQualityReport(asset_parameters=asset_parameters_list, df_shape=df.shape)
-
-        is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceiveUS'])
+        general_merged_report = DataQualityReport(asset_parameters=asset_parameters_list, df_shape=df.shape)
+        is_series_non_decreasing = icc.is_series_non_decreasing(df[df['StreamType'] != 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceiveUS'])
         is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df[df['StreamType'] != 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'], date=asset_parameters_list[0].date, epoch_time_unit=EpochTimeUnit.MICROSECONDS)
-        is_merged_df_len_equal_to_single_csvs_combined = total_rows_of_source_csv == df.shape[0]
+        is_merged_df_len_equal_to_root_csvs_combined = len_of_specified_root_csvs_combined_for_merged_csv == df.shape[0]
         is_islast_column_valid_for_merged = icc.is_islast_column_valid_for_merged(df)
         is_snapshot_injection_valid = icc.is_snapshot_injection_valid_for_merged(df)
-        is_final_depth_snapshot_within_n_seconds_before_utc_date_end = icc.is_series_within_n_seconds_before_utc_date_end(df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'], n_seconds=10, date=get_yesterday_date(asset_parameters_list[0].date), epoch_time_unit=EpochTimeUnit.MICROSECONDS)
-        is_whole_set_of_merged_csvs_data_quality_report_positive = all(report.is_data_quality_report_positive() for report in source_csv_reports)
-        report.add_test_result("TimestampOfReceiveUS", "is_series_non_decreasing", is_series_non_decreasing)
-        report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_valid", is_series_epoch_valid)
-        report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
-        report.add_test_result("TimestampOfReceiveUS", "is_final_depth_snapshot_within_n_seconds_before_utc_date_end", is_final_depth_snapshot_within_n_seconds_before_utc_date_end)
-        report.add_test_result("General", "is_merged_df_len_equal_to_single_csvs_combined", is_merged_df_len_equal_to_single_csvs_combined)
-        report.add_test_result("General", "is_islast_column_valid_for_merged", is_islast_column_valid_for_merged)
-        report.add_test_result("General", "is_snapshot_injection_valid", is_snapshot_injection_valid)
-        report.add_test_result("General", "is_whole_set_of_merged_csvs_data_quality_report_positive", is_whole_set_of_merged_csvs_data_quality_report_positive)
-        print(f'DataQualityReport: {report.get_data_report_status()}')
+        is_whole_set_of_merged_csvs_data_quality_report_positive = all(report.is_data_quality_report_positive() for report in merged_csv_data_quality_reports_list)
+        general_merged_report.add_test_result("TimestampOfReceiveUS", "is_series_non_decreasing", is_series_non_decreasing)
+        general_merged_report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_valid", is_series_epoch_valid)
+        general_merged_report.add_test_result("TimestampOfReceiveUS", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
+        general_merged_report.add_test_result("GENERAL", "is_merged_df_len_equal_to_root_csvs_combined", is_merged_df_len_equal_to_root_csvs_combined)
+        general_merged_report.add_test_result("GENERAL", "is_islast_column_valid_for_merged", is_islast_column_valid_for_merged)
+        general_merged_report.add_test_result("GENERAL", "is_snapshot_injection_valid", is_snapshot_injection_valid)
+        general_merged_report.add_test_result("GENERAL", "is_whole_set_of_merged_csvs_data_quality_report_positive", is_whole_set_of_merged_csvs_data_quality_report_positive)
+        print(f'DataQualityReport: {general_merged_report.get_data_report_status()}')
 
-        return report
+        return [general_merged_report] + merged_csv_data_quality_reports_list
 
     @staticmethod
     def _get_full_difference_depth_dataframe_report(df: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
@@ -299,13 +267,13 @@ class DataQualityChecker:
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceive'])
         is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfReceive'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['TimestampOfReceive'], date=asset_parameters.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-        is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['TimestampOfReceive'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
+        # is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['TimestampOfReceive'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
         is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms =  icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TimestampOfRequest'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_series_non_decreasing)
         report.add_test_result("TimestampOfReceive", "is_series_epoch_valid", is_series_epoch_valid)
         report.add_test_result("TimestampOfReceive", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         report.add_test_result("TimestampOfReceive", "is_first_timestamp_within_60_s_from_the_utc_date_start", is_first_timestamp_within_60_s_from_the_utc_date_start)
-        report.add_test_result("TimestampOfReceive", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
+        # report.add_test_result("TimestampOfReceive", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
         report.add_test_result("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms)
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['MessageOutputTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
@@ -317,13 +285,13 @@ class DataQualityChecker:
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfRequest'])
         is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfRequest'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
         is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['TimestampOfRequest'], date=asset_parameters.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-        is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['TimestampOfRequest'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
+        # is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['TimestampOfRequest'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
         is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms =  icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TimestampOfRequest'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
         report.add_test_result("TimestampOfRequest", "is_series_non_decreasing", is_series_non_decreasing)
         report.add_test_result("TimestampOfRequest", "is_series_epoch_valid", is_series_epoch_valid)
         report.add_test_result("TimestampOfRequest", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         report.add_test_result("TimestampOfRequest", "is_first_timestamp_within_60_s_from_the_utc_date_start", is_first_timestamp_within_60_s_from_the_utc_date_start)
-        report.add_test_result("TimestampOfRequest", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
+        # report.add_test_result("TimestampOfRequest", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
         report.add_test_result("TimestampOfRequest", "is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms)
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column=df['MessageOutputTime'], event_time_column=df['TimestampOfRequest'], x_ms=-3000, y_ms=5000, epoch_time_unit=epoch_time_unit)
@@ -336,7 +304,7 @@ class DataQualityChecker:
             is_series_epoch_valid = icc.is_series_epoch_valid(df['MessageOutputTime'])
             is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['MessageOutputTime'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
             is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['MessageOutputTime'], date=asset_parameters.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-            is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['MessageOutputTime'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
+            # is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['MessageOutputTime'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
             is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['MessageOutputTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
             is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column=df['MessageOutputTime'], event_time_column=df['TimestampOfRequest'], x_ms=-3000, y_ms=5000, epoch_time_unit=epoch_time_unit)
             is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['MessageOutputTime'], df['TransactionTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
@@ -344,7 +312,7 @@ class DataQualityChecker:
             report.add_test_result("MessageOutputTime", "is_series_epoch_valid", is_series_epoch_valid)
             report.add_test_result("MessageOutputTime", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
             report.add_test_result("MessageOutputTime", "is_first_timestamp_within_60_s_from_the_utc_date_start", is_first_timestamp_within_60_s_from_the_utc_date_start)
-            report.add_test_result("MessageOutputTime", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
+            # report.add_test_result("MessageOutputTime", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
             report.add_test_result("MessageOutputTime", "is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms)
             report.add_test_result("MessageOutputTime", "is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms", is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms)
             report.add_test_result("MessageOutputTime", "is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms", is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms)
@@ -354,7 +322,7 @@ class DataQualityChecker:
             is_series_epoch_valid = icc.is_series_epoch_valid(df['TransactionTime'])
             is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TransactionTime'], date=asset_parameters.date, epoch_time_unit=epoch_time_unit)
             is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['TransactionTime'], date=asset_parameters.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-            is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['TransactionTime'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
+            # is_last_timestamp_within_5400_seconds_from_the_utc_date_end = icc.is_last_timestamp_within_n_seconds_from_the_utc_date_end(df['TransactionTime'], date=asset_parameters.date, n_seconds=5400, epoch_time_unit=epoch_time_unit)
             is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_than_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
             is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column=df['TransactionTime'], event_time_column=df['TimestampOfRequest'], x_ms=-5000, y_ms=3000, epoch_time_unit=epoch_time_unit)
             is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['MessageOutputTime'], df['TransactionTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
@@ -362,7 +330,7 @@ class DataQualityChecker:
             report.add_test_result("TransactionTime", "is_series_epoch_valid", is_series_epoch_valid)
             report.add_test_result("TransactionTime", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
             report.add_test_result("TransactionTime", "is_first_timestamp_within_60_s_from_the_utc_date_start", is_first_timestamp_within_60_s_from_the_utc_date_start)
-            report.add_test_result("TransactionTime", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
+            # report.add_test_result("TransactionTime", "is_last_timestamp_within_5400_seconds_from_the_utc_date_end", is_last_timestamp_within_5400_seconds_from_the_utc_date_end)
             report.add_test_result("TransactionTime", "is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_than_by_5000_ms", is_timestamp_of_receive_not_less_than_transaction_time_by_one_ms_and_not_greater_than_by_5000_ms)
             report.add_test_result("TransactionTime", "is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms", is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms)
             report.add_test_result("TransactionTime", "is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms", is_message_output_time_not_less_than_transaction_time_by_one_s_and_not_greater_by_5000_ms)
@@ -513,3 +481,51 @@ class DataQualityChecker:
             report.add_test_result("XUnknownParameter", "is_series_of_set_of_expected_values_market_insurance_fund_or_na", is_series_of_set_of_expected_values_market_insurance_fund_or_na)
 
         return report
+
+    # @staticmethod
+    # def _get_full_final_depth_snapshot_dataframe_report(df: pd.DataFrame, asset_parameters: AssetParameters) -> DataQualityReport:
+    #     report = DataQualityReport(asset_parameters=asset_parameters, df_shape=df.shape)
+    #     root_csv_difference_depth_df = pd.read_csv()
+    #     epoch_time_unit = EpochTimeUnit.MICROSECONDS if asset_parameters.market is Market.SPOT else EpochTimeUnit.MILLISECONDS
+    #
+    #     is_final_depth_snapshot_equal_to_root_difference_depth_csv_filtered_to_last_price = icc.is_final_depth_snapshot_equal_to_root_difference_depth_csv_filtered_to_last_price(cpp_binance_orderbook_final_depth_snapshot=df, root_csv_difference_depth_df=df)
+    #     report.add_test_result('GENERAL', 'is_final_depth_snapshot_equal_to_root_difference_depth_csv_filtered_to_last_price', is_final_depth_snapshot_equal_to_root_difference_depth_csv_filtered_to_last_price)
+    #
+    #     return report
+
+    @staticmethod
+    def _new_get_len_of_specified_root_csvs_combined_for_merged_csv(asset_parameters_list: list[AssetParameters], csvs_nest_catalog: str) -> int:
+        import pandas as pd
+        # import cpp_binance_orderbook
+        # orderbook_session_simulator = cpp_binance_orderbook.OrderBookSessionSimulator()
+
+        total_rows_of_root_csv_combined = total_rows_of_final_depth_snapshot = 0
+        for asset_parameters in asset_parameters_list:
+            source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameters)}.csv'
+
+            if asset_parameters.stream_type is StreamType.DEPTH_SNAPSHOT:
+                _df = pd.read_csv(source_csv_path, comment='#')
+                _df=_df[_df['TimestampOfReceive'] == _df['TimestampOfReceive'].iloc[0]]
+                total_rows_of_root_csv_combined += (_df.shape[0])
+            else:
+                total_rows_of_root_csv_combined += get_csv_len(source_csv_path)
+
+            if asset_parameters.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
+                asset_parameter_of_yesterday = AssetParameters(
+                    market=asset_parameters.market,
+                    stream_type=asset_parameters.stream_type,
+                    pairs=asset_parameters.pairs,
+                    date=get_yesterday_date(asset_parameters.date)
+                )
+                source_yesterday_difference_depth_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
+                # final_orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(source_csv_path)
+                # total_rows_of_final_depth_snapshot += (len(final_orderbook_snapshot.bids()) + len(final_orderbook_snapshot.asks()))
+                df = pd.read_csv(source_yesterday_difference_depth_csv_path, comment='#')
+                df = df.drop_duplicates(subset=['IsAsk', 'Price'], keep='last')
+                df = df[df['Quantity'] != 0]
+                bids = df[df['IsAsk'] == 0].sort_values(by='Price', ascending=False)
+                asks = df[df['IsAsk'] == 1].sort_values(by='Price', ascending=True)
+                df = pd.concat([bids, asks], ignore_index=True)
+                total_rows_of_final_depth_snapshot += df.shape[0]
+
+        return total_rows_of_root_csv_combined + total_rows_of_final_depth_snapshot

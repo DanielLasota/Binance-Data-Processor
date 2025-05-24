@@ -120,3 +120,13 @@ def save_df_with_data_quality_reports(
             f.write(str(report))
             f.write("\n")
         dataframe.to_csv(f, index=False, lineterminator="\n")
+
+def get_csv_len(csv_path: str) -> int:
+    count = 0
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            count += 1
+    return count - 1
