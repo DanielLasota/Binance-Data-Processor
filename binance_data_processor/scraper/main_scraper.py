@@ -13,7 +13,7 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['20-05-2025', '20-05-2025'],
+        date_range=['24-05-2025', '24-05-2025'],
         pairs=[
             # "BTCUSDT",
             # 'ADAUSDT',
