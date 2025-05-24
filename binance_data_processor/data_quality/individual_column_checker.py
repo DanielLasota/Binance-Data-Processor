@@ -303,8 +303,8 @@ class IndividualColumnChecker:
 
         return True
 
+''' ----------- APPENDIX: Conventional Names -----------:
 
-'''
     is_timestamp_of_receive_column_non_decreasing = IndividualColumnChecker.is_series_non_decreasing(df['TimestampOfReceive'])
     report.add_test_result("TimestampOfReceive", "is_series_non_decreasing", is_timestamp_of_receive_column_non_decreasing)
 
@@ -531,15 +531,23 @@ class IndividualColumnChecker:
 '''
 
 '''
+    # FINAL DEPTH SNAPSHOT CHECK
+    :TODO
+
+'''
+
+'''
     # MERGED CSV [FINAL_DEPTH_SNAPSHOT, DIFFERENCE_DEPTH_STREAM, TRADE_STREAM, DEPTH_SNAPSHOT]
     
     ::["_E"] 'TimestampOfReceive' [SPOT, USD_M_FUTURES, COIN_M_FUTURES]
             is_series_non_decreasing
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
-            
+            is_final_depth_snapshot_within_n_seconds_before_utc_date_end
     GENERAL
             is_merged_df_len_equal_to_single_csvs_combined
+            is_islast_column_valid_for_merged
+            is_snapshot_injection_valid
             is_whole_set_of_merged_csvs_data_quality_report_positive
     
 '''

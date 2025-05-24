@@ -299,7 +299,7 @@ class BinanceDataMerger:
         trade_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.TRADE_STREAM), None)
         depth_snapshot_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.DEPTH_SNAPSHOT), None)
 
-        final_orderbook_snapshot_from_cpp_binance_orderbook = BinanceDataMerger._get_final_orderbook_snapshot_from_cpp_binance_orderbook(difference_depth_asset_parameters, csvs_nest_catalog)
+        final_orderbook_snapshot_from_cpp_binance_orderbook = BinanceDataMerger._get_final_depth_snapshot_from_cpp_binance_orderbook(difference_depth_asset_parameters, csvs_nest_catalog)
         root_depth_snapshot_dataframe = BinanceDataMerger._load_depth_snapshot_root_csv(depth_snapshot_asset_parameters, csvs_nest_catalog)
         root_difference_depth_dataframe = BinanceDataMerger._load_difference_depth_root_csv(difference_depth_asset_parameters, csvs_nest_catalog)
         root_trade_dataframe = BinanceDataMerger._load_trade_root_csv(trade_asset_parameters, csvs_nest_catalog)
@@ -382,7 +382,7 @@ class BinanceDataMerger:
         return combined_df
 
     @staticmethod
-    def _get_final_orderbook_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+    def _get_final_depth_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
         import cpp_binance_orderbook
         import pandas as pd
         from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
@@ -407,7 +407,7 @@ class BinanceDataMerger:
 
         for side in (final_orderbook_snapshot.bids(), final_orderbook_snapshot.asks()):
             for entry in side:
-                list_of_entries.append(entry.to_list()[:-1])
+                list_of_entries.append(entry.to_list()[:-2])
 
         del final_orderbook_snapshot
 
@@ -449,8 +449,64 @@ class BinanceDataMerger:
             elif is_float_dtype(current_dtype):
                 df[column] = df[column].astype('float64')
 
-        df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
-        df['TimestampOfReceiveUS'] = df['TimestampOfReceiveUS'].max()
+        # df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
+        # df['TimestampOfReceiveUS'] = df['TimestampOfReceiveUS'].max()
+
+        # df.to_csv('C:/Users/daniel/Documents/delete_me.csv', index=False)
+
+        if df.shape[0] < 100 and df.shape[1] < 10:
+            raise Exception('Insufficient df shape of final depth snapshot:  cpp_binance_orderbook')
+
+        return df
+
+    @staticmethod
+    def _get_final_depth_snapshot_from_root_difference_depth_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+        import pandas as pd
+        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
+
+        yesterday_date = get_yesterday_date(asset_parameter.date)
+        asset_parameter_of_yesterday = AssetParameters(
+            market=asset_parameter.market,
+            stream_type=asset_parameter.stream_type,
+            pairs=asset_parameter.pairs,
+            date=yesterday_date
+        )
+
+        csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
+
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f'file {csv_path} - the day before for ob cpp does not exist')
+
+        df = pd.read_csv(csv_path, comment='#')
+        df = df.drop_duplicates(subset=['IsAsk', 'Price'], keep='last')
+        df = df[df['Quantity'] != 0]
+        bids = df[df['IsAsk'] == 0].sort_values(by='Price', ascending=False)
+        asks = df[df['IsAsk'] == 1].sort_values(by='Price', ascending=True)
+        df = pd.concat([bids, asks], ignore_index=True)
+
+        df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
+        df['Market'] = asset_parameter.market.name
+        df['ServiceId'] = range(len(df))
+        df['IsLast'] = (df.index == df.index[-1]).astype(int)
+
+        if asset_parameter.market is not Market.SPOT:
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
+        else:
+            df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
+
+        for column in df.columns:
+            current_dtype = df[column].dtype
+            if is_integer_dtype(current_dtype):
+                df[column] = df[column].astype('Int64')
+            elif is_bool_dtype(current_dtype):
+                df[column] = df[column].astype('boolean')
+            elif is_float_dtype(current_dtype):
+                df[column] = df[column].astype('float64')
+
+        # df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
+        # df['TimestampOfReceiveUS'] = df['TimestampOfReceiveUS'].max()
+
+        df.to_csv('C:/Users/daniel/Documents/delete_me.csv', index=False)
         return df
 
     @staticmethod
@@ -460,6 +516,8 @@ class BinanceDataMerger:
 
         file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
+
+        df = df[df['TimestampOfReceive'] == df['TimestampOfReceive'].iloc[0]]
 
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
@@ -501,7 +559,6 @@ class BinanceDataMerger:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
         else:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
-
 
         for column in df.columns:
             current_dtype = df[column].dtype
