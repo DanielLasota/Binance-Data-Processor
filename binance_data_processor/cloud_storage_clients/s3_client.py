@@ -148,7 +148,7 @@ class S3Client:
             response = self._session.put(url, data=payload, headers=headers, timeout=120)
             response.raise_for_status()
         except Exception as e:
-            print(f"Backblaze upload failed for {object_name}: {e}")
+            # print(f"Backblaze upload failed for {object_name}: {e}")
             raise RuntimeError(f"Backblaze upload failed for {object_name}: {e}")
         finally:
             if response is not None:
