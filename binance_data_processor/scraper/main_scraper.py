@@ -12,36 +12,36 @@ load_dotenv(env_path)
 
 if __name__ == '__main__':
 
-    # download_csv_data(
-    #     date_range=['24-05-2025', '24-05-2025'],
-    #     pairs=[
-    #         # "BTCUSDT",
-    #         # 'ADAUSDT',
-    #         # "SOLUSDT",
-    #         # "XRPUSDT",
-    #         # "DOGEUSDT",
-    #         # "ADAUSDT",
-    #         # "SHIBUSDT",
-    #         # "LTCUSDT",
-    #         # "AVAXUSDT",
-    #         "TRXUSDT",
-    #         # "DOTUSDT",
-    #         # "BCHUSDT",
-    #         # "SUIUSDT"
-    #     ],
-    #     markets=[
-    #         # 'SPOT',
-    #         'USD_M_FUTURES',
-    #         # 'COIN_M_FUTURES'
-    #     ],
-    #     stream_types=[
-    #         'TRADE_STREAM',
-    #         'DIFFERENCE_DEPTH_STREAM',
-    #         'DEPTH_SNAPSHOT'
-    #     ],
-    #     skip_existing=False,
-    #     amount_of_files_to_be_downloaded_at_once=80
-    # )
+    download_csv_data(
+        date_range=['25-05-2025', '25-05-2025'],
+        pairs=[
+            # "BTCUSDT",
+            # 'ADAUSDT',
+            # "SOLUSDT",
+            # "XRPUSDT",
+            # "DOGEUSDT",
+            # "ADAUSDT",
+            # "SHIBUSDT",
+            # "LTCUSDT",
+            # "AVAXUSDT",
+            "TRXUSDT",
+            # "DOTUSDT",
+            # "BCHUSDT",
+            # "SUIUSDT"
+        ],
+        markets=[
+            # 'SPOT',
+            'USD_M_FUTURES',
+            # 'COIN_M_FUTURES'
+        ],
+        stream_types=[
+            'TRADE_STREAM',
+            'DIFFERENCE_DEPTH_STREAM',
+            'DEPTH_SNAPSHOT'
+        ],
+        skip_existing=False,
+        amount_of_files_to_be_downloaded_at_once=80
+    )
 
     # conduct_data_quality_analysis_on_specified_csv_list(
     #     csv_paths=[
