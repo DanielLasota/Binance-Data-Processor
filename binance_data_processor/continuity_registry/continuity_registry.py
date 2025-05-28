@@ -8,7 +8,7 @@ from binance_data_processor.continuity_registry.continuity_entry import Continui
 from binance_data_processor.enums.continuity_event_type import ContinuityEventType
 
 
-class ContinuityRegister:
+class DataSinkContinuityRegistry:
 
     __slots__ = [
         'continuity_entry_list'

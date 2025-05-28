@@ -1,4 +1,5 @@
-from binance_data_processor import launch_data_listener, DataSinkConfig
+from binance_data_processor import launch_data_listener
+from binance_data_processor import DataSinkConfig
 
 
 class SampleObserverClass:

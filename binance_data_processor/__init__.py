@@ -9,6 +9,7 @@ from binance_data_processor.scraper.scraper import download_csv_data
 from binance_data_processor.scraper.orderbook_csv_concatenator import make_merged_csvs
 from binance_data_processor.data_quality.data_quality_checker import conduct_data_quality_analysis_on_whole_directory
 from binance_data_processor.data_quality.data_quality_checker import conduct_data_quality_analysis_on_specified_csv_list
+from binance_data_processor.continuity_registry.continuity_registry import DataSinkContinuityRegistry
 
 __all__ = [
     'DataSinkConfig',
@@ -21,7 +22,8 @@ __all__ = [
     'download_csv_data',
     'conduct_data_quality_analysis_on_specified_csv_list',
     'conduct_data_quality_analysis_on_whole_directory',
-    'make_merged_csvs'
+    'make_merged_csvs',
+    'DataSinkContinuityRegistry',
 ]
 
 __version__ = "0.0.1"

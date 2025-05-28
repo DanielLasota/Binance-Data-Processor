@@ -13,9 +13,9 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['25-05-2025', '25-05-2025'],
+        date_range=['16-05-2025', '18-05-2025'],
         pairs=[
-            # "BTCUSDT",
+            "BTCUSDT",
             # 'ADAUSDT',
             # "SOLUSDT",
             # "XRPUSDT",
@@ -24,7 +24,7 @@ if __name__ == '__main__':
             # "SHIBUSDT",
             # "LTCUSDT",
             # "AVAXUSDT",
-            "TRXUSDT",
+            # "TRXUSDT",
             # "DOTUSDT",
             # "BCHUSDT",
             # "SUIUSDT"
@@ -39,7 +39,7 @@ if __name__ == '__main__':
             'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT'
         ],
-        skip_existing=False,
+        skip_existing=True,
         amount_of_files_to_be_downloaded_at_once=80
     )
 
@@ -49,4 +49,4 @@ if __name__ == '__main__':
     #     ]
     # )
 
-    conduct_data_quality_analysis_on_whole_directory('C:/Users/daniel/Documents/binance_archival_data/')
+    # conduct_data_quality_analysis_on_whole_directory('C:/Users/daniel/Documents/binance_archival_data/')
