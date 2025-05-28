@@ -1,10 +1,10 @@
-from orderbook_csv_concatenator import make_merged_csvs
+from binance_data_processor import make_merged_csvs
 
 
 if __name__ == '__main__':
 
     make_merged_csvs(
-        date_range=['21-05-2025', '21-05-2025'],
+        date_range=['18-05-2025', '20-05-2025'],
         pairs=[
             'TRXUSDT',
             # 'ADAUSDT'

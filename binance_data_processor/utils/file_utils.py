@@ -103,12 +103,7 @@ def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: lis
         f"_{date}"
     )
 
-def save_df_with_data_quality_reports(
-    dataframe: pd.DataFrame,
-    dataframe_quality_reports: DataQualityReport | list[DataQualityReport],
-    dump_catalog: str,
-    filename: str
-) -> None:
+def save_df_with_data_quality_reports(dataframe: pd.DataFrame, dataframe_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, filename: str) -> None:
     dump_path = Path(dump_catalog) / f"{filename}.csv"
     dump_path.parent.mkdir(parents=True, exist_ok=True)
 

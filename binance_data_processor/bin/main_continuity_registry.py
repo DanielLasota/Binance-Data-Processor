@@ -1,8 +1,8 @@
-from binance_data_processor.continuity_registry.continuity_registry import ContinuityRegister
+from binance_data_processor import DataSinkContinuityRegistry
 
 
 if __name__ == '__main__':
-    continuity_register = ContinuityRegister()
+    continuity_register = DataSinkContinuityRegistry()
 
     continuity_register.load_from_csv()
 
