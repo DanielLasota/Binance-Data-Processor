@@ -13,26 +13,25 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['16-05-2025', '18-05-2025'],
+        date_range=['29-05-2025', '06-06-2025'],
         pairs=[
-            "BTCUSDT",
+            # "BTCUSDT",
             # 'ADAUSDT',
-            # "SOLUSDT",
-            # "XRPUSDT",
+            "SOLUSDT",
+            "XRPUSDT",
             # "DOGEUSDT",
-            # "ADAUSDT",
             # "SHIBUSDT",
             # "LTCUSDT",
             # "AVAXUSDT",
-            # "TRXUSDT",
+            "TRXUSDT",
             # "DOTUSDT",
             # "BCHUSDT",
             # "SUIUSDT"
         ],
         markets=[
-            # 'SPOT',
+            'SPOT',
             'USD_M_FUTURES',
-            # 'COIN_M_FUTURES'
+            'COIN_M_FUTURES'
         ],
         stream_types=[
             'TRADE_STREAM',

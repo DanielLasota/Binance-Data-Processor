@@ -244,6 +244,24 @@ class BinanceDataMerger:
                 asset_parameters_list=list_of_asset_parameters_for_single_csv
             )
 
+            columns_to_drop = [
+                'TimestampOfReceive',
+                'ServiceId',
+                'Stream',
+                'EventType',
+                'EventTime',
+                'TransactionTime',
+                'TradeId',
+                'FirstUpdateId',
+                'FinalUpdateId',
+                'FinalUpdateIdInLastStream',
+                'PSUnknownField',
+                'TimestampOfRequest',
+                'MessageOutputTime',
+                'LastUpdateId'
+            ]
+
+            BinanceDataMerger.drop_redundant_columns(df=single_csv_df, columns_to_drop=columns_to_drop)
             save_df_with_data_quality_reports(
                 dataframe=single_csv_df,
                 dataframe_quality_reports=dataframe_quality_report_list,
@@ -415,18 +433,10 @@ class BinanceDataMerger:
             list_of_entries,
             columns=[
                 "TimestampOfReceive",
-                "Stream",
-                "EventType",
-                "EventTime",
-                "TransactionTime",
                 "Symbol",
-                "FirstUpdateId",
-                "FinalUpdateId",
-                "FinalUpdateIdInLastStream",
                 "IsAsk",
                 "Price",
                 "Quantity",
-                "PSUnknownField"
             ]
         )
 
@@ -448,11 +458,6 @@ class BinanceDataMerger:
                 df[column] = df[column].astype('boolean')
             elif is_float_dtype(current_dtype):
                 df[column] = df[column].astype('float64')
-
-        # df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
-        # df['TimestampOfReceiveUS'] = df['TimestampOfReceiveUS'].max()
-
-        # df.to_csv('C:/Users/daniel/Documents/delete_me.csv', index=False)
 
         if df.shape[0] < 100 and df.shape[1] < 10:
             raise Exception('Insufficient df shape of final depth snapshot:  cpp_binance_orderbook')
@@ -506,7 +511,6 @@ class BinanceDataMerger:
         # df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
         # df['TimestampOfReceiveUS'] = df['TimestampOfReceiveUS'].max()
 
-        df.to_csv('C:/Users/daniel/Documents/delete_me.csv', index=False)
         return df
 
     @staticmethod
@@ -639,3 +643,13 @@ class BinanceDataMerger:
             )
 
         return df[existing]
+
+    @staticmethod
+    def drop_redundant_columns(df: pd.DataFrame, columns_to_drop: list[str]) -> pd.DataFrame:
+        for col in columns_to_drop:
+            if col in df.columns:
+                df.drop(columns=col, inplace=True)
+            else:
+                print(f"Column '{col}' does not exist — skipping")
+
+        return df
