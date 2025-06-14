@@ -4,7 +4,7 @@ from binance_data_processor import make_merged_csvs
 if __name__ == '__main__':
 
     make_merged_csvs(
-        date_range=['19-05-2025', '23-05-2025'],
+        date_range=['09-06-2025', '13-06-2025'],
         pairs=[
             'TRXUSDT',
             # 'ADAUSDT'

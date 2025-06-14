@@ -13,10 +13,10 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['29-05-2025', '06-06-2025'],
+        date_range=['28-05-2025', '13-06-2025'],
         pairs=[
             # "BTCUSDT",
-            # 'ADAUSDT',
+            'ADAUSDT',
             "SOLUSDT",
             "XRPUSDT",
             # "DOGEUSDT",
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         markets=[
             'SPOT',
             'USD_M_FUTURES',
-            'COIN_M_FUTURES'
+            # 'COIN_M_FUTURES'
         ],
         stream_types=[
             'TRADE_STREAM',
@@ -39,7 +39,7 @@ if __name__ == '__main__':
             'DEPTH_SNAPSHOT'
         ],
         skip_existing=True,
-        amount_of_files_to_be_downloaded_at_once=80
+        amount_of_files_to_be_downloaded_at_once=100
     )
 
     # conduct_data_quality_analysis_on_specified_csv_list(
