@@ -4,8 +4,8 @@ from collections import defaultdict
 import os
 
 from binance_data_processor.enums.asset_parameters import AssetParameters
-from binance_data_processor.enums.market_enum import Market
-from binance_data_processor.enums.stream_type_enum import StreamType
+from binance_data_processor.enums.market_enum import Market, M_STREAM_CODE
+from binance_data_processor.enums.stream_type_enum import StreamType, ST_STREAM_CODE
 from binance_data_processor.data_quality.data_quality_checker import get_merged_csv_quality_report
 from binance_data_processor.utils.file_utils import (
     prepare_dump_path_catalog,
@@ -262,6 +262,8 @@ class BinanceDataMerger:
             ]
 
             BinanceDataMerger.drop_redundant_columns(df=single_csv_df, columns_to_drop=columns_to_drop)
+            BinanceDataMerger.convert_to_cpp_enums_int(df=single_csv_df)
+
             save_df_with_data_quality_reports(
                 dataframe=single_csv_df,
                 dataframe_quality_reports=dataframe_quality_report_list,
@@ -653,3 +655,34 @@ class BinanceDataMerger:
                 print(f"Column '{col}' does not exist — skipping")
 
         return df
+
+    @staticmethod
+    def convert_to_cpp_enums_int(df: pd.DataFrame):
+        from enum import IntEnum, auto
+
+        class Symbol(IntEnum):
+            def _generate_next_value_(name, start, count, last_values):
+                return count
+
+            UNKNOWN = auto()
+            BTCUSDT = auto()
+            ETHUSDT = auto()
+            BNBUSDT = auto()
+            SOLUSDT = auto()
+            XRPUSDT = auto()
+            DOGEUSDT = auto()
+            ADAUSDT = auto()
+            SHIBUSDT = auto()
+            LTCUSDT = auto()
+            AVAXUSDT = auto()
+            TRXUSDT = auto()
+            DOTUSDT = auto()
+            BCHUSDT = auto()
+            SUIUSDT = auto()
+
+        df['Symbol'] = df['Symbol'].apply(lambda s: Symbol[s].value)
+        df['Market'] = df['Market'].apply(lambda m: M_STREAM_CODE[Market[m]])
+        df['StreamType'] = df['StreamType'].apply(lambda st: ST_STREAM_CODE[StreamType[st]])
+
+        return df
+    
