@@ -424,24 +424,26 @@ class BinanceDataMerger:
         final_orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(csv_path)
 
         list_of_entries = []
-
         for side in (final_orderbook_snapshot.bids(), final_orderbook_snapshot.asks()):
             for entry in side:
-                list_of_entries.append(entry.to_list()[:-2])
+                list_of_entries.append({
+                    field: getattr(entry, field)
+                    for field in ["timestamp_of_receive", "symbol", "is_ask", "price", "quantity"]
+                })
+        df = pd.DataFrame(list_of_entries)
 
-        del final_orderbook_snapshot
-
-        df =  pd.DataFrame(
-            list_of_entries,
-            columns=[
-                "TimestampOfReceive",
-                "Symbol",
-                "IsAsk",
-                "Price",
-                "Quantity",
-            ]
+        df.rename(columns=
+                  {
+                      'timestamp_of_receive':'TimestampOfReceive',
+                      'symbol':'Symbol',
+                      'is_ask':'IsAsk',
+                      'price':'Price',
+                      'quantity':'Quantity'
+                  },
+            inplace=True
         )
 
+        df['Symbol'] = df['Symbol'].apply(lambda s: s.name).astype("string")
         df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
