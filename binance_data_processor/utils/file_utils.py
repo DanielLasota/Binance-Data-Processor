@@ -11,7 +11,6 @@ from binance_data_processor.utils.time_utils import get_utc_formatted_timestamp_
 
 
 def prepare_dump_path_catalog(dump_path) -> None:
-    print(dump_path)
     if not os.path.exists(dump_path):
         os.makedirs(dump_path)
     os.startfile(dump_path)

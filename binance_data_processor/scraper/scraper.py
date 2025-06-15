@@ -39,7 +39,8 @@ def download_csv_data(
         stream_types: list[str],
         skip_existing: bool = True,
         amount_of_files_to_be_downloaded_at_once: int = 10,
-        dump_path: str | None = None
+        dump_path: str | None = None,
+        verbose: bool = True
 ) -> None:
 
     data_scraper = DataScraper()
@@ -51,7 +52,8 @@ def download_csv_data(
         date_range=date_range,
         dump_path=dump_path,
         skip_existing=skip_existing,
-        amount_of_files_to_be_downloaded_at_once=amount_of_files_to_be_downloaded_at_once
+        amount_of_files_to_be_downloaded_at_once=amount_of_files_to_be_downloaded_at_once,
+        verbose=verbose
     )
 
 
@@ -89,9 +91,11 @@ class DataScraper:
             date_range: list[str],
             dump_path: str | None = None,
             skip_existing: bool = True,
-            amount_of_files_to_be_downloaded_at_once: int = 10
+            amount_of_files_to_be_downloaded_at_once: int = 10,
+            verbose: bool = True
     ) -> None:
-        print(f'\033[35m{binance_archiver_logo}')
+        if verbose:
+            print(f'\033[35m{binance_archiver_logo}')
 
         self.amount_of_files_to_be_downloaded_at_once = amount_of_files_to_be_downloaded_at_once
 
@@ -111,29 +115,24 @@ class DataScraper:
         )
         amount_of_files_to_be_made = len(asset_parameters_to_be_downloaded)
 
-        print(f'\033[36m\n ought to download {amount_of_files_to_be_made} file(s)\n')
+        if verbose:
+            print(f'\033[36m\n ought to download {amount_of_files_to_be_made} file(s)\n')
 
         data_quality_report_list = []
 
+        print('\033[36m')
         self._main_download_loop(
             asset_parameters_list=asset_parameters_to_be_downloaded,
             data_quality_report_list=data_quality_report_list,
             dump_path=dump_path
         )
+        print('\033[0m')
+
+        if not verbose:
+            return
 
         if len(data_quality_report_list) == 0:
             return
-
-        print(f'\nFinished: {dump_path} \n')
-
-        data_quality_positive_report_list = [
-            report for report
-            in data_quality_report_list
-            if report.is_data_quality_report_positive()
-        ]
-
-        positive_reports_percentage = len(data_quality_positive_report_list) / len(data_quality_report_list) * 100
-        print(f'Positive/All: {len(data_quality_positive_report_list)}/{len(data_quality_report_list)} ({positive_reports_percentage}%)')
 
         i = 1
         for report in data_quality_report_list:
@@ -182,8 +181,6 @@ class DataScraper:
     def _get_existing_in_nest_files_catalog_asset_parameters_list(csv_nest: str) -> list[AssetParameters]:
         local_files = list_files_in_specified_directory(csv_nest)
         local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
-        print(f"Found {len(local_csv_file_paths)} CSV files out of {len(local_files)} total files\n")
-
         found_asset_parameter_list = []
 
         for csv in local_csv_file_paths:
@@ -221,13 +218,11 @@ class DataScraper:
             dataframe = self._get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(asset_parameters)
             dataframe_quality_report = get_dataframe_quality_report(
                 dataframe=dataframe,
-                asset_parameters=asset_parameters,
+                asset_parameters=asset_parameters
             )
             print(f'data report status: {dataframe_quality_report.get_data_report_status().value}')
             print()
             data_quality_report_list.append(dataframe_quality_report)
-
-            # minimal_dataframe = self._get_minimal_dataframe(df=rough_dataframe_for_quality_check)
 
             target_file_name = get_base_of_root_csv_filename(asset_parameters=asset_parameters)
 
