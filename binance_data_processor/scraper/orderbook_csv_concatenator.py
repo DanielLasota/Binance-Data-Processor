@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import os
 
+from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market, M_STREAM_CODE
 from binance_data_processor.enums.stream_type_enum import StreamType, ST_STREAM_CODE
@@ -67,14 +68,9 @@ class BinanceDataMerger:
             csvs_nest_catalog: str = 'C:/Users/daniel/Documents/binance_archival_data/',
             dump_catalog: str = 'C:/Users/daniel/Documents/merged_csvs/'
     ):
-
+        print(f'\033[35m{binance_archiver_logo}\033[0m')
+        print(f'\033[35m{binance_archiver_logo}\033[0m')
         prepare_dump_path_catalog(dump_catalog)
-
-        existing_asset_parameters_list = (
-            BinanceDataMerger._get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(
-                csvs_nest_catalog
-            )
-        )
 
         list_of_asset_parameters_list_to_be_merged = (
             BinanceDataMerger._get_list_of_asset_parameters_list_to_be_merged(
@@ -87,66 +83,16 @@ class BinanceDataMerger:
             )
         )
 
-        unreachable_csv_asset_parameter_list = []
-        for csv in list_of_asset_parameters_list_to_be_merged:
-            for asset_parameter in csv:
-                if asset_parameter not in existing_asset_parameters_list:
-                    unreachable_csv_asset_parameter_list.append(asset_parameter)
-
-        if unreachable_csv_asset_parameter_list:
-            missing_csv_str = "\n".join(str(asset_parameter) for asset_parameter in unreachable_csv_asset_parameter_list)
-            raise Exception(f"Missing csv of parameters:\n{missing_csv_str}")
-
-            # print(f"Missing csv of parameters:\n{missing_csv_str}")
-            #
-            # from binance_data_processor.scraper.scraper import download_csv_data
-            # import os
-            # from dotenv import load_dotenv
-            # env_path = os.path.join(os.path.expanduser('~'), 'Documents/env/binance-archiver-ba2-v2-prod.env')
-            # load_dotenv(env_path)
-            #
-            # unique_dates = list(set(str(asset_parameter.date) for asset_parameter in unreachable_csv_asset_parameter_list))
-            # unique_pairs = list(set(str(asset_parameter.pairs[0]) for asset_parameter in unreachable_csv_asset_parameter_list))
-            # unique_markets = list(set(str(asset_parameter.market.value) for asset_parameter in unreachable_csv_asset_parameter_list))
-            # unique_stream_types = list(set(str(asset_parameter.stream_type.value) for asset_parameter in unreachable_csv_asset_parameter_list))
-            #
-            # if len(unique_dates) == 1:
-            #     unique_dates = [unique_dates[0], unique_dates[0]]
-            #
-            # print(unique_dates)
-            # print(unique_pairs)
-            # print(unique_markets)
-            # print(unique_stream_types)
-            #
-            # download_csv_data(
-            #     date_range=unique_dates,
-            #     pairs=unique_pairs,
-            #     markets=unique_markets,
-            #     stream_types=unique_stream_types,
-            #     skip_existing=True,
-            #     amount_of_files_to_be_downloaded_at_once=80
-            # )
+        BinanceDataMerger._deal_with_missing_csvs(
+            list_of_asset_parameters_list_to_be_merged,
+            csvs_nest_catalog
+        )
 
         BinanceDataMerger._main_merge_loop(
             list_of_asset_parameters_list=list_of_asset_parameters_list_to_be_merged,
             csvs_nest_catalog=csvs_nest_catalog,
             dump_catalog=dump_catalog
         )
-
-    @staticmethod
-    def _get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(csv_nest: str) -> list[AssetParameters]:
-        local_files = list_files_in_specified_directory(csv_nest)
-        local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
-        found_asset_parameter_list = []
-
-        for csv in local_csv_file_paths:
-            try:
-                asset_parameters = decode_asset_parameters_from_csv_name(csv)
-                found_asset_parameter_list.append(asset_parameters)
-            except Exception as e:
-                print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
-
-        return found_asset_parameter_list
 
     @staticmethod
     def _get_list_of_asset_parameters_list_to_be_merged(
@@ -233,7 +179,68 @@ class BinanceDataMerger:
         return groups
 
     @staticmethod
+    def _deal_with_missing_csvs(list_of_asset_parameters_list_to_be_merged: list[list[AssetParameters]], csvs_nest_catalog: str) -> None:
+        existing_asset_parameters_list = (
+            BinanceDataMerger._get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(
+                csvs_nest_catalog
+            )
+        )
+
+        missing_csv_asset_parameter_list = []
+        for csv in list_of_asset_parameters_list_to_be_merged:
+            for asset_parameter in csv:
+                if asset_parameter not in existing_asset_parameters_list:
+                    missing_csv_asset_parameter_list.append(asset_parameter)
+
+        if missing_csv_asset_parameter_list:
+            missing_csv_str = "\n".join(str(asset_parameter) for asset_parameter in missing_csv_asset_parameter_list)
+            BinanceDataMerger._download_missing_root_csvs(missing_csv_asset_parameter_list)
+            # raise Exception(f"Missing csv of parameters:\n{missing_csv_str}")
+
+    @staticmethod
+    def _get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(csv_nest: str) -> list[AssetParameters]:
+        local_files = list_files_in_specified_directory(csv_nest)
+        local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
+        found_asset_parameter_list = []
+
+        for csv in local_csv_file_paths:
+            try:
+                asset_parameters = decode_asset_parameters_from_csv_name(csv)
+                found_asset_parameter_list.append(asset_parameters)
+            except Exception as e:
+                print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
+
+        return found_asset_parameter_list
+
+    @staticmethod
+    def _download_missing_root_csvs(missing_csv_asset_parameter_list: list[list[AssetParameters]]):
+        from binance_data_processor.scraper.scraper import download_csv_data
+        import os
+        from dotenv import load_dotenv
+        env_path = os.path.join(os.path.expanduser('~'), 'Documents/env/binance-archiver-ba2-v2-prod.env')
+        load_dotenv(env_path)
+
+        unique_dates = list(set(str(asset_parameter.date) for asset_parameter in missing_csv_asset_parameter_list))
+        unique_pairs = list(set(str(asset_parameter.pairs[0]) for asset_parameter in missing_csv_asset_parameter_list))
+        unique_markets = list(set(str(asset_parameter.market.value) for asset_parameter in missing_csv_asset_parameter_list))
+        unique_stream_types = list(set(str(asset_parameter.stream_type.value) for asset_parameter in missing_csv_asset_parameter_list))
+
+        if len(unique_dates) == 1:
+            unique_dates = [unique_dates[0], unique_dates[0]]
+
+        download_csv_data(
+            date_range=unique_dates,
+            pairs=unique_pairs,
+            markets=unique_markets,
+            stream_types=unique_stream_types,
+            skip_existing=True,
+            amount_of_files_to_be_downloaded_at_once=80,
+            verbose=False
+        )
+
+    @staticmethod
     def _main_merge_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
+        print(f'\033[36m')
         for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
             print(f'SINGLE CSV')
             single_csv_df = BinanceDataMerger._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
@@ -244,24 +251,7 @@ class BinanceDataMerger:
                 asset_parameters_list=list_of_asset_parameters_for_single_csv
             )
 
-            columns_to_drop = [
-                'TimestampOfReceive',
-                'ServiceId',
-                'Stream',
-                'EventType',
-                'EventTime',
-                'TransactionTime',
-                'TradeId',
-                'FirstUpdateId',
-                'FinalUpdateId',
-                'FinalUpdateIdInLastStream',
-                'PSUnknownField',
-                'TimestampOfRequest',
-                'MessageOutputTime',
-                'LastUpdateId'
-            ]
-
-            BinanceDataMerger.drop_redundant_columns(df=single_csv_df, columns_to_drop=columns_to_drop)
+            BinanceDataMerger.drop_redundant_columns(df=single_csv_df)
             BinanceDataMerger.convert_to_cpp_enums_int(df=single_csv_df)
 
             save_df_with_data_quality_reports(
@@ -271,6 +261,7 @@ class BinanceDataMerger:
                 filename=get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
             )
             print()
+        print(f'\033[0m')
 
     @staticmethod
     def _single_target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
@@ -649,12 +640,30 @@ class BinanceDataMerger:
         return df[existing]
 
     @staticmethod
-    def drop_redundant_columns(df: pd.DataFrame, columns_to_drop: list[str]) -> pd.DataFrame:
+    def drop_redundant_columns(df: pd.DataFrame) -> pd.DataFrame:
+        columns_to_drop = [
+            'TimestampOfReceive',
+            'ServiceId',
+            'Stream',
+            'EventType',
+            'EventTime',
+            'TransactionTime',
+            'TradeId',
+            'FirstUpdateId',
+            'FinalUpdateId',
+            'FinalUpdateIdInLastStream',
+            'PSUnknownField',
+            'TimestampOfRequest',
+            'MessageOutputTime',
+            'LastUpdateId'
+        ]
+
         for col in columns_to_drop:
             if col in df.columns:
                 df.drop(columns=col, inplace=True)
             else:
-                print(f"Column '{col}' does not exist — skipping")
+                # print(f"Column '{col}' does not exist — skipping")
+                ...
 
         return df
 
