@@ -115,8 +115,7 @@ class DataScraper:
         )
         amount_of_files_to_be_made = len(asset_parameters_to_be_downloaded)
 
-        if verbose:
-            print(f'\033[36m\n ought to download {amount_of_files_to_be_made} file(s)\n')
+        print(f'\033[36m\n ought to download {amount_of_files_to_be_made} file(s)\n')
 
         data_quality_report_list = []
 
@@ -156,7 +155,7 @@ class DataScraper:
             dates=dates_to_be_downloaded
         )
 
-        if skip_existing is True:
+        if skip_existing:
             asset_parameters_of_existing_files = self._get_existing_in_nest_files_catalog_asset_parameters_list(csv_nest=dump_path)
             asset_parameters_to_be_downloaded_minus_existing_files_asset_parameters = [
                 asset for asset

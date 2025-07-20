@@ -177,7 +177,7 @@ class StreamListener:
                 break
 
     def _handle_incoming_message(self, raw_message: str, timestamp_of_receive: int):
-        # self.logger.info(f"self.id.start_timestamp: {self.id.start_timestamp} {raw_message}")
+        # self.logger.info(f"self.id.start_timestamp: {self.asset_parameters.market} {self.id.start_timestamp} {raw_message}")
 
         if 'stream' in raw_message:
             if self.asset_parameters.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM:

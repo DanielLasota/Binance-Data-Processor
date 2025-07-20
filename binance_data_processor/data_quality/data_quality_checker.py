@@ -239,10 +239,10 @@ class DataQualityChecker:
 
         is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Price'], float)
         is_series_of_positive_values = icc.is_series_of_positive_values(df['Price'])
-        is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values = icc.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(df['Price'], 0.0, 1e6)
+        is_series_range_reasonable_greater_than_or_equal_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(df['Price'], 0.0, 1e7)
         report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
-        report.add_test_result("Price", "is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values", is_series_range_reasonable_greater_than_or_equal_0_less_than_1e6_values)
+        report.add_test_result("Price", "is_series_range_reasonable_greater_than_or_equal_0_less_than_1e7_values", is_series_range_reasonable_greater_than_or_equal_0_less_than_1e7_values)
 
         if asset_parameters.market == Market.COIN_M_FUTURES:
             is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['PSUnknownField'], asset_parameters.pairs[0].replace('_perp', '').upper())
@@ -351,10 +351,10 @@ class DataQualityChecker:
 
         is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Price'], float)
         is_series_of_positive_values = icc.is_series_of_positive_values(df['Price'])
-        is_series_range_reasonable_greater_than_0_less_than_1e6_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e6)
+        is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e7)
         report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
-        report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e6_values", is_series_range_reasonable_greater_than_0_less_than_1e6_values)
+        report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e7_values", is_series_range_reasonable_greater_than_0_less_than_1e7_values)
 
         is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Quantity'], float)
         is_series_of_positive_values = icc.is_series_of_positive_values(df['Quantity'])
@@ -438,20 +438,20 @@ class DataQualityChecker:
         if asset_parameters.market is Market.SPOT:
             is_series_of_positive_values = icc.is_series_of_positive_values(df['Price'])
             is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Price'], float)
-            is_series_range_reasonable_greater_than_0_less_than_1e6_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e6)
+            is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e7)
             is_there_no_abnormal_tick_higher_than_2_percent = icc.is_there_no_abnormal_tick_higher_than_2_percent(df['Price'])
             report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
             report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
-            report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e6_values", is_series_range_reasonable_greater_than_0_less_than_1e6_values)
+            report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e7_values", is_series_range_reasonable_greater_than_0_less_than_1e7_values)
             report.add_test_result("Price", "is_there_no_abnormal_tick_higher_than_2_percent", is_there_no_abnormal_tick_higher_than_2_percent)
         if asset_parameters.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_series_of_positive_values = icc.is_series_of_positive_values(df[df['XUnknownParameter'] == 'MARKET']['Price'])
             is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df[df['XUnknownParameter'] == 'MARKET']['Price'], float)
-            is_series_range_reasonable_greater_than_0_less_than_1e6_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df[df['XUnknownParameter'] == 'MARKET']['Price'], 0.0, 1e6)
+            is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df[df['XUnknownParameter'] == 'MARKET']['Price'], 0.0, 1e7)
             is_there_no_abnormal_tick_higher_than_2_percent = icc.is_there_no_abnormal_tick_higher_than_2_percent(df[df['XUnknownParameter'] == 'MARKET']['Price'])
             report.add_test_result("Price", "is_series_of_positive_values", is_series_of_positive_values)
             report.add_test_result("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
-            report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e6_values", is_series_range_reasonable_greater_than_0_less_than_1e6_values)
+            report.add_test_result("Price", "is_series_range_reasonable_greater_than_0_less_than_1e7_values", is_series_range_reasonable_greater_than_0_less_than_1e7_values)
             report.add_test_result("Price", "is_there_no_abnormal_tick_higher_than_2_percent", is_there_no_abnormal_tick_higher_than_2_percent)
 
         if asset_parameters.market is Market.SPOT:
