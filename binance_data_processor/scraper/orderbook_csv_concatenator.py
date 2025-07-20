@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 import os
+from datetime import datetime
 
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.asset_parameters import AssetParameters
@@ -27,14 +28,14 @@ __all__ = [
 
 
 def make_merged_csvs(
-    date_range: list[str],
-    pairs: list[str],
-    markets: list[str],
-    stream_types: list[str],
-    should_join_pairs_into_one_csv: bool = False,
-    should_join_markets_into_one_csv: bool = False,
-    csvs_nest_catalog: str | None = None,
-    dump_catalog: str | None = None
+        date_range: list[str],
+        pairs: list[str],
+        markets: list[str],
+        stream_types: list[str],
+        should_join_pairs_into_one_csv: bool = False,
+        should_join_markets_into_one_csv: bool = False,
+        csvs_nest_catalog: str | None = None,
+        dump_catalog: str | None = None
 ):
     bdm = BinanceDataMerger()
 
@@ -51,7 +52,6 @@ def make_merged_csvs(
 
 
 class BinanceDataMerger:
-
     __slots__ = []
 
     def __init__(self):
@@ -68,7 +68,6 @@ class BinanceDataMerger:
             csvs_nest_catalog: str = 'C:/Users/daniel/Documents/binance_archival_data/',
             dump_catalog: str = 'C:/Users/daniel/Documents/merged_csvs/'
     ):
-        print(f'\033[35m{binance_archiver_logo}\033[0m')
         print(f'\033[35m{binance_archiver_logo}\033[0m')
         prepare_dump_path_catalog(dump_catalog)
 
@@ -225,11 +224,19 @@ class BinanceDataMerger:
         unique_markets = list(set(str(asset_parameter.market.value) for asset_parameter in missing_csv_asset_parameter_list))
         unique_stream_types = list(set(str(asset_parameter.stream_type.value) for asset_parameter in missing_csv_asset_parameter_list))
 
-        if len(unique_dates) == 1:
-            unique_dates = [unique_dates[0], unique_dates[0]]
+        unique_dates_sorted = sorted(
+            unique_dates,
+            key=lambda d: datetime.strptime(d, "%d-%m-%Y")
+        )
+        if len(unique_dates_sorted) == 1:
+            unique_date_range = [unique_dates_sorted[0], unique_dates_sorted[0]]
+        else:
+            unique_date_range = [unique_dates_sorted[0], unique_dates_sorted[-1]]
+
+        print(f'date_range: {unique_date_range}')
 
         download_csv_data(
-            date_range=unique_dates,
+            date_range=unique_date_range,
             pairs=unique_pairs,
             markets=unique_markets,
             stream_types=unique_stream_types,
@@ -240,27 +247,39 @@ class BinanceDataMerger:
 
     @staticmethod
     def _main_merge_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
+        from alive_progress import alive_bar
         print(f'\033[36m')
-        for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
-            print(f'SINGLE CSV')
-            single_csv_df = BinanceDataMerger._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
 
-            dataframe_quality_report_list = get_merged_csv_quality_report(
-                csvs_nest_catalog=csvs_nest_catalog,
-                dataframe=single_csv_df,
-                asset_parameters_list=list_of_asset_parameters_for_single_csv
-            )
+        with alive_bar(
+                len(list_of_asset_parameters_list),
+                force_tty=True,
+                spinner='dots_waves',
+                title='',
+                enrich_print=False,
+                stats=False,
+                dual_line=False
+        ) as bar:
+            for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
+                print(f'SINGLE CSV')
+                single_csv_df = BinanceDataMerger._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
 
-            BinanceDataMerger.drop_redundant_columns(df=single_csv_df)
-            BinanceDataMerger.convert_to_cpp_enums_int(df=single_csv_df)
+                dataframe_quality_report_list = get_merged_csv_quality_report(
+                    csvs_nest_catalog=csvs_nest_catalog,
+                    dataframe=single_csv_df,
+                    asset_parameters_list=list_of_asset_parameters_for_single_csv
+                )
 
-            save_df_with_data_quality_reports(
-                dataframe=single_csv_df,
-                dataframe_quality_reports=dataframe_quality_report_list,
-                dump_catalog=dump_catalog,
-                filename=get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
-            )
-            print()
+                BinanceDataMerger._drop_x_and_m_unknown_parameters_different_than_standard(df=single_csv_df)
+                BinanceDataMerger.drop_redundant_columns(df=single_csv_df)
+                BinanceDataMerger.convert_to_cpp_enums_int(df=single_csv_df)
+
+                save_df_with_data_quality_reports(
+                    dataframe=single_csv_df,
+                    dataframe_quality_reports=dataframe_quality_report_list,
+                    dump_catalog=dump_catalog,
+                    filename=get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
+                )
+                bar()
         print(f'\033[0m')
 
     @staticmethod
@@ -305,6 +324,7 @@ class BinanceDataMerger:
         print('                       └─single pair')
         for _ in asset_parameters_list_for_single_market:
             print(f'                                   └─{_}')
+        print()
 
         difference_depth_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.DIFFERENCE_DEPTH_STREAM), None)
         trade_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.TRADE_STREAM), None)
@@ -396,7 +416,6 @@ class BinanceDataMerger:
     def _get_final_depth_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
         import cpp_binance_orderbook
         import pandas as pd
-        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
         yesterday_date = get_yesterday_date(asset_parameter.date)
         asset_parameter_of_yesterday = AssetParameters(
@@ -423,14 +442,14 @@ class BinanceDataMerger:
                 })
         df = pd.DataFrame(list_of_entries)
 
-        df.rename(columns=
-                  {
-                      'timestamp_of_receive':'TimestampOfReceive',
-                      'symbol':'Symbol',
-                      'is_ask':'IsAsk',
-                      'price':'Price',
-                      'quantity':'Quantity'
-                  },
+        df.rename(
+            columns={
+                'timestamp_of_receive': 'TimestampOfReceive',
+                'symbol': 'Symbol',
+                'is_ask': 'IsAsk',
+                'price': 'Price',
+                'quantity': 'Quantity'
+            },
             inplace=True
         )
 
@@ -439,79 +458,23 @@ class BinanceDataMerger:
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
         df['IsLast'] = (df.index == df.index[-1]).astype(int)
+        df['IsAsk'] = df['IsAsk'].astype('int8')
 
         if asset_parameter.market is not Market.SPOT:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
         else:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
 
-        for column in df.columns:
-            current_dtype = df[column].dtype
-            if is_integer_dtype(current_dtype):
-                df[column] = df[column].astype('Int64')
-            elif is_bool_dtype(current_dtype):
-                df[column] = df[column].astype('boolean')
-            elif is_float_dtype(current_dtype):
-                df[column] = df[column].astype('float64')
+        df = BinanceDataMerger._standardize_column_dtypes(df)
 
-        if df.shape[0] < 100 and df.shape[1] < 10:
+        if df.shape[0] < 100 or df.shape[1] < 10:
             raise Exception('Insufficient df shape of final depth snapshot:  cpp_binance_orderbook')
-
-        return df
-
-    @staticmethod
-    def _get_final_depth_snapshot_from_root_difference_depth_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
-        import pandas as pd
-        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
-
-        yesterday_date = get_yesterday_date(asset_parameter.date)
-        asset_parameter_of_yesterday = AssetParameters(
-            market=asset_parameter.market,
-            stream_type=asset_parameter.stream_type,
-            pairs=asset_parameter.pairs,
-            date=yesterday_date
-        )
-
-        csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
-
-        if not os.path.exists(csv_path):
-            raise FileNotFoundError(f'file {csv_path} - the day before for ob cpp does not exist')
-
-        df = pd.read_csv(csv_path, comment='#')
-        df = df.drop_duplicates(subset=['IsAsk', 'Price'], keep='last')
-        df = df[df['Quantity'] != 0]
-        bids = df[df['IsAsk'] == 0].sort_values(by='Price', ascending=False)
-        asks = df[df['IsAsk'] == 1].sort_values(by='Price', ascending=True)
-        df = pd.concat([bids, asks], ignore_index=True)
-
-        df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
-        df['Market'] = asset_parameter.market.name
-        df['ServiceId'] = range(len(df))
-        df['IsLast'] = (df.index == df.index[-1]).astype(int)
-
-        if asset_parameter.market is not Market.SPOT:
-            df['TimestampOfReceiveUS'] = df['TimestampOfReceive'] * 1000
-        else:
-            df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
-
-        for column in df.columns:
-            current_dtype = df[column].dtype
-            if is_integer_dtype(current_dtype):
-                df[column] = df[column].astype('Int64')
-            elif is_bool_dtype(current_dtype):
-                df[column] = df[column].astype('boolean')
-            elif is_float_dtype(current_dtype):
-                df[column] = df[column].astype('float64')
-
-        # df['TimestampOfReceive'] = df['TimestampOfReceive'].max()
-        # df['TimestampOfReceiveUS'] = df['TimestampOfReceiveUS'].max()
 
         return df
 
     @staticmethod
     def _load_depth_snapshot_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
-        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
         file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
@@ -531,21 +494,13 @@ class BinanceDataMerger:
         if asset_parameter.market is not Market.COIN_M_FUTURES:
             df['Symbol'] = asset_parameter.pairs[0].upper()
 
-        for column in df.columns:
-            current_dtype = df[column].dtype
-            if is_integer_dtype(current_dtype):
-                df[column] = df[column].astype('Int64')
-            elif is_bool_dtype(current_dtype):
-                df[column] = df[column].astype('boolean')
-            elif is_float_dtype(current_dtype):
-                df[column] = df[column].astype('float64')
+        df = BinanceDataMerger._standardize_column_dtypes(df)
 
         return df
 
     @staticmethod
     def _load_difference_depth_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
-        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
         file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
@@ -559,21 +514,13 @@ class BinanceDataMerger:
         else:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
 
-        for column in df.columns:
-            current_dtype = df[column].dtype
-            if is_integer_dtype(current_dtype):
-                df[column] = df[column].astype('Int64')
-            elif is_bool_dtype(current_dtype):
-                df[column] = df[column].astype('boolean')
-            elif is_float_dtype(current_dtype):
-                df[column] = df[column].astype('float64')
+        df = BinanceDataMerger._standardize_column_dtypes(df)
 
         return df
 
     @staticmethod
     def _load_trade_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
-        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
         file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
         df = pd.read_csv(file_path_for_csv, comment='#')
@@ -588,6 +535,13 @@ class BinanceDataMerger:
         else:
             df['TimestampOfReceiveUS'] = df['TimestampOfReceive']
 
+        df = BinanceDataMerger._standardize_column_dtypes(df)
+
+        return df
+
+    @staticmethod
+    def _standardize_column_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+        from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
         for column in df.columns:
             current_dtype = df[column].dtype
@@ -620,6 +574,7 @@ class BinanceDataMerger:
             "PSUnknownField",
             "TradeId",
             "IsBuyerMarketMaker",
+            "MUnknownParameter",
             "XUnknownParameter",
             "TimestampOfRequest",
             "MessageOutputTime",
@@ -640,6 +595,58 @@ class BinanceDataMerger:
         return df[existing]
 
     @staticmethod
+    def _drop_x_and_m_unknown_parameters_different_than_standard(df: pd.DataFrame) -> pd.DataFrame:
+        original_df_len = df.shape[0]
+        m_unknown_parameter_len = 0
+        x_unknown_parameter_len = 0
+
+        if 'MUnknownParameter' in df.columns:
+            m_unknown_parameter_mask = (
+                (df['StreamType'] == StreamType.TRADE_STREAM.name) &
+                (df['Market'] == Market.SPOT.name) &
+                (df['MUnknownParameter'] != True)
+            )
+            m_unknown_parameter_len = df[m_unknown_parameter_mask].shape[0]
+            if True in df[m_unknown_parameter_mask]['MUnknownParameter'].unique():
+                raise Exception(f"True in df[x_unknown_parameter_mask]['MUnknownParameter'].unique()")
+            df.drop(index=df.index[m_unknown_parameter_mask], inplace=True)
+
+        if 'XUnknownParameter' in df.columns:
+            x_unknown_parameter_mask = (
+                (df['StreamType'] == StreamType.TRADE_STREAM.name) &
+                (df['Market'].isin([Market.USD_M_FUTURES.name, Market.COIN_M_FUTURES.name])) &
+                (df['XUnknownParameter'] != 'MARKET')
+            )
+            x_unknown_parameter_len = df[x_unknown_parameter_mask].shape[0]
+            if 'MARKET' in df[x_unknown_parameter_mask]['XUnknownParameter'].unique():
+                raise Exception(f"'MARKET' in df[x_unknown_parameter_mask]['XUnknownParameter'].unique()")
+            df.drop(index=df.index[x_unknown_parameter_mask], inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        after_drop_df_len = df.shape[0]
+
+        print(f'Dropping m/x unknowns, original size: {original_df_len}. Dropped: {m_unknown_parameter_len + x_unknown_parameter_len}. After drop: {after_drop_df_len}')
+        if after_drop_df_len != original_df_len - m_unknown_parameter_len - x_unknown_parameter_len:
+            raise Exception('df len bad after dropping x and m unknown parameters. Presumably dropped too much')
+
+        if 'MUnknownParameter' in df.columns:
+            if set(
+                    df[
+                        (df['StreamType'] == StreamType.TRADE_STREAM.name) &
+                        (df['Market'] == Market.SPOT.name)
+                    ]['MUnknownParameter'].unique()) != {True}:
+                raise Exception(f"MUnknownParameter Uniques after drop: {df[df['StreamType'] == StreamType.TRADE_STREAM.name]['MUnknownParameter'].unique()}")
+
+        if 'XUnknownParameter' in df.columns:
+            if set(
+                    df[
+                        (df['StreamType'] == StreamType.TRADE_STREAM.name) &
+                        (df['Market'].isin([Market.USD_M_FUTURES.name, Market.COIN_M_FUTURES.name]))
+                    ]['XUnknownParameter'].unique()) != {'MARKET'}:
+                raise Exception(f"XUnknownParameter Uniques after drop: {df[df['StreamType'] == StreamType.TRADE_STREAM.name]['XUnknownParameter'].unique()}")
+
+        return df
+
+    @staticmethod
     def drop_redundant_columns(df: pd.DataFrame) -> pd.DataFrame:
         columns_to_drop = [
             'TimestampOfReceive',
@@ -655,7 +662,9 @@ class BinanceDataMerger:
             'PSUnknownField',
             'TimestampOfRequest',
             'MessageOutputTime',
-            'LastUpdateId'
+            'LastUpdateId',
+            'MUnknownParameter',
+            'XUnknownParameter',
         ]
 
         for col in columns_to_drop:

@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 import csv
 import os
+import matplotlib
 import matplotlib.dates as mdates
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 from binance_data_processor.continuity_registry.continuity_entry import ContinuityEntry
@@ -52,16 +54,13 @@ class DataSinkContinuityRegistry:
 
     def plot_timeline(self) -> None:
 
-        # 1. Sortowanie wpisów chronologicznie
         entries = sorted(
             self.continuity_entry_list,
             key=lambda e: e.timestamp.lstrip('~')
         )
 
-        # 2. Przygotowanie wykresu
         fig, ax = plt.subplots(figsize=(10, 4))
 
-        # 3. Rysowanie START/STOP i błędów
         starts = {}
         for entry in entries:
             ts = datetime.strptime(entry.timestamp.lstrip('~'),
@@ -93,7 +92,6 @@ class DataSinkContinuityRegistry:
                     zorder=2
                 )
 
-        # 4. Dorysowanie otwartych okresów (START bez STOP) aż do teraz
         if starts:
             now_num = mdates.date2num(datetime.utcnow())
             for inst, start_num in starts.items():
@@ -105,7 +103,6 @@ class DataSinkContinuityRegistry:
                     zorder=1
                 )
 
-        # 5. Formatowanie osi
         ys = sorted({e.instance_numer for e in entries})
         ax.set_yticks(ys)
         ax.set_ylabel('Instance Number')
@@ -115,7 +112,6 @@ class DataSinkContinuityRegistry:
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         fig.autofmt_xdate()
 
-        # 6. Pionowe linie na północy – rysowane NA WIERZCHU (zorder=3)
         x0, x1 = ax.get_xlim()
         date0 = mdates.num2date(x0).date()
         date1 = mdates.num2date(x1).date()

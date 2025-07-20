@@ -35,6 +35,6 @@ if __name__ == '__main__':
         './binance_data_processor/enums/',
         # './binance_data_processor/listener/',
         # './binance_data_processor/scraper/',
-        # './binance_data_processor/utils/',
+        './binance_data_processor/utils/',
     ]
     copy_sources_to_clipboard(dirs_to_scan)

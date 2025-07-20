@@ -13,20 +13,17 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     download_csv_data(
-        date_range=['28-05-2025', '13-06-2025'],
+        date_range=['13-07-2025', '19-07-2025'],
         pairs=[
-            # "BTCUSDT",
-            'ADAUSDT',
-            "SOLUSDT",
-            "XRPUSDT",
+            'BTCUSDT',
+            # 'ADAUSDT',
+            # "SOLUSDT",
+            # "XRPUSDT",
             # "DOGEUSDT",
             # "SHIBUSDT",
             # "LTCUSDT",
             # "AVAXUSDT",
-            "TRXUSDT",
-            # "DOTUSDT",
-            # "BCHUSDT",
-            # "SUIUSDT"
+            # "TRXUSDT",
         ],
         markets=[
             'SPOT',
@@ -39,7 +36,7 @@ if __name__ == '__main__':
             'DEPTH_SNAPSHOT'
         ],
         skip_existing=True,
-        amount_of_files_to_be_downloaded_at_once=100
+        amount_of_files_to_be_downloaded_at_once=50
     )
 
     # conduct_data_quality_analysis_on_specified_csv_list(
