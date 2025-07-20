@@ -2,12 +2,14 @@ from binance_data_processor import make_merged_csvs
 
 
 if __name__ == '__main__':
+    # dane gituwa od 28.05.2025 wlacznie
 
     make_merged_csvs(
-        date_range=['14-06-2025', '14-06-2025'],
+        date_range=['02-07-2025', '02-07-2025'],
         pairs=[
-            'TRXUSDT',
-            # 'ADAUSDT'
+            # "BTCUSDT",
+            "SOLUSDT",
+            # "XRPUSDT",
         ],
         markets=[
             # 'SPOT',
