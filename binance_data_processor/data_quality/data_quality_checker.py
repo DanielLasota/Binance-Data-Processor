@@ -9,12 +9,10 @@ from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.data_quality.data_quality_report import DataQualityReport
 from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
-from binance_data_processor.utils.file_utils import (
-    decode_asset_parameters_from_csv_name,
-    get_base_of_root_csv_filename,
-    list_files_in_specified_directory,
-    get_csv_len
-)
+from binance_data_processor.utils.file_utils import decode_asset_parameters_from_single_root_csv_name
+from binance_data_processor.utils.file_utils import get_base_of_root_csv_filename
+from binance_data_processor.utils.file_utils import list_files_in_specified_directory
+from binance_data_processor.utils.file_utils import get_csv_len
 from binance_data_processor.utils.time_utils import get_yesterday_date
 
 
@@ -87,7 +85,7 @@ class DataQualityChecker:
             for csv_path in csv_paths:
                 try:
                     csv_name = os.path.basename(csv_path)
-                    asset_parameters = decode_asset_parameters_from_csv_name(csv_name)
+                    asset_parameters = decode_asset_parameters_from_single_root_csv_name(csv_name)
                     dataframe = pd.read_csv(csv_path, comment='#')
                     dataframe_quality_report = self.get_dataframe_quality_report(
                         dataframe=dataframe,

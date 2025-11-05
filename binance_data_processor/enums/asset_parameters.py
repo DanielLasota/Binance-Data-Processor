@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
@@ -15,10 +16,9 @@ class AssetParameters:
 
     def __str__(self):
         return (
-            f""
-            f"{self.stream_type.name} "
-            f"{self.market.name} "
             f"{self.pairs[0].upper() if len(self.pairs) == 1 else self.pairs} "
+            f"{self.market.name} "
+            f"{self.stream_type.name} "
             f"{self.date if not None else ''}"
         )
 
@@ -28,3 +28,12 @@ class AssetParameters:
             stream_type=self.stream_type,
             pairs=[pair]
         )
+
+    def get_date_in_ymd_format(self):
+        if not self.date:
+            raise Exception('original date is none')
+        try:
+            dt = datetime.strptime(self.date, "%d-%m-%Y")
+            return dt.strftime("%Y-%m-%d")
+        except Exception as e:
+            print(e)
