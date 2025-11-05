@@ -1,10 +1,7 @@
 from datetime import datetime, timedelta
 import csv
 import os
-import matplotlib
-import matplotlib.dates as mdates
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+
 
 from binance_data_processor.continuity_registry.continuity_entry import ContinuityEntry
 from binance_data_processor.enums.continuity_event_type import ContinuityEventType
@@ -53,6 +50,10 @@ class DataSinkContinuityRegistry:
                 self.add_continuity_entry(entry)
 
     def plot_timeline(self) -> None:
+        import matplotlib
+        import matplotlib.dates as mdates
+        matplotlib.use('TkAgg')
+        import matplotlib.pyplot as plt
 
         entries = sorted(
             self.continuity_entry_list,

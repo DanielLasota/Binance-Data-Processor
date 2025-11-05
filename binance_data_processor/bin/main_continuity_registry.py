@@ -29,7 +29,22 @@ if __name__ == '__main__':
             comment=""
         )
     )
-
+    continuity_register.add_continuity_entry(
+        ContinuityEntry(
+            timestamp="2025-08-22T14:00:00.000Z",
+            instance_numer=2,
+            event_type=ContinuityEventType.STOP,
+            comment="Unexpected Crash"
+        )
+    )
+    continuity_register.add_continuity_entry(
+        ContinuityEntry(
+            timestamp="2025-08-25T22:20:00.000Z",
+            instance_numer=2,
+            event_type=ContinuityEventType.START,
+            comment="Start after Unexpected Crash"
+        )
+    )
     # continuity_register.load_from_csv()
 
     for entry in continuity_register.continuity_entry_list:

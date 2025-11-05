@@ -2,53 +2,32 @@ from __future__ import annotations
 
 from collections import defaultdict
 import os
-from datetime import datetime
 
+from binance_data_processor import download_csv_data
 from binance_data_processor.core.logo import binance_archiver_logo
+from binance_data_processor.scraper.concatenator_config import DataConcatenatorConfig
+from binance_data_processor.scraper.scraper_config import DataScraperConfig
+from binance_data_processor.data_quality.data_quality_checker import get_merged_csv_quality_report
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market, M_STREAM_CODE
 from binance_data_processor.enums.stream_type_enum import StreamType, ST_STREAM_CODE
-from binance_data_processor.data_quality.data_quality_checker import get_merged_csv_quality_report
-from binance_data_processor.utils.file_utils import (
-    prepare_dump_path_catalog,
-    list_files_in_specified_directory,
-    decode_asset_parameters_from_csv_name,
-    get_base_of_root_csv_filename,
-    get_base_of_merged_csv_filename,
-    save_df_with_data_quality_reports
-)
-from binance_data_processor.utils.time_utils import (
-    generate_dates_string_list_from_range,
-    get_yesterday_date
-)
+from binance_data_processor.utils.file_utils import get_base_of_root_csv_filename
+from binance_data_processor.utils.file_utils import get_list_of_existing_merged_csvs_asset_parameters
+from binance_data_processor.utils.file_utils import get_base_of_merged_csv_filename
+from binance_data_processor.utils.file_utils import save_df_with_data_quality_reports
+from binance_data_processor.utils.time_utils import generate_dates_string_list_from_range
+from binance_data_processor.utils.time_utils import get_yesterday_date
+
 
 __all__ = [
     'make_merged_csvs'
 ]
 
 
-def make_merged_csvs(
-        date_range: list[str],
-        pairs: list[str],
-        markets: list[str],
-        stream_types: list[str],
-        should_join_pairs_into_one_csv: bool = False,
-        should_join_markets_into_one_csv: bool = False,
-        csvs_nest_catalog: str | None = None,
-        dump_catalog: str | None = None
-):
-    bdm = BinanceDataMerger()
+def make_merged_csvs(data_concatenator_config: DataConcatenatorConfig) -> None:
+    binance_data_merger = BinanceDataMerger()
 
-    bdm.merge(
-        date_range=date_range,
-        pairs=pairs,
-        markets=[Market(market.lower()) for market in markets],
-        stream_types=[StreamType(stream_type.lower()) for stream_type in stream_types],
-        should_join_pairs_into_one_csv=should_join_pairs_into_one_csv,
-        should_join_markets_into_one_csv=should_join_markets_into_one_csv,
-        csvs_nest_catalog=csvs_nest_catalog,
-        dump_catalog=dump_catalog
-    )
+    binance_data_merger.merge(data_concatenator_config)
 
 
 class BinanceDataMerger:
@@ -57,41 +36,49 @@ class BinanceDataMerger:
     def __init__(self):
         ...
 
-    def merge(
-            self,
-            date_range: list[str],
-            pairs: list[str],
-            markets: list[Market],
-            stream_types: list[StreamType],
-            should_join_pairs_into_one_csv: bool = False,
-            should_join_markets_into_one_csv: bool = False,
-            csvs_nest_catalog: str = 'C:/Users/daniel/Documents/binance_archival_data/',
-            dump_catalog: str = 'C:/Users/daniel/Documents/merged_csvs/'
-    ):
+    @staticmethod
+    def merge(config: DataConcatenatorConfig):
+
         print(f'\033[35m{binance_archiver_logo}\033[0m')
-        prepare_dump_path_catalog(dump_catalog)
 
-        list_of_asset_parameters_list_to_be_merged = (
-            BinanceDataMerger._get_list_of_asset_parameters_list_to_be_merged(
-                date_range=date_range,
-                pairs=pairs,
-                markets=markets,
-                stream_types=stream_types,
-                should_join_pairs_into_one_csv=should_join_pairs_into_one_csv,
-                should_join_markets_into_one_csv=should_join_markets_into_one_csv
-            )
-        )
+        list_of_asset_parameters_list_to_be_merged = BinanceDataMerger._get_final_list_of_asset_parameters_list_to_be_merged(config)
 
-        BinanceDataMerger._deal_with_missing_csvs(
-            list_of_asset_parameters_list_to_be_merged,
-            csvs_nest_catalog
-        )
+        BinanceDataMerger._download_missing_root_csvs(config)
 
         BinanceDataMerger._main_merge_loop(
             list_of_asset_parameters_list=list_of_asset_parameters_list_to_be_merged,
-            csvs_nest_catalog=csvs_nest_catalog,
-            dump_catalog=dump_catalog
+            csvs_nest_catalog=config.csvs_nest_catalog,
+            dump_catalog=config.dump_path
         )
+
+    @staticmethod
+    def _get_final_list_of_asset_parameters_list_to_be_merged(config: DataConcatenatorConfig) -> list[list[AssetParameters]]:
+        to_merge = BinanceDataMerger._get_list_of_asset_parameters_list_to_be_merged(
+            date_range=config.date_range,
+            pairs=config.pairs,
+            markets=config.markets,
+            stream_types=config.stream_types,
+            should_join_pairs_into_one_csv=config.should_join_pairs_into_one_csv,
+            should_join_markets_into_one_csv=config.should_join_markets_into_one_csv
+        )
+
+        if not config.skip_existing:
+            return to_merge
+
+        existing = get_list_of_existing_merged_csvs_asset_parameters(config.dump_path)
+
+        def canonical(group: list[AssetParameters]) -> list[str]:
+            return sorted(str(ap) for ap in group)
+
+        existing_canon = {tuple(canonical(g)) for g in existing}
+
+        result = []
+        for group in to_merge:
+            key = tuple(canonical(group))
+            if key not in existing_canon:
+                result.append(group)
+
+        return result
 
     @staticmethod
     def _get_list_of_asset_parameters_list_to_be_merged(
@@ -178,77 +165,24 @@ class BinanceDataMerger:
         return groups
 
     @staticmethod
-    def _deal_with_missing_csvs(list_of_asset_parameters_list_to_be_merged: list[list[AssetParameters]], csvs_nest_catalog: str) -> None:
-        existing_asset_parameters_list = (
-            BinanceDataMerger._get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(
-                csvs_nest_catalog
-            )
+    def _download_missing_root_csvs(config: DataConcatenatorConfig) -> None:
+
+        date_from = get_yesterday_date(config.date_range[0])
+        date_to = config.date_range[1]
+
+        scraper_config = DataScraperConfig(
+            date_range=[date_from, date_to],
+            pairs=config.pairs,
+            markets=config.markets,
+            stream_types=config.stream_types,
+            dump_path=config.csvs_nest_catalog
         )
-
-        missing_csv_asset_parameter_list = []
-        for csv in list_of_asset_parameters_list_to_be_merged:
-            for asset_parameter in csv:
-                if asset_parameter not in existing_asset_parameters_list:
-                    missing_csv_asset_parameter_list.append(asset_parameter)
-
-        if missing_csv_asset_parameter_list:
-            missing_csv_str = "\n".join(str(asset_parameter) for asset_parameter in missing_csv_asset_parameter_list)
-            BinanceDataMerger._download_missing_root_csvs(missing_csv_asset_parameter_list)
-            # raise Exception(f"Missing csv of parameters:\n{missing_csv_str}")
-
-    @staticmethod
-    def _get_list_of_asset_parameters_of_files_that_exists_in_specified_directory(csv_nest: str) -> list[AssetParameters]:
-        local_files = list_files_in_specified_directory(csv_nest)
-        local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
-        found_asset_parameter_list = []
-
-        for csv in local_csv_file_paths:
-            try:
-                asset_parameters = decode_asset_parameters_from_csv_name(csv)
-                found_asset_parameter_list.append(asset_parameters)
-            except Exception as e:
-                print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
-
-        return found_asset_parameter_list
-
-    @staticmethod
-    def _download_missing_root_csvs(missing_csv_asset_parameter_list: list[list[AssetParameters]]):
-        from binance_data_processor.scraper.scraper import download_csv_data
-        import os
-        from dotenv import load_dotenv
-        env_path = os.path.join(os.path.expanduser('~'), 'Documents/env/binance-archiver-ba2-v2-prod.env')
-        load_dotenv(env_path)
-
-        unique_dates = list(set(str(asset_parameter.date) for asset_parameter in missing_csv_asset_parameter_list))
-        unique_pairs = list(set(str(asset_parameter.pairs[0]) for asset_parameter in missing_csv_asset_parameter_list))
-        unique_markets = list(set(str(asset_parameter.market.value) for asset_parameter in missing_csv_asset_parameter_list))
-        unique_stream_types = list(set(str(asset_parameter.stream_type.value) for asset_parameter in missing_csv_asset_parameter_list))
-
-        unique_dates_sorted = sorted(
-            unique_dates,
-            key=lambda d: datetime.strptime(d, "%d-%m-%Y")
-        )
-        if len(unique_dates_sorted) == 1:
-            unique_date_range = [unique_dates_sorted[0], unique_dates_sorted[0]]
-        else:
-            unique_date_range = [unique_dates_sorted[0], unique_dates_sorted[-1]]
-
-        print(f'date_range: {unique_date_range}')
-
-        download_csv_data(
-            date_range=unique_date_range,
-            pairs=unique_pairs,
-            markets=unique_markets,
-            stream_types=unique_stream_types,
-            skip_existing=True,
-            amount_of_files_to_be_downloaded_at_once=80,
-            verbose=False
-        )
+        download_csv_data(scraper_config)
 
     @staticmethod
     def _main_merge_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
         from alive_progress import alive_bar
-        print(f'\033[36m')
+        print(f'\033[36mought to concatenate {len(list_of_asset_parameters_list)} file(s):\n')
 
         with alive_bar(
                 len(list_of_asset_parameters_list),
@@ -576,6 +510,7 @@ class BinanceDataMerger:
             "IsBuyerMarketMaker",
             "MUnknownParameter",
             "XUnknownParameter",
+            "Pair",
             "TimestampOfRequest",
             "MessageOutputTime",
             "LastUpdateId",
@@ -590,6 +525,9 @@ class BinanceDataMerger:
             raise Exception(
                 f'Columns amount is not the same after reorder '
                 f'len(df.columns) != len(df[existing].columns) {len(df.columns)} != {len(df[existing].columns)}'
+                f'{df.columns}'
+                f''
+                f'{df[existing].columns}'
             )
 
         return df[existing]
@@ -665,6 +603,7 @@ class BinanceDataMerger:
             'LastUpdateId',
             'MUnknownParameter',
             'XUnknownParameter',
+            'Pair',
         ]
 
         for col in columns_to_drop:
@@ -700,7 +639,13 @@ class BinanceDataMerger:
             BCHUSDT = auto()
             SUIUSDT = auto()
 
-        df['Symbol'] = df['Symbol'].apply(lambda s: Symbol[s].value)
+        def normalize_symbol(symbol: str) -> str:
+            s = symbol.upper()
+            if s.endswith('_PERP'):
+                s = s.replace('_PERP', 'T')
+            return s
+
+        df['Symbol'] = df['Symbol'].apply(lambda s: Symbol[normalize_symbol(s)].value)
         df['Market'] = df['Market'].apply(lambda m: M_STREAM_CODE[Market[m]])
         df['StreamType'] = df['StreamType'].apply(lambda st: ST_STREAM_CODE[StreamType[st]])
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime
 from pathlib import Path
 
 from binance_data_processor.data_quality.data_quality_report import DataQualityReport
@@ -15,6 +16,92 @@ def prepare_dump_path_catalog(dump_path) -> None:
         os.makedirs(dump_path)
     os.startfile(dump_path)
 
+def get_base_of_blob_file_name(asset_parameters: AssetParameters) -> str:
+
+    if len(asset_parameters.pairs) != 1:
+        raise Exception(f"asset_parameters.pairs should've been a string")
+
+    formatted_now_timestamp = get_utc_formatted_timestamp_for_file_name()
+    return (
+        f"binance"
+        f"_{asset_parameters.stream_type.name.lower()}"
+        f"_{asset_parameters.market.name.lower()}"
+        f"_{asset_parameters.pairs[0].lower()}"
+        f"_{formatted_now_timestamp}"
+    )
+
+def get_prefix_of_blob_csv_filename(asset_parameters: AssetParameters) -> str:
+    return (
+        f"binance"
+        f"_{asset_parameters.stream_type.name.lower()}"
+        f"_{asset_parameters.market.name.lower()}"
+        f"_{asset_parameters.pairs[0].lower()}"
+        f"_{asset_parameters.date}"
+    )
+
+def get_base_of_root_csv_filename(asset_parameters: AssetParameters) -> str:
+    return (
+        f"binance"
+        f"_{asset_parameters.pairs[0].lower()}"
+        f"_{asset_parameters.market.name.lower()}"
+        f"_{asset_parameters.stream_type.name.lower()}"
+        f"_{asset_parameters.get_date_in_ymd_format()}"
+    )
+
+def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
+    markets = sorted({ap.market.name.lower() for ap in list_of_asset_parameters_for_single_csv})
+    pairs = sorted({ap.pairs[0].lower() for ap in list_of_asset_parameters_for_single_csv})
+    date = list_of_asset_parameters_for_single_csv[0].get_date_in_ymd_format()
+    return (
+        f"binance_merged"
+        f"_{'_'.join(pairs)}"
+        f"_{'_'.join(markets)}"
+        f"_{date}"
+    )
+
+def save_df_with_data_quality_reports(dataframe: pd.DataFrame, dataframe_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, filename: str) -> None:
+    dump_path = Path(dump_catalog) / f"{filename}.csv"
+    dump_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(dataframe_quality_reports, DataQualityReport):
+        dataframe_quality_reports = [dataframe_quality_reports]
+
+    with dump_path.open("w", newline="") as f:
+        for report in dataframe_quality_reports:
+            f.write(str(report))
+            f.write("\n")
+        dataframe.to_csv(f, index=False, lineterminator="\n")
+
+def get_list_of_existing_root_csvs_asset_parameters(csv_nest: str) -> list[AssetParameters]:
+    local_files = list_files_in_specified_directory(csv_nest)
+    local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
+    found_asset_parameters_list = []
+
+    for csv in local_csv_file_paths:
+        try:
+            csv_name = csv.split('/')[-1]
+            asset_parameters = decode_asset_parameters_from_single_root_csv_name(csv_name)
+            found_asset_parameters_list.append(asset_parameters)
+        except Exception as e:
+            print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
+
+    return found_asset_parameters_list
+
+def get_list_of_existing_merged_csvs_asset_parameters(csv_nest: str) -> list[AssetParameters]:
+    local_files = list_files_in_specified_directory(csv_nest)
+    local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
+    found_asset_parameters_list = []
+
+    for csv in local_csv_file_paths:
+        try:
+            csv_name = csv.split('/')[-1]
+            asset_parameters = decode_list_of_asset_parameters_from_merged_csv_name(csv_name)
+            found_asset_parameters_list.append(asset_parameters)
+        except Exception as e:
+            print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
+
+    return found_asset_parameters_list
+
 def list_files_in_specified_directory(directory_path: str) -> list:
     try:
         files = []
@@ -28,7 +115,7 @@ def list_files_in_specified_directory(directory_path: str) -> list:
         print(f"Error whilst listing files: {e}")
         return []
 
-def decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
+def decode_asset_parameters_from_single_root_csv_name(csv_name: str) -> AssetParameters:
     _csv_name = csv_name.replace('.csv', '')
 
     market_mapping = {
@@ -52,12 +139,13 @@ def decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
         raise ValueError(f"Unknown stream type in CSV name: {_csv_name}")
 
     pair = (
-        f"{_csv_name.split('_')[-3]}_{_csv_name.split('_')[-2]}"
+        f"{_csv_name.split('_')[1]}_{_csv_name.split('_')[2]}"
         if market is Market.COIN_M_FUTURES
-        else _csv_name.split('_')[-2]
+        else _csv_name.split('_')[1]
     )
 
     date = _csv_name.split('_')[-1]
+    date = datetime.strptime(date, "%Y-%m-%d").strftime("%d-%m-%Y")
 
     return AssetParameters(
         market=market,
@@ -66,54 +154,75 @@ def decode_asset_parameters_from_csv_name(csv_name: str) -> AssetParameters:
         date=date
     )
 
-def get_base_of_blob_file_name(asset_parameters: AssetParameters) -> str:
+def decode_list_of_asset_parameters_from_merged_csv_name(csv_name: str) -> list[AssetParameters]:
+    base = csv_name.replace('.csv', '')
+    tokens = base.split('_')
 
-    if len(asset_parameters.pairs) != 1:
-        raise Exception(f"asset_parameters.pairs should've been a string")
+    market_mapping = {
+        'spot': Market.SPOT,
+        'usd_m_futures': Market.USD_M_FUTURES,
+        'coin_m_futures': Market.COIN_M_FUTURES,
+    }
+    stream_type_mapping = {
+        'difference_depth': StreamType.DIFFERENCE_DEPTH_STREAM,
+        'trade':         StreamType.TRADE_STREAM,
+        'depth_snapshot': StreamType.DEPTH_SNAPSHOT,
+    }
 
-    formatted_now_timestamp = get_utc_formatted_timestamp_for_file_name()
-    return (
-        f"binance"
-        f"_{asset_parameters.stream_type.name.lower()}"
-        f"_{asset_parameters.market.name.lower()}"
-        f"_{asset_parameters.pairs[0].lower()}"
-        f"_{formatted_now_timestamp}"
-    )
+    date_str = tokens[-1]
+    try:
+        date_dt = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(f"Invalid date format in CSV name: {date_str}")
+    date = date_dt.strftime("%d-%m-%Y")
 
-def get_base_of_root_csv_filename(asset_parameters: AssetParameters) -> str:
-    return (
-        f"binance"
-        f"_{asset_parameters.stream_type.name.lower()}"
-        f"_{asset_parameters.market.name.lower()}"
-        f"_{asset_parameters.pairs[0].lower()}"
-        f"_{asset_parameters.date}"
-    )
+    markets = [enum for key, enum in market_mapping.items() if key in base]
+    if not markets:
+        raise ValueError(f"Unknown market in CSV name: {csv_name}")
 
-def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: list[AssetParameters]) -> str:
-    stream_types = sorted({ap.stream_type.name.lower() for ap in list_of_asset_parameters_for_single_csv})
-    markets = sorted({ap.market.name.lower() for ap in list_of_asset_parameters_for_single_csv})
-    pairs = sorted({ap.pairs[0].lower() for ap in list_of_asset_parameters_for_single_csv})
-    date = list_of_asset_parameters_for_single_csv[0].date
-    return (
-        f"binance_merged"
-        f"_{'_'.join(stream_types)}"
-        f"_{'_'.join(markets)}"
-        f"_{'_'.join(pairs)}"
-        f"_{date}"
-    )
+    try:
+        start = tokens.index('merged') + 1
+    except ValueError:
+        raise ValueError(f"Filename does not contain 'merged': {csv_name}")
+    end_indices: list[int] = []
+    for key in market_mapping.keys():
+        key_tokens = key.split('_')
+        for i in range(start, len(tokens) - len(key_tokens) + 1):
+            if tokens[i:i + len(key_tokens)] == key_tokens:
+                end_indices.append(i)
+    if not end_indices:
+        raise ValueError(f"No market token found after 'merged' in CSV name: {csv_name}")
+    end = min(end_indices)
 
-def save_df_with_data_quality_reports(dataframe: pd.DataFrame, dataframe_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, filename: str) -> None:
-    dump_path = Path(dump_catalog) / f"{filename}.csv"
-    dump_path.parent.mkdir(parents=True, exist_ok=True)
+    raw = tokens[start:end]
+    pairs: list[str] = []
+    i = 0
+    while i < len(raw):
+        tok = raw[i]
+        if i + 1 < len(raw) and raw[i + 1].lower() == 'perp':
+            pairs.append(f"{tok}_perp")
+            i += 2
+        else:
+            pairs.append(tok)
+            i += 1
+    if not pairs:
+        raise ValueError(f"No trading pairs found in CSV name: {csv_name}")
 
-    if isinstance(dataframe_quality_reports, DataQualityReport):
-        dataframe_quality_reports = [dataframe_quality_reports]
+    result: list[AssetParameters] = []
+    stream_types = list(stream_type_mapping.values())
 
-    with dump_path.open("w", newline="") as f:
-        for report in dataframe_quality_reports:
-            f.write(str(report))
-            f.write("\n")
-        dataframe.to_csv(f, index=False, lineterminator="\n")
+    for market in markets:
+        for stream_type in stream_types:
+            for pair in pairs:
+                result.append(
+                    AssetParameters(
+                        market=market,
+                        stream_type=stream_type,
+                        pairs=[pair],
+                        date=date
+                    )
+                )
+    return result
 
 def get_csv_len(csv_path: str) -> int:
     count = 0

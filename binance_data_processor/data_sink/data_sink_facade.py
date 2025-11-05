@@ -101,7 +101,11 @@ class BinanceDataSink:
 
         self._depth_snapshot_service.run()
 
-        self._check_if_there_is_no_huge_library_imported()
+        try:
+            self._check_if_there_is_no_huge_library_imported()
+        except Exception as e:
+            self._logger.info(f'Exception occurred: {e}')
+            self.shutdown()
 
     @staticmethod
     def _check_if_there_is_no_huge_library_imported():

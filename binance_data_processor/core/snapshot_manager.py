@@ -132,6 +132,19 @@ class DepthSnapshotService:
 
         self.logger.info("Snapshot daemon for all markets has ended")
 
+    def _calculate_next_snapshot_time(self):
+        current_time_s = get_utc_timestamp_epoch_seconds()
+        snapshot_fetcher_interval_seconds = self.data_sink_config.time_settings.snapshot_fetcher_interval_seconds
+        next_midnight_utc_epoch_seconds = get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
+
+        next_planned_timestamp_of_fetch = current_time_s + snapshot_fetcher_interval_seconds
+
+        if next_planned_timestamp_of_fetch > next_midnight_utc_epoch_seconds - 60:
+            self.logger.info(f'Setting next snapshot fetch to    m i d n i g h t ')
+            return next_midnight_utc_epoch_seconds
+
+        return current_time_s + snapshot_fetcher_interval_seconds
+
     def _fetch_and_save_snapshots(self):
         all_snapshots = []
 
@@ -164,19 +177,6 @@ class DepthSnapshotService:
                 self.logger.error(f"Error saving snapshot {file_name}: {e}")
 
         del all_snapshots
-
-    def _calculate_next_snapshot_time(self):
-        current_time_s = get_utc_timestamp_epoch_seconds()
-        snapshot_fetcher_interval_seconds = self.data_sink_config.time_settings.snapshot_fetcher_interval_seconds
-        next_midnight_utc_epoch_seconds = get_next_midnight_utc_epoch_seconds(with_offset_seconds=10)
-
-        next_planned_timestamp_of_fetch = current_time_s + snapshot_fetcher_interval_seconds
-
-        if next_planned_timestamp_of_fetch > next_midnight_utc_epoch_seconds - 60:
-            self.logger.info(f'Setting next snapshot fetch to    m i d n i g h t ')
-            return next_midnight_utc_epoch_seconds
-
-        return current_time_s + snapshot_fetcher_interval_seconds
 
     def _sleep_with_flag_check(self, duration: int) -> None:
         interval = 1
