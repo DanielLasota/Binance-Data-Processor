@@ -64,6 +64,6 @@
   },
   "file_duration_seconds": 180,
   "snapshot_fetcher_interval_seconds": 180,
-  "websocket_life_time_seconds": 60,
+  "websocket_life_time_seconds": 1800,
   "data_save_target": "backblaze"
 }
