@@ -20,9 +20,9 @@ __all__ = [
     'launch_data_listener',
     'BinanceDataListener',
     'download_csv_data',
-    'conduct_data_quality_analysis_on_specified_csv_list',
-    'conduct_data_quality_analysis_on_whole_directory',
     'make_merged_csvs',
+    'conduct_data_quality_analysis_on_whole_directory',
+    'conduct_data_quality_analysis_on_specified_csv_list',
     'DataSinkContinuityRegistry',
 ]
 
