@@ -26,17 +26,17 @@ class DataQualityReport:
         self.file_name = ...
         self.df_shape = df_shape
 
-    def is_data_quality_report_positive(self) -> bool:
+    def is_positive(self) -> bool:
         return all(
             bool(result) is True
             for tests in self.tests_results_register.values()
             for result in tests.values()
         )
 
-    def get_data_report_status(self) -> DataQualityReportStatus:
+    def get_status(self) -> DataQualityReportStatus:
         return (
             DataQualityReportStatus.POSITIVE
-            if self.is_data_quality_report_positive() == True
+            if self.is_positive() == True
             else DataQualityReportStatus.NEGATIVE
         )
 
@@ -44,7 +44,7 @@ class DataQualityReport:
         from datetime import datetime
         import pandas as pd
 
-        data_quality_status = 'POSITIVE' if self.is_data_quality_report_positive() == True else 'NEGATIVE'
+        data_quality_status = 'POSITIVE' if self.is_positive() == True else 'NEGATIVE'
 
         if isinstance(self.asset_parameters, list):
             asset_parameters_str = "\n# ".join(str(f'{param}') for param in self.asset_parameters)
@@ -98,10 +98,10 @@ class DataQualityReport:
 
         return "\n".join(lines)
 
-    def add_test_result(self, column: str, test_name: str, result: bool) -> None:
+    def add_result(self, column: str, test_name: str, result: bool) -> None:
         if column not in self.tests_results_register:
             self.tests_results_register[column] = {}
         self.tests_results_register[column][test_name] = result
 
-    def add_informational_data_to_report(self, column: str, information: str) -> None:
+    def add_info(self, column: str, information: str) -> None:
         self.informational_data.append(f'{column}: {information}')

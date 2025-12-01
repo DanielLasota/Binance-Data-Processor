@@ -1399,7 +1399,6 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             asset_parameters=asset_params,
             expected_amount_of_price_levels_per_side=5000
         )
-        print(f'result_of_check: {result_of_check}')
         assert result_of_check == False, "Expected False for SPOT market snapshot with at least one side exceeding or below 5000 limit"
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_raises_exception_for_wrong_stream_type(self):
@@ -1465,7 +1464,6 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             expected_minimum_amount=5000,
             expected_maximum_amount=5000
         )
-        print(f'result_of_check: {result_of_check}')
         assert result_of_check == False, "Expected False for SPOT market snapshot with at least one side exceeding or below 5000 limit"
 
     def test_is_each_snapshot_price_level_amount_in_specified_range_raises_exception_for_wrong_stream_type(self):
@@ -1549,7 +1547,6 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_series_within_60_seconds_before_utc_date_end_positive_microseconds(self):
         df = pd.read_csv('test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
-        print(df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'])
         result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
             series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
             date="13-04-2025",

@@ -192,12 +192,6 @@ class IndividualColumnChecker:
 
     @staticmethod
     def is_each_series_value_bigger_by_one_than_previous(series: pd.Series) -> bool:
-        # diffs = series.diff()[1:]
-        # correct = diffs.eq(1)
-        # if not correct.all():
-        #     print("Występują błędne różnice w następujących wierszach:")
-        #     print(diffs[~correct])
-
         return series.diff()[1:].eq(1).all()
 
     @staticmethod
@@ -397,7 +391,7 @@ class IndividualColumnChecker:
             is_series_epoch_valid
             is_series_epoch_within_utc_z_day_range
             is_first_timestamp_within_60_s_from_the_utc_date_start
-            # is_last_timestamp_within_5400_seconds_from_the_utc_date_end
+            # is_last_timestamp_within_5400_seconds_from_the_utc_date_end # temp commented as we may need only first snap in merged
             is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms               (-1ms, +5s)
         [USD_M_FUTURES, COIN_M_FUTURES]
             is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms                (-1ms, +5s)

@@ -26,7 +26,6 @@ from binance_data_processor.core.stream_data_saver_and_sender import StreamDataS
 from binance_data_processor.core.queue_pool import ListenerQueuePool, DataSinkQueuePool
 from binance_data_processor.core.stream_service import StreamService
 from binance_data_processor.core.command_line_interface import CommandLineInterface
-from binance_data_processor.core.timestamps_generator import TimestampsGenerator
 from binance_data_processor.core.fastapi_manager import FastAPIManager
 
 from binance_data_processor.core.setup_logger import setup_logger

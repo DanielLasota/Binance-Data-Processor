@@ -53,7 +53,7 @@ class DataScraper:
                 dataframe=dataframe,
                 asset_parameters=asset_parameters
             )
-            print(f'data report status: {dataframe_quality_report.get_data_report_status().value}')
+            print(f'data report status: {dataframe_quality_report.get_status().value}')
             print()
             data_quality_report_list.append(dataframe_quality_report)
 
@@ -121,7 +121,7 @@ class DataScraper:
 
         i = 1
         for report in data_quality_report_list:
-            print(f'{i}. {report.asset_parameters}: {report.get_data_report_status()}')
+            print(f'{i}. {report.asset_parameters}: {report.get_status()}')
             i += 1
 
         while True:
