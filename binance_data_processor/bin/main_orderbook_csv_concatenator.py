@@ -11,7 +11,7 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     data_concatenator_config = DataConcatenatorConfig(
-        date_range=['04-11-2025', '04-11-2025'],
+        date_range=['23-11-2025', '30-11-2025'],
         pairs=[
             "BTCUSDT",
             # "XRPUSDT",

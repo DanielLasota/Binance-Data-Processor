@@ -23,10 +23,59 @@ __all__ = [
     'make_merged_csvs'
 ]
 
+DESIRED_COLS_ORDER = [
+    "TimestampOfReceiveUS",
+    "TimestampOfReceive",
+    "Stream",
+    "EventType",
+    "EventTime",
+    "TransactionTime",
+    "Symbol",
+    "FirstUpdateId",
+    "FinalUpdateId",
+    "FinalUpdateIdInLastStream",
+    "IsAsk",
+    "Price",
+    "Quantity",
+    "PSUnknownField",
+    "TradeId",
+    "IsBuyerMarketMaker",
+    "MUnknownParameter",
+    "XUnknownParameter",
+    "Pair",
+    "TimestampOfRequest",
+    "MessageOutputTime",
+    "LastUpdateId",
+    "StreamType",
+    "Market",
+    "IsLast",
+    "ServiceId"
+]
+
+
+COLUMNS_TO_DROP = [
+    'TimestampOfReceive',
+    'ServiceId',
+    'Stream',
+    'EventType',
+    'EventTime',
+    'TransactionTime',
+    'TradeId',
+    'FirstUpdateId',
+    'FinalUpdateId',
+    'FinalUpdateIdInLastStream',
+    'PSUnknownField',
+    'TimestampOfRequest',
+    'MessageOutputTime',
+    'LastUpdateId',
+    'MUnknownParameter',
+    'XUnknownParameter',
+    'Pair',
+]
+
 
 def make_merged_csvs(data_concatenator_config: DataConcatenatorConfig) -> None:
     binance_data_merger = BinanceDataMerger()
-
     binance_data_merger.merge(data_concatenator_config)
 
 
@@ -490,37 +539,7 @@ class BinanceDataMerger:
 
     @staticmethod
     def _reorder_columns(df: pd.DataFrame) -> pd.DataFrame:
-
-        desired_order = [
-            "TimestampOfReceiveUS",
-            "TimestampOfReceive",
-            "Stream",
-            "EventType",
-            "EventTime",
-            "TransactionTime",
-            "Symbol",
-            "FirstUpdateId",
-            "FinalUpdateId",
-            "FinalUpdateIdInLastStream",
-            "IsAsk",
-            "Price",
-            "Quantity",
-            "PSUnknownField",
-            "TradeId",
-            "IsBuyerMarketMaker",
-            "MUnknownParameter",
-            "XUnknownParameter",
-            "Pair",
-            "TimestampOfRequest",
-            "MessageOutputTime",
-            "LastUpdateId",
-            "StreamType",
-            "Market",
-            "IsLast",
-            "ServiceId"
-        ]
-
-        existing = [col for col in desired_order if col in df.columns]
+        existing = [col for col in DESIRED_COLS_ORDER if col in df.columns]
         if len(df.columns) != len(df[existing].columns):
             raise Exception(
                 f'Columns amount is not the same after reorder '
@@ -586,32 +605,9 @@ class BinanceDataMerger:
 
     @staticmethod
     def drop_redundant_columns(df: pd.DataFrame) -> pd.DataFrame:
-        columns_to_drop = [
-            'TimestampOfReceive',
-            'ServiceId',
-            'Stream',
-            'EventType',
-            'EventTime',
-            'TransactionTime',
-            'TradeId',
-            'FirstUpdateId',
-            'FinalUpdateId',
-            'FinalUpdateIdInLastStream',
-            'PSUnknownField',
-            'TimestampOfRequest',
-            'MessageOutputTime',
-            'LastUpdateId',
-            'MUnknownParameter',
-            'XUnknownParameter',
-            'Pair',
-        ]
-
-        for col in columns_to_drop:
+        for col in COLUMNS_TO_DROP:
             if col in df.columns:
                 df.drop(columns=col, inplace=True)
-            else:
-                # print(f"Column '{col}' does not exist — skipping")
-                ...
 
         return df
 
