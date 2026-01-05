@@ -17,7 +17,7 @@ from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.utils.file_utils import get_prefix_of_blob_csv_filename
-
+from binance_data_processor.utils.time_utils import resolve_epoch_time_unit
 
 class DataDownloader:
 
@@ -34,35 +34,22 @@ class DataDownloader:
         else:
             raise ValueError('No storage specified...')
 
-    def download_asset_parameters_as_data_frame(self, asset_parameters: AssetParameters) -> pd.DataFrame:
-        return self._get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(asset_parameters)
+    def download_as_df(self, asset_parameters: AssetParameters) -> pd.DataFrame:
+        return self._download_as_df(asset_parameters)
 
-    def _get_rough_dataframe_from_cloud_storage_files_cut_to_specified_date(self, asset_parameters: AssetParameters) -> pd.DataFrame:
-        list_of_files_with_specified_prefixes_that_should_be_downloaded = (
-            self._get_prefix_of_files_that_should_be_downloaded_for_specified_single_date(asset_parameters=asset_parameters)
-        )
+    def _download_as_df(self, asset_parameters: AssetParameters) -> pd.DataFrame:
+        file_prefixes = (self._get_file_prefixes_for_date(asset_parameters))
+        files_to_download = self.storage_client.list_files_with_prefixes(file_prefixes)
 
-        list_of_files_to_be_downloaded = self.storage_client.list_files_with_prefixes(list_of_files_with_specified_prefixes_that_should_be_downloaded)
+        handler = self._get_handler(asset_parameters.stream_type)
+        df = handler(files_to_download, asset_parameters.market)
 
-        stream_type_download_handler = self._get_stream_type_download_handler(asset_parameters.stream_type)
-        dataframe = stream_type_download_handler(list_of_files_to_be_downloaded, asset_parameters.market)
+        df = self._cut_df_to_single_day_range(df, asset_parameters.date, resolve_epoch_time_unit(asset_parameters))
 
-        epoch_time_unit = (
-            EpochTimeUnit.MICROSECONDS
-            if asset_parameters.market is Market.SPOT and asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT
-            else EpochTimeUnit.MILLISECONDS
-        )
-
-        dataframe = self._cut_dataframe_to_the_range_of_single_day(
-            dataframe=dataframe,
-            target_day=asset_parameters.date,
-            epoch_time_unit=epoch_time_unit
-        )
-
-        return dataframe
+        return df
 
     @staticmethod
-    def _cut_dataframe_to_the_range_of_single_day(dataframe: pd.DataFrame, target_day: str, epoch_time_unit: EpochTimeUnit = EpochTimeUnit.MILLISECONDS) -> pd.DataFrame:
+    def _cut_df_to_single_day_range(df: pd.DataFrame, target_day: str, epoch_time_unit: EpochTimeUnit) -> pd.DataFrame:
         import pandas as pd
 
         date_obj = datetime.strptime(target_day, '%d-%m-%Y')
@@ -72,30 +59,27 @@ class DataDownloader:
         end_time = start_time + pd.Timedelta(days=1) - pd.Timedelta(value=1, unit=epoch_time_unit.value)
         end_epoch = int(end_time.timestamp() * epoch_time_unit.multiplier_of_second)
 
-        return dataframe[
-            (dataframe['TimestampOfReceive'] >= start_epoch) &
-            (dataframe['TimestampOfReceive'] <= end_epoch)
-        ]
+        return df[(df['TimestampOfReceive'] >= start_epoch) & (df['TimestampOfReceive'] <= end_epoch)]
 
     @staticmethod
-    def _get_prefix_of_files_that_should_be_downloaded_for_specified_single_date(asset_parameters: AssetParameters) -> list[str]:
+    def _get_file_prefixes_for_date(asset_parameters: AssetParameters) -> list[str]:
         one_date_after = (datetime.strptime(asset_parameters.date, '%d-%m-%Y') + timedelta(days=1)).strftime('%d-%m-%Y')
 
         asset_parameters_for_the_next_day = copy.copy(asset_parameters)
         asset_parameters_for_the_next_day.date = one_date_after
 
-        target_day_date_prefix = get_prefix_of_blob_csv_filename(asset_parameters=asset_parameters)
-        day_date_one_after_prefix = get_prefix_of_blob_csv_filename(asset_parameters=asset_parameters_for_the_next_day) + 'T00-0'
+        target_day_date_prefix = get_prefix_of_blob_csv_filename(asset_parameters)
+        day_date_one_after_prefix = get_prefix_of_blob_csv_filename(asset_parameters_for_the_next_day) + 'T00-0'
 
         return [target_day_date_prefix, day_date_one_after_prefix]
 
-    def _get_stream_type_download_handler(self, stream_type: StreamType) -> callable:
-        handler_lookup = {
+    def _get_handler(self, stream_type: StreamType) -> callable:
+        _ = {
             StreamType.DIFFERENCE_DEPTH_STREAM: self._difference_depth_stream_download_handler,
             StreamType.TRADE_STREAM: self._trade_stream_type_download_handler,
             StreamType.DEPTH_SNAPSHOT: self._depth_snapshot_stream_type_download_handler
         }
-        return handler_lookup[stream_type]
+        return _[stream_type]
 
     def _difference_depth_stream_download_handler(self, list_of_file_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
         import pandas as pd
@@ -139,7 +123,7 @@ class DataDownloader:
                         final_update = record["data"]["u"]
                         bids = record["data"]["b"]
                         asks = record["data"]["a"]
-                        timestamp_of_receive = record["_E"]
+                        timestamp_of_receive = record["_E"] #todo: chceck why int64 not str
 
                         if market == Market.USD_M_FUTURES:
                             for bid in bids:
@@ -635,20 +619,3 @@ class BackBlazeS3Client(IClientHandler):
     def read_file(self, file_name) -> bytes:
         response = self.s3_client.get_object(Bucket=self._bucket_name, Key=file_name)
         return response['Body'].read()
-
-
-class AzureClient(IClientHandler):
-    __slots__ = ()
-
-    def __init__(
-            self,
-            blob_connection_string: str,
-            container_name: str
-    ) -> None:
-        ...
-
-    def list_files_with_prefixes(self, prefixes: str | list[str]) -> list[str]:
-        ...
-
-    def read_file(self, file_name) -> None:
-        ...

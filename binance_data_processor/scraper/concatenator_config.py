@@ -16,8 +16,8 @@ class DataConcatenatorConfig:
     pairs: list[str]
     markets: list[str | Market]
     stream_types: list[str | StreamType]
-    should_join_pairs_into_one_csv: bool = False,
-    should_join_markets_into_one_csv: bool = False,
+    join_pairs_into_one_csv: bool = False,
+    join_markets_into_one_csv: bool = False,
     skip_existing: bool = True,
     csvs_nest_catalog: str = 'D:/binance_archival_data/',
     dump_path: str = 'D:/merged_csvs/'

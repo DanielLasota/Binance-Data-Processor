@@ -63,6 +63,23 @@ if __name__ == '__main__':
         )
     )
 
+    continuity_register.add_continuity_entry(
+        ContinuityEntry(
+            timestamp="2025-12-04T16:00:00.000Z",
+            instance_numer=2,
+            event_type=ContinuityEventType.STOP,
+            comment="No pay no way"
+        )
+    )
+    continuity_register.add_continuity_entry(
+        ContinuityEntry(
+            timestamp="2025-12-05T23:00:00.000Z",
+            instance_numer=2,
+            event_type=ContinuityEventType.START,
+            comment="Start after pay"
+        )
+    )
+
     for entry in continuity_register.continuity_entry_list:
         if entry.instance_numer == 2:
             print(entry)

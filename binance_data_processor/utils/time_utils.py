@@ -1,6 +1,12 @@
 from datetime import datetime, timedelta
 import time
 
+from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
+from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.enums.stream_type_enum import StreamType
+
+
 def get_utc_timestamp_epoch_seconds() -> int:
     raw_timestamp_of_receive_ns = time.time_ns()
     return (raw_timestamp_of_receive_ns + 500_000_000) // 1_000_000_000
@@ -58,3 +64,9 @@ def get_yesterday_date(date: str) -> str:
     date = datetime.strptime(date, "%d-%m-%Y")
     yesterday_date = date - timedelta(days=1)
     return yesterday_date.strftime("%d-%m-%Y")
+
+def resolve_epoch_time_unit(ap: AssetParameters) -> EpochTimeUnit:
+    if ap.market is Market.SPOT and ap.stream_type is not StreamType.DEPTH_SNAPSHOT:
+        return EpochTimeUnit.MICROSECONDS
+
+    return EpochTimeUnit.MILLISECONDS

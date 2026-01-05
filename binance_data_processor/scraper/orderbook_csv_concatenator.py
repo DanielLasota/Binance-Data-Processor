@@ -7,17 +7,17 @@ from binance_data_processor import download_csv_data
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.scraper.concatenator_config import DataConcatenatorConfig
 from binance_data_processor.scraper.scraper_config import DataScraperConfig
-from binance_data_processor.data_quality.data_quality_checker import get_merged_csv_quality_report
+from binance_data_processor.data_quality.data_quality_checker import get_merged_csv_quality_reports
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market, M_STREAM_CODE
 from binance_data_processor.enums.stream_type_enum import StreamType, ST_STREAM_CODE
+from binance_data_processor.enums.symbol_enum import symbol_to_int
 from binance_data_processor.utils.file_utils import get_base_of_root_csv_filename
 from binance_data_processor.utils.file_utils import get_list_of_existing_merged_csvs_asset_parameters
 from binance_data_processor.utils.file_utils import get_base_of_merged_csv_filename
-from binance_data_processor.utils.file_utils import save_df_with_data_quality_reports
+from binance_data_processor.utils.file_utils import to_csv_w_data_quality_reports
 from binance_data_processor.utils.time_utils import generate_dates_string_list_from_range
 from binance_data_processor.utils.time_utils import get_yesterday_date
-
 
 __all__ = [
     'make_merged_csvs'
@@ -53,7 +53,7 @@ DESIRED_COLS_ORDER = [
 ]
 
 
-COLUMNS_TO_DROP = [
+COLS_TO_DROP = [
     'TimestampOfReceive',
     'ServiceId',
     'Stream',
@@ -74,9 +74,9 @@ COLUMNS_TO_DROP = [
 ]
 
 
-def make_merged_csvs(data_concatenator_config: DataConcatenatorConfig) -> None:
+def make_merged_csvs(cfg: DataConcatenatorConfig) -> None:
     binance_data_merger = BinanceDataMerger()
-    binance_data_merger.merge(data_concatenator_config)
+    binance_data_merger.merge(cfg)
 
 
 class BinanceDataMerger:
@@ -86,35 +86,35 @@ class BinanceDataMerger:
         ...
 
     @staticmethod
-    def merge(config: DataConcatenatorConfig):
+    def merge(cfg: DataConcatenatorConfig):
 
         print(f'\033[35m{binance_archiver_logo}\033[0m')
 
-        list_of_asset_parameters_list_to_be_merged = BinanceDataMerger._get_final_list_of_asset_parameters_list_to_be_merged(config)
+        list_of_asset_parameters_list = BinanceDataMerger._resolve_list_of_asset_parameters_list(cfg)
 
-        BinanceDataMerger._download_missing_root_csvs(config)
+        BinanceDataMerger._download_missing_root_csvs(cfg)
 
         BinanceDataMerger._main_merge_loop(
-            list_of_asset_parameters_list=list_of_asset_parameters_list_to_be_merged,
-            csvs_nest_catalog=config.csvs_nest_catalog,
-            dump_catalog=config.dump_path
+            list_of_asset_parameters_list=list_of_asset_parameters_list,
+            csvs_nest_catalog=cfg.csvs_nest_catalog,
+            dump_catalog=cfg.dump_path
         )
 
     @staticmethod
-    def _get_final_list_of_asset_parameters_list_to_be_merged(config: DataConcatenatorConfig) -> list[list[AssetParameters]]:
+    def _resolve_list_of_asset_parameters_list(cfg: DataConcatenatorConfig) -> list[list[AssetParameters]]:
         to_merge = BinanceDataMerger._get_list_of_asset_parameters_list_to_be_merged(
-            date_range=config.date_range,
-            pairs=config.pairs,
-            markets=config.markets,
-            stream_types=config.stream_types,
-            should_join_pairs_into_one_csv=config.should_join_pairs_into_one_csv,
-            should_join_markets_into_one_csv=config.should_join_markets_into_one_csv
+            date_range=cfg.date_range,
+            pairs=cfg.pairs,
+            markets=cfg.markets,
+            stream_types=cfg.stream_types,
+            join_pairs_into_one_csv=cfg.join_pairs_into_one_csv,
+            join_markets_into_one_csv=cfg.join_markets_into_one_csv
         )
 
-        if not config.skip_existing:
+        if not cfg.skip_existing:
             return to_merge
 
-        existing = get_list_of_existing_merged_csvs_asset_parameters(config.dump_path)
+        existing = get_list_of_existing_merged_csvs_asset_parameters(cfg.dump_path)
 
         def canonical(group: list[AssetParameters]) -> list[str]:
             return sorted(str(ap) for ap in group)
@@ -135,16 +135,16 @@ class BinanceDataMerger:
             pairs: list[str],
             markets: list[Market],
             stream_types: list[StreamType],
-            should_join_pairs_into_one_csv: bool = False,
-            should_join_markets_into_one_csv: bool = False
+            join_pairs_into_one_csv: bool = False,
+            join_markets_into_one_csv: bool = False
     ) -> list[list[AssetParameters]]:
 
         dates = generate_dates_string_list_from_range(date_range)
 
         groups = []
 
-        # Przypadek 1: Nie łączymy par, nie łączymy rynków – grupujemy wg (pair, market, date)
-        if not should_join_pairs_into_one_csv and not should_join_markets_into_one_csv:
+        # Case 1: Do not join pairs and do not join markets – group by (pair, market, date)
+        if not join_pairs_into_one_csv and not join_markets_into_one_csv:
             for pair in pairs:
                 pair = pair.lower()
                 for market in markets:
@@ -160,8 +160,8 @@ class BinanceDataMerger:
                             group.append(asset_param)
                         groups.append(group)
 
-        # Przypadek 2: Nie łączymy par, łączymy rynki – grupujemy wg (pair, date) (wszystkie rynki w jednej grupie)
-        elif not should_join_pairs_into_one_csv and should_join_markets_into_one_csv:
+        # Case 2: Do not join pairs, join markets – group by (pair, date),
+        elif not join_pairs_into_one_csv and join_markets_into_one_csv:
             for pair in pairs:
                 pair = pair.lower()
                 for date in dates:
@@ -177,8 +177,8 @@ class BinanceDataMerger:
                             group.append(asset_param)
                     groups.append(group)
 
-        # Przypadek 3: Łączymy pary, nie łączymy rynków – grupujemy wg (market, date) (wszystkie pary w jednej grupie)
-        elif should_join_pairs_into_one_csv and not should_join_markets_into_one_csv:
+        # Case 3: Join pairs, do not join markets – group by (market, date),
+        elif join_pairs_into_one_csv and not join_markets_into_one_csv:
             for market in markets:
                 for date in dates:
                     group = []
@@ -194,7 +194,7 @@ class BinanceDataMerger:
                             group.append(asset_param)
                     groups.append(group)
 
-        # Przypadek 4: Łączymy pary i łączymy rynki – grupujemy wg daty (wszystkie pary i rynki w jednej grupie)
+        # Case 4: Join pairs and join markets – group by date only,
         else:  # should_join_pairs_into_one_csv and should_join_markets_into_one_csv
             for date in dates:
                 group = []
@@ -214,19 +214,19 @@ class BinanceDataMerger:
         return groups
 
     @staticmethod
-    def _download_missing_root_csvs(config: DataConcatenatorConfig) -> None:
+    def _download_missing_root_csvs(cfg: DataConcatenatorConfig) -> None:
 
-        date_from = get_yesterday_date(config.date_range[0])
-        date_to = config.date_range[1]
+        date_from = get_yesterday_date(cfg.date_range[0])
+        date_to = cfg.date_range[1]
 
-        scraper_config = DataScraperConfig(
+        scraper_cfg = DataScraperConfig(
             date_range=[date_from, date_to],
-            pairs=config.pairs,
-            markets=config.markets,
-            stream_types=config.stream_types,
-            dump_path=config.csvs_nest_catalog
+            pairs=cfg.pairs,
+            markets=cfg.markets,
+            stream_types=cfg.stream_types,
+            dump_path=cfg.csvs_nest_catalog
         )
-        download_csv_data(scraper_config)
+        download_csv_data(scraper_cfg)
 
     @staticmethod
     def _main_merge_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
@@ -242,32 +242,33 @@ class BinanceDataMerger:
                 stats=False,
                 dual_line=False
         ) as bar:
-            for list_of_asset_parameters_for_single_csv in list_of_asset_parameters_list:
+            for csv_ap_list in list_of_asset_parameters_list:
                 print(f'SINGLE CSV')
-                single_csv_df = BinanceDataMerger._single_target_csv_loop(list_of_asset_parameters_for_single_csv, csvs_nest_catalog)
+                df = BinanceDataMerger._target_csv_loop(csv_ap_list, csvs_nest_catalog)
 
-                dataframe_quality_report_list = get_merged_csv_quality_report(
+                reports = get_merged_csv_quality_reports(
                     csvs_nest_catalog=csvs_nest_catalog,
-                    dataframe=single_csv_df,
-                    asset_parameters_list=list_of_asset_parameters_for_single_csv
+                    df=df,
+                    asset_parameters_list=csv_ap_list
                 )
 
-                BinanceDataMerger._drop_x_and_m_unknown_parameters_different_than_standard(df=single_csv_df)
-                BinanceDataMerger.drop_redundant_columns(df=single_csv_df)
-                BinanceDataMerger.convert_to_cpp_enums_int(df=single_csv_df)
+                BinanceDataMerger._drop_non_standard_x_and_m_unknown_parameters(df)
+                BinanceDataMerger.drop_redundant_columns(df)
+                BinanceDataMerger.to_int(df)
 
-                save_df_with_data_quality_reports(
-                    dataframe=single_csv_df,
-                    dataframe_quality_reports=dataframe_quality_report_list,
+                to_csv_w_data_quality_reports(
+                    df=df,
+                    data_quality_reports=reports,
                     dump_catalog=dump_catalog,
-                    filename=get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv)
+                    filename=get_base_of_merged_csv_filename(csv_ap_list)
                 )
                 bar()
+
         print(f'\033[0m')
 
     @staticmethod
-    def _single_target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
-        dataframes_to_be_merged_within_single_csv = []
+    def _target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
+        dfs_to_be_merged_within_single_csv = []
         per_market_dict = BinanceDataMerger._group_asset_parameters_by_market(list_of_asset_parameters_for_single_csv)
         for market, params_for_market in per_market_dict.items():
             per_pair_dict = BinanceDataMerger._group_asset_parameters_by_pair(params_for_market)
@@ -280,11 +281,11 @@ class BinanceDataMerger:
                 )
                 pairs_to_be_merged.append(merged_orders_and_trades)
             merged_pairs_within_single_market = BinanceDataMerger._merge_pairs_within_single_market(pairs_to_be_merged)
-            dataframes_to_be_merged_within_single_csv.append(merged_pairs_within_single_market)
-        single_target_csv = BinanceDataMerger._merge_markets_within_target_csv(dataframes_to_be_merged_within_single_csv)
+            dfs_to_be_merged_within_single_csv.append(merged_pairs_within_single_market)
+        single_target_csv_df = BinanceDataMerger._merge_markets_within_target_csv(dfs_to_be_merged_within_single_csv)
 
-        single_target_csv = BinanceDataMerger._reorder_columns(single_target_csv)
-        return single_target_csv
+        single_target_csv_df = BinanceDataMerger._reorder_cols(single_target_csv_df)
+        return single_target_csv_df
 
     @staticmethod
     def _group_asset_parameters_by_market(asset_parameters: list[AssetParameters]) -> dict[Market, list[AssetParameters]]:
@@ -314,28 +315,19 @@ class BinanceDataMerger:
         depth_snapshot_asset_parameters = next((ap for ap in asset_parameters_list_for_single_market if ap.stream_type == StreamType.DEPTH_SNAPSHOT), None)
 
         final_orderbook_snapshot_from_cpp_binance_orderbook = BinanceDataMerger._get_final_depth_snapshot_from_cpp_binance_orderbook(difference_depth_asset_parameters, csvs_nest_catalog)
-        root_depth_snapshot_dataframe = BinanceDataMerger._load_depth_snapshot_root_csv(depth_snapshot_asset_parameters, csvs_nest_catalog)
-        root_difference_depth_dataframe = BinanceDataMerger._load_difference_depth_root_csv(difference_depth_asset_parameters, csvs_nest_catalog)
-        root_trade_dataframe = BinanceDataMerger._load_trade_root_csv(trade_asset_parameters, csvs_nest_catalog)
+        root_depth_snapshot_df = BinanceDataMerger._load_depth_snapshot_root_csv(depth_snapshot_asset_parameters, csvs_nest_catalog)
+        root_difference_depth_df = BinanceDataMerger._load_difference_depth_root_csv(difference_depth_asset_parameters, csvs_nest_catalog)
+        root_trade_df = BinanceDataMerger._load_trade_root_csv(trade_asset_parameters, csvs_nest_catalog)
 
-        orders_and_trades_df = pd.concat(
-            [
-                root_difference_depth_dataframe,
-                root_trade_dataframe
-            ],
-            ignore_index=True
-        )
+        orders_and_trades_df = pd.concat([root_difference_depth_df, root_trade_df], ignore_index=True)
         orders_and_trades_df = orders_and_trades_df.sort_values(by=['TimestampOfReceiveUS', 'StreamType', 'ServiceId']).reset_index(drop=True)
-        del root_difference_depth_dataframe, root_trade_dataframe
+        del root_difference_depth_df, root_trade_df
 
-        orders_trades_snapshots = BinanceDataMerger._inject_snapshots_into_orders_and_trades(orders_and_trades_df, root_depth_snapshot_dataframe)
-        del orders_and_trades_df, root_depth_snapshot_dataframe
+        orders_trades_snapshots = BinanceDataMerger._inject_snapshots_into_orders_and_trades(orders_and_trades_df, root_depth_snapshot_df)
+        del orders_and_trades_df, root_depth_snapshot_df
 
         final_combined_df = pd.concat(
-            [
-                final_orderbook_snapshot_from_cpp_binance_orderbook,
-                orders_trades_snapshots
-            ],
+            [final_orderbook_snapshot_from_cpp_binance_orderbook, orders_trades_snapshots],
             ignore_index=True
         ).reset_index(drop=True)
 
@@ -372,69 +364,47 @@ class BinanceDataMerger:
         return final
 
     @staticmethod
-    def _merge_pairs_within_single_market(list_of_single_pair_dataframe: list[pd.DataFrame]):
+    def _merge_pairs_within_single_market(list_of_single_pair_df: list[pd.DataFrame]):
         import pandas as pd
 
-        if len(list_of_single_pair_dataframe) == 1:
-            return list_of_single_pair_dataframe[0]
+        if len(list_of_single_pair_df) == 1:
+            return list_of_single_pair_df[0]
 
-        combined_df = pd.concat(list_of_single_pair_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Symbol', 'ServiceId'])
+        comb = pd.concat(list_of_single_pair_df, ignore_index=True)
+        comb = comb.sort_values(by=['TimestampOfReceiveUS', 'Symbol', 'ServiceId'])
 
-        return combined_df
+        return comb
 
     @staticmethod
-    def _merge_markets_within_target_csv(list_of_single_market_dataframe: list[pd.DataFrame]):
+    def _merge_markets_within_target_csv(list_of_single_market_dfs: list[pd.DataFrame]):
         import pandas as pd
 
-        if len(list_of_single_market_dataframe) == 1:
-            return list_of_single_market_dataframe[0]
+        if len(list_of_single_market_dfs) == 1:
+            return list_of_single_market_dfs[0]
 
-        combined_df = pd.concat(list_of_single_market_dataframe, ignore_index=True)
-        combined_df = combined_df.sort_values(by=['TimestampOfReceiveUS', 'Market', 'Symbol', 'ServiceId'])
+        comb = pd.concat(list_of_single_market_dfs, ignore_index=True)
+        comb = comb.sort_values(by=['TimestampOfReceiveUS', 'Market', 'Symbol', 'ServiceId'])
 
-        return combined_df
+        return comb
 
     @staticmethod
     def _get_final_depth_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
-        import cpp_binance_orderbook
-        import pandas as pd
+        from cpp_binance_orderbook import compute_final_ob
 
-        yesterday_date = get_yesterday_date(asset_parameter.date)
-        asset_parameter_of_yesterday = AssetParameters(
+        prev_day_ap = AssetParameters(
             market=asset_parameter.market,
             stream_type=asset_parameter.stream_type,
             pairs=asset_parameter.pairs,
-            date=yesterday_date
+            date=get_yesterday_date(asset_parameter.date)
         )
 
-        csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
+        csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(prev_day_ap)}.csv'
 
         if not os.path.exists(csv_path):
-            raise FileNotFoundError(f'file {csv_path} - the day before for ob cpp does not exist')
+            raise FileNotFoundError(f'[final snapsoht] {csv_path} - day before does not exist')
 
-        orderbook_session_simulator = cpp_binance_orderbook.OrderBookSessionSimulator()
-        final_orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(csv_path)
-
-        list_of_entries = []
-        for side in (final_orderbook_snapshot.bids(), final_orderbook_snapshot.asks()):
-            for entry in side:
-                list_of_entries.append({
-                    field: getattr(entry, field)
-                    for field in ["timestamp_of_receive", "symbol", "is_ask", "price", "quantity"]
-                })
-        df = pd.DataFrame(list_of_entries)
-
-        df.rename(
-            columns={
-                'timestamp_of_receive': 'TimestampOfReceive',
-                'symbol': 'Symbol',
-                'is_ask': 'IsAsk',
-                'price': 'Price',
-                'quantity': 'Quantity'
-            },
-            inplace=True
-        )
+        final_ob = compute_final_ob(csv_path)
+        df = BinanceDataMerger._cpp_ob_to_df(final_ob)
 
         df['Symbol'] = df['Symbol'].apply(lambda s: s.name).astype("string")
         df['StreamType'] = 'FINAL_DEPTH_SNAPSHOT'
@@ -485,8 +455,8 @@ class BinanceDataMerger:
     def _load_difference_depth_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
 
-        file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
-        df = pd.read_csv(file_path_for_csv, comment='#')
+        path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
+        df = pd.read_csv(path, comment='#')
         df['StreamType'] = asset_parameter.stream_type.name
         df['Market'] = asset_parameter.market.name
         df['ServiceId'] = range(len(df))
@@ -523,22 +493,28 @@ class BinanceDataMerger:
         return df
 
     @staticmethod
+    def _cpp_ob_to_df(ob: cpp_binance_orderbook.OrderBook) -> pd.DataFrame:
+        import pandas as pd
+        rows = ((e.timestamp_of_receive, e.symbol, e.is_ask, e.price, e.quantity) for e in (ob.bids() + ob.asks()))
+        return pd.DataFrame.from_records(rows, columns=["TimestampOfReceive", "Symbol", "IsAsk", "Price", "Quantity"])
+
+    @staticmethod
     def _standardize_column_dtypes(df: pd.DataFrame) -> pd.DataFrame:
         from pandas.core.dtypes.common import is_integer_dtype, is_bool_dtype, is_float_dtype
 
-        for column in df.columns:
-            current_dtype = df[column].dtype
+        for col in df.columns:
+            current_dtype = df[col].dtype
             if is_integer_dtype(current_dtype):
-                df[column] = df[column].astype('Int64')
+                df[col] = df[col].astype('Int64')
             elif is_bool_dtype(current_dtype):
-                df[column] = df[column].astype('boolean')
+                df[col] = df[col].astype('boolean')
             elif is_float_dtype(current_dtype):
-                df[column] = df[column].astype('float64')
+                df[col] = df[col].astype('float64')
 
         return df
 
     @staticmethod
-    def _reorder_columns(df: pd.DataFrame) -> pd.DataFrame:
+    def _reorder_cols(df: pd.DataFrame) -> pd.DataFrame:
         existing = [col for col in DESIRED_COLS_ORDER if col in df.columns]
         if len(df.columns) != len(df[existing].columns):
             raise Exception(
@@ -552,7 +528,7 @@ class BinanceDataMerger:
         return df[existing]
 
     @staticmethod
-    def _drop_x_and_m_unknown_parameters_different_than_standard(df: pd.DataFrame) -> pd.DataFrame:
+    def _drop_non_standard_x_and_m_unknown_parameters(df: pd.DataFrame) -> pd.DataFrame:
         original_df_len = df.shape[0]
         m_unknown_parameter_len = 0
         x_unknown_parameter_len = 0
@@ -605,45 +581,12 @@ class BinanceDataMerger:
 
     @staticmethod
     def drop_redundant_columns(df: pd.DataFrame) -> pd.DataFrame:
-        for col in COLUMNS_TO_DROP:
-            if col in df.columns:
-                df.drop(columns=col, inplace=True)
-
-        return df
+        return df.drop(columns=COLS_TO_DROP, errors="ignore", inplace=True)
 
     @staticmethod
-    def convert_to_cpp_enums_int(df: pd.DataFrame):
-        from enum import IntEnum, auto
-
-        class Symbol(IntEnum):
-            def _generate_next_value_(name, start, count, last_values):
-                return count
-
-            UNKNOWN = auto()
-            BTCUSDT = auto()
-            ETHUSDT = auto()
-            BNBUSDT = auto()
-            SOLUSDT = auto()
-            XRPUSDT = auto()
-            DOGEUSDT = auto()
-            ADAUSDT = auto()
-            SHIBUSDT = auto()
-            LTCUSDT = auto()
-            AVAXUSDT = auto()
-            TRXUSDT = auto()
-            DOTUSDT = auto()
-            BCHUSDT = auto()
-            SUIUSDT = auto()
-
-        def normalize_symbol(symbol: str) -> str:
-            s = symbol.upper()
-            if s.endswith('_PERP'):
-                s = s.replace('_PERP', 'T')
-            return s
-
-        df['Symbol'] = df['Symbol'].apply(lambda s: Symbol[normalize_symbol(s)].value)
+    def to_int(df: pd.DataFrame):
+        df['Symbol'] = df['Symbol'].apply(symbol_to_int)
         df['Market'] = df['Market'].apply(lambda m: M_STREAM_CODE[Market[m]])
         df['StreamType'] = df['StreamType'].apply(lambda st: ST_STREAM_CODE[StreamType[st]])
-
         return df
     
