@@ -11,7 +11,7 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     data_concatenator_config = DataConcatenatorConfig(
-        date_range=['23-11-2025', '30-11-2025'],
+        date_range=['07-12-2025', '01-01-2026'],
         pairs=[
             "BTCUSDT",
             # "XRPUSDT",
@@ -19,7 +19,7 @@ if __name__ == '__main__':
         ],
         markets=[
             'SPOT',
-            'USD_M_FUTURES',
+            # 'USD_M_FUTURES',
             # 'COIN_M_FUTURES'
         ],
         stream_types=[
@@ -27,8 +27,8 @@ if __name__ == '__main__':
             'DIFFERENCE_DEPTH_STREAM',
             'DEPTH_SNAPSHOT'
         ],
-        should_join_pairs_into_one_csv=False,
-        should_join_markets_into_one_csv=False,
+        join_pairs_into_one_csv=False,
+        join_markets_into_one_csv=False,
         csvs_nest_catalog='D:/binance_archival_data/',
         dump_path='D:/merged_csvs/',
         skip_existing=True

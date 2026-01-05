@@ -59,18 +59,18 @@ def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: lis
         f"_{date}"
     )
 
-def save_df_with_data_quality_reports(dataframe: pd.DataFrame, dataframe_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, filename: str) -> None:
+def to_csv_w_data_quality_reports(df: pd.DataFrame, data_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, filename: str) -> None:
     dump_path = Path(dump_catalog) / f"{filename}.csv"
     dump_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if isinstance(dataframe_quality_reports, DataQualityReport):
-        dataframe_quality_reports = [dataframe_quality_reports]
+    if isinstance(data_quality_reports, DataQualityReport):
+        data_quality_reports = [data_quality_reports]
 
     with dump_path.open("w", newline="") as f:
-        for report in dataframe_quality_reports:
+        for report in data_quality_reports:
             f.write(str(report))
             f.write("\n")
-        dataframe.to_csv(f, index=False, lineterminator="\n")
+        df.to_csv(f, index=False, lineterminator="\n")
 
 def get_list_of_existing_root_csvs_asset_parameters(csv_nest: str) -> list[AssetParameters]:
     local_files = list_files_in_specified_directory(csv_nest)
