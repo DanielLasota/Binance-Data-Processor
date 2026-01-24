@@ -1,6 +1,5 @@
-from binance_data_processor.core.load_config import load_config_from_json
-from binance_data_processor.enums.data_sink_config import DataSinkConfig
-from binance_data_processor.enums.data_sink_config import StorageConnectionParameters
+from binance_data_processor.enums.data_sink_config import DataSinkCfg
+from binance_data_processor.enums.data_sink_config import BlobConnParams
 from binance_data_processor.data_sink.data_sink_facade import launch_data_sink
 from binance_data_processor.data_sink.data_sink_facade import BinanceDataSink
 from binance_data_processor.listener.listener_facade import launch_data_listener
@@ -12,9 +11,8 @@ from binance_data_processor.data_quality.data_quality_checker import conduct_dat
 from binance_data_processor.continuity_registry.continuity_registry import DataSinkContinuityRegistry
 
 __all__ = [
-    'DataSinkConfig',
-    'StorageConnectionParameters',
-    'load_config_from_json',
+    'DataSinkCfg',
+    'BlobConnParams',
     'launch_data_sink',
     'BinanceDataSink',
     'launch_data_listener',

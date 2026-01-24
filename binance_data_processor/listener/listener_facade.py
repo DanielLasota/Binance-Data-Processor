@@ -5,13 +5,13 @@ import time
 import threading
 
 from binance_data_processor.core.logo import binance_archiver_logo
-from binance_data_processor.core.listener_observer_updater import ListenerObserverUpdater
+from binance_data_processor.core.listener_observer_updater import Whistleblower
 from binance_data_processor.core.queue_pool import ListenerQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
 from binance_data_processor.core.abstract_base_classes import Subject, Observer
-from binance_data_processor.core.snapshot_manager import ListenerDepthSnapshotStrategy, DepthSnapshotService
+from binance_data_processor.core.snapshot_manager import ListenerDepthSnapshotStrategy, SnapshotService
 from binance_data_processor.core.stream_service import StreamService
-from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.enums.data_sink_config import DataSinkCfg
 
 __all__ = [
     'launch_data_listener',
@@ -20,66 +20,63 @@ __all__ = [
 
 
 def launch_data_listener(
-        data_sink_config: DataSinkConfig = DataSinkConfig(),
+        cfg: DataSinkCfg = DataSinkCfg(),
         observers: list[object] = None
 ) -> BinanceDataListener:
 
-    listener_facade = BinanceDataListener(
-        data_sink_config=data_sink_config,
-        init_observers=observers
-    )
+    listener = BinanceDataListener(cfg, observers)
 
-    listener_facade.run()
-    return listener_facade
+    listener.run()
+    return listener
 
 class BinanceDataListener(Subject):
 
     __slots__ = [
-        'data_sink_config',
+        'cfg',
         'logger',
         'global_shutdown_flag',
-        'queue_pool',
-        'stream_service',
+        '_queue_pool',
+        '_stream_service',
         '_observers',
-        'listener_observer_updater',
-        'listener_snapshot_service'
+        '_whistleblower',
+        '_snapshot_service'
     ]
 
     def __init__(
             self,
-            data_sink_config: DataSinkConfig,
+            cfg: DataSinkCfg,
             init_observers: list[Observer] | None = None
     ) -> None:
 
-        self.data_sink_config = data_sink_config
+        self.cfg = cfg
 
         self.logger = setup_logger(should_dump_logs=True)
-        if data_sink_config.show_logo is True:
+        if cfg.show_logo is True:
             self.logger.info("\n%s", binance_archiver_logo)
-            self.logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
+            self.logger.info("Configuration:\n%s", pprint.pformat(cfg, indent=1))
 
         self.global_shutdown_flag = threading.Event()
 
-        self.queue_pool = ListenerQueuePool()
+        self._queue_pool = ListenerQueuePool()
 
         self._observers = init_observers if init_observers is not None else []
 
-        self.stream_service = StreamService(
-            queue_pool=self.queue_pool,
-            global_shutdown_flag=self.global_shutdown_flag,
-            data_sink_config=data_sink_config
+        self._stream_service = StreamService(
+            queue_pool=self._queue_pool,
+            stop_flag=self.global_shutdown_flag,
+            cfg=cfg
         )
 
-        self.listener_observer_updater = ListenerObserverUpdater(
+        self._whistleblower = Whistleblower(
             observers=self._observers,
-            global_queue=self.queue_pool.global_queue,
+            global_queue=self._queue_pool.global_queue,
             global_shutdown_flag=self.global_shutdown_flag
         )
 
-        self.listener_snapshot_service = DepthSnapshotService(
-            snapshot_strategy=ListenerDepthSnapshotStrategy(global_queue=self.queue_pool.global_queue),
-            data_sink_config=data_sink_config,
-            global_shutdown_flag=self.global_shutdown_flag
+        self._snapshot_service = SnapshotService(
+            snapshot_strategy=ListenerDepthSnapshotStrategy(global_queue=self._queue_pool.global_queue),
+            cfg=cfg,
+            stop_flag=self.global_shutdown_flag
         )
 
     def attach(self, observer: Observer) -> None:
@@ -94,25 +91,22 @@ class BinanceDataListener(Subject):
 
     def run(self) -> None:
 
-        self.stream_service.run()
+        self._stream_service.run()
 
-        self.listener_observer_updater.run_whistleblower()
+        self._whistleblower.run()
 
-        while not any(queue_.qsize() != 0 for queue_ in self.queue_pool.queue_lookup.values()):
+        while not any(queue_.qsize() != 0 for queue_ in self._queue_pool.queue_lookup.values()):
             time.sleep(0.001)
 
         time.sleep(5)
 
-        self.listener_snapshot_service.run()
+        self._snapshot_service.run()
 
     def shutdown(self):
         self.logger.info("Shutting down archiver")
         self.global_shutdown_flag.set()
 
-        remaining_threads = [
-            thread for thread in threading.enumerate()
-            if thread is not threading.current_thread() and thread.is_alive()
-        ]
+        remaining_threads = [t for t in threading.enumerate() if t is not threading.current_thread() and t.is_alive()]
 
         if remaining_threads:
             self.logger.warning(f"Some threads are still alive:")

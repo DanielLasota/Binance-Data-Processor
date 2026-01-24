@@ -17,17 +17,6 @@ setup(
         'boto3==1.35.2',
         'alive-progress'
     ],
-    extras_require={
-        'dev': [
-            'pytest',
-            'objgraph',
-            'pympler'
-        ],
-        'azure': [
-            'azure-identity',
-            'azure-storage-blob'
-        ]
-    },
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="Daniel Lasota",

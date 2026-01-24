@@ -7,7 +7,7 @@ import os
 from typing import Tuple, Dict, Any, Optional
 import time
 
-from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.storage_connection_parameters import BlobConnParams
 
 
 class B2Client:
@@ -25,7 +25,7 @@ class B2Client:
 
     def __init__(
             self,
-            storage_connection_parameters: StorageConnectionParameters
+            storage_connection_parameters: BlobConnParams
     ) -> None:
         self.storage_connection_parameters = storage_connection_parameters
         self._bucket_id: str | None = None

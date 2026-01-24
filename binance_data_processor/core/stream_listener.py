@@ -13,10 +13,8 @@ from binance_data_processor.core.difference_depth_queue import DifferenceDepthQu
 from binance_data_processor.core.trade_queue import TradeQueue
 from binance_data_processor.core.stream_listener_id import StreamListenerId
 from binance_data_processor.core.url_factory import URLFactory
-from binance_data_processor.utils.time_utils import (
-    round_epoch_nanoseconds_to_milliseconds,
-    round_epoch_nanoseconds_to_microseconds
-)
+from binance_data_processor.utils.time_utils import round_epoch_nanoseconds_to_milliseconds
+from binance_data_processor.utils.time_utils import round_epoch_nanoseconds_to_microseconds
 
 
 class StreamListener:
@@ -161,10 +159,7 @@ class StreamListener:
                     else round_epoch_nanoseconds_to_milliseconds(ns)
                 )
 
-                self._handle_incoming_message(
-                    raw_message=message,
-                    timestamp_of_receive=timestamp_of_receive_rounded
-                )
+                self._handle_incoming_message(message, timestamp_of_receive_rounded)
 
             except websockets.exceptions.ConnectionClosed as e:
                 if not self._stop_event.is_set():

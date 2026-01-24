@@ -10,7 +10,7 @@ import orjson
 from abc import ABC, abstractmethod
 import time
 
-from binance_data_processor import StorageConnectionParameters
+from binance_data_processor import BlobConnParams
 from binance_data_processor.scraper.scraper_config import AMOUNT_OF_FILES_TO_BE_DOWNLOADED_AT_ONCE
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
@@ -22,7 +22,7 @@ from binance_data_processor.utils.time_utils import resolve_epoch_time_unit
 class DataDownloader:
 
     def __init__(self):
-        storage_connection_parameters = StorageConnectionParameters()
+        storage_connection_parameters = BlobConnParams()
 
         if storage_connection_parameters.backblaze_access_key_id is not None:
             self.storage_client = BackBlazeS3Client(

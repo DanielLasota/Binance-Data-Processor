@@ -8,7 +8,7 @@ from queue import Queue
 from binance_data_processor.core.abstract_base_classes import Observer
 
 
-class ListenerObserverUpdater:
+class Whistleblower:
 
     __slots__ = [
         'logger',
@@ -43,6 +43,6 @@ class ListenerObserverUpdater:
             except queue.Empty:
                 continue
 
-    def run_whistleblower(self) -> None:
+    def run(self) -> None:
         whistleblower_thread = threading.Thread(target=self.process_global_queue)
         whistleblower_thread.start()

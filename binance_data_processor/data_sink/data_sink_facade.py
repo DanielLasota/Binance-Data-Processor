@@ -7,13 +7,13 @@ import time
 
 from binance_data_processor.core.command_line_interface import CommandLineInterface
 from binance_data_processor.core.fastapi_manager import FastAPIManager
-from binance_data_processor.core.stream_data_saver_and_sender import StreamDataSaverAndSender
+from binance_data_processor.core.data_saver import DataSaver
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.core.queue_pool import DataSinkQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
-from binance_data_processor.core.snapshot_manager import DataSinkDepthSnapshotStrategy, DepthSnapshotService
+from binance_data_processor.core.snapshot_manager import DataSinkSnapshotStrategy, SnapshotService
 from binance_data_processor.core.stream_service import StreamService
-from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.enums.data_sink_config import DataSinkCfg
 from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
 
 __all__ = [
@@ -21,12 +21,9 @@ __all__ = [
     'BinanceDataSink'
 ]
 
-def launch_data_sink(data_sink_config: DataSinkConfig = None) -> BinanceDataSink:
+def launch_data_sink(cfg: DataSinkCfg = None) -> BinanceDataSink:
 
-    if data_sink_config is None:
-        data_sink_config = DataSinkConfig()
-
-    binance_data_sink = BinanceDataSink(data_sink_config=data_sink_config)
+    binance_data_sink = BinanceDataSink(cfg)
     binance_data_sink.run()
 
     return binance_data_sink
@@ -35,98 +32,75 @@ def launch_data_sink(data_sink_config: DataSinkConfig = None) -> BinanceDataSink
 class BinanceDataSink:
 
     __slots__ = [
-        'data_sink_config',
+        'cfg',
         '_logger',
-        'global_shutdown_flag',
+        'stop_flag',
         '_queue_pool',
         '_stream_service',
-        '_command_line_interface',
-        '_fast_api_manager',
-        '_stream_data_saver_and_sender',
-        '_depth_snapshot_service'
+        '_cli',
+        '_fastapi',
+        '_data_saver',
+        '_snapshot_service'
     ]
 
     def __init__(
             self,
-            data_sink_config: DataSinkConfig
+            cfg: DataSinkCfg
     ) -> None:
-        self.data_sink_config = data_sink_config
+        self.cfg = cfg
         self._logger = setup_logger(should_dump_logs=True)
         self._logger.info("\n%s", binance_archiver_logo)
-        self._logger.info("Configuration:\n%s", pprint.pformat(data_sink_config, indent=1))
-        if self.data_sink_config.data_save_target is DataSaveTarget.BACKBLAZE:
-            self._logger.info(f'Bucket: {data_sink_config.storage_connection_parameters.backblaze_bucket_name}')
+        self._logger.info("Configuration:\n%s", pprint.pformat(cfg, indent=1))
+        if self.cfg.data_save_target is DataSaveTarget.BACKBLAZE:
+            self._logger.info(f'Bucket: {cfg.blob_conn_params.backblaze_bucket_name}')
 
-        self.global_shutdown_flag = threading.Event()
+        self.stop_flag = threading.Event()
 
         self._queue_pool = DataSinkQueuePool()
 
-        self._stream_service = StreamService(
-            queue_pool=self._queue_pool,
-            global_shutdown_flag=self.global_shutdown_flag,
-            data_sink_config=data_sink_config
-        )
+        self._stream_service = StreamService(self._queue_pool, self.stop_flag, self.cfg)
 
-        self._stream_data_saver_and_sender = StreamDataSaverAndSender(
-            queue_pool=self._queue_pool,
-            global_shutdown_flag=self.global_shutdown_flag,
-            data_sink_config = self.data_sink_config
-        )
+        self._data_saver = DataSaver(self._queue_pool, self.cfg, self.stop_flag)
 
-        self._command_line_interface = CommandLineInterface(
-            stream_service=self._stream_service,
-            data_sink_config=self.data_sink_config,
-            shutdown_callback=self.shutdown
-        )
+        self._cli = CommandLineInterface(self._stream_service, self.cfg, self.stop)
 
-        self._fast_api_manager = FastAPIManager(
-            callback=self._command_line_interface.handle_command
-        )
+        self._fastapi = FastAPIManager(self._cli.handle_command)
 
-        self._depth_snapshot_service = DepthSnapshotService(
-            snapshot_strategy=DataSinkDepthSnapshotStrategy(
-                data_saver=self._stream_data_saver_and_sender
-            ),
-            data_sink_config=data_sink_config,
-            global_shutdown_flag=self.global_shutdown_flag
-        )
+        self._snapshot_service = SnapshotService(DataSinkSnapshotStrategy(self._data_saver), self.cfg, self.stop_flag)
 
     def run(self) -> None:
 
         self._stream_service.run()
 
-        self._fast_api_manager.run()
+        self._fastapi.run()
 
-        self._stream_data_saver_and_sender.run()
+        self._data_saver.run()
 
-        self._depth_snapshot_service.run()
+        self._snapshot_service.run()
 
         try:
             self._check_if_there_is_no_huge_library_imported()
         except Exception as e:
             self._logger.info(f'Exception occurred: {e}')
-            self.shutdown()
+            self.stop()
 
     @staticmethod
     def _check_if_there_is_no_huge_library_imported():
-        for library in ['pandas', 'numpy', 'alive_progress']:
-            if library in list(sys.modules.keys()):
-                raise Exception(f'Imported {library} whilst running data sink. Check the imports')
+        for lib in ['pandas', 'numpy', 'alive_progress']:
+            if lib in list(sys.modules.keys()):
+                raise Exception(f'Imported {lib} whilst running data sink. Check the imports')
 
-    def shutdown(self):
+    def stop(self):
 
         self._logger.info("Shutting down archiver")
 
-        self.global_shutdown_flag.set()
+        self.stop_flag.set()
 
-        self._fast_api_manager.shutdown()
+        self._fastapi.shutdown()
 
         time.sleep(5)
 
-        remaining_threads = [
-            thread for thread in threading.enumerate()
-            if thread is not threading.current_thread() and thread.is_alive()
-        ]
+        remaining_threads = [t for t in threading.enumerate() if t is not threading.current_thread() and t.is_alive()]
 
         if remaining_threads:
             self._logger.warning(f"Some threads are still alive:")

@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     data_sink = launch_data_sink()
 
-    while not data_sink.global_shutdown_flag.is_set():
+    while not data_sink.stop_flag.is_set():
         time.sleep(16)
 
     print('the program has ended, exiting')
@@ -79,30 +79,30 @@ now create your own config:
 import os
 import time
 from dotenv import load_dotenv
-from binance_data_processor import launch_data_sink, DataSinkConfig, StorageConnectionParameters
+from binance_data_processor import launch_data_sink, DataSinkCfg, BlobConnParams
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/sample_env.env')
 load_dotenv(env_path)
 
 if __name__ == "__main__":
-    data_sink_config = DataSinkConfig(
+    data_sink_config = DataSinkCfg(
         instruments={
             'spot': ['BTCUSDT', 'TRXUSDT'],
             'usd_m_futures': ['BTCUSDT', 'TRXUSDT'],
             'coin_m_futures': ['BTCUSD_PERP', 'TRXUSD_PERP']
         },
-        time_settings={
+        time_cfg={
             "file_duration_seconds": 300,
             "snapshot_fetcher_interval_seconds": 60,
             "websocket_life_time_seconds": 60 * 60 * 23
         },
         data_save_target='azure_blob',
-        storage_connection_parameters=StorageConnectionParameters()
+        storage_connection_parameters=BlobConnParams()
     )
 
-    data_sink = launch_data_sink(data_sink_config=data_sink_config)
+    data_sink = launch_data_sink(cfg=data_sink_config)
 
-    while not data_sink.global_shutdown_flag.is_set():
+    while not data_sink.stop_flag.is_set():
         time.sleep(16)
 
     print('the program has ended, exiting')
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 ```python
 import os
 from dotenv import load_dotenv
-from binance_data_processor import download_csv_data, StorageConnectionParameters
+from binance_data_processor import download_csv_data, BlobConnParams
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/sample_env.env')
 load_dotenv(env_path)
@@ -120,7 +120,7 @@ load_dotenv(env_path)
 if __name__ == '__main__':
     download_csv_data(
         date_range=['11-03-2025', '12-03-2025'],
-        storage_connection_parameters=StorageConnectionParameters(),
+        storage_connection_parameters=BlobConnParams(),
         pairs=[
             'BTCUSDT',
             'TRXUSDT'
