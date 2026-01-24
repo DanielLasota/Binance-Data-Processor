@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from binance_data_processor.core.logo import binance_archiver_logo
+from binance_data_processor.enums.data_quality_report_status_enum import DataQualityReportStatus
 from binance_data_processor.scraper.data_downloader import DataDownloader
 from binance_data_processor.scraper.scraper_config import DataScraperConfig
 from binance_data_processor.data_quality.data_quality_report import DataQualityReport
@@ -38,35 +39,38 @@ class DataScraper:
     def _main_loop(self, cfg: DataScraperConfig) -> None:
         print(f'\033[36m')
 
-        asset_parameters_list = self._get_final_asset_parameters_list_to_be_downloaded(cfg)
+        ap_list = self._get_final_asset_parameters_list_to_be_downloaded(cfg)
 
-        print(f'ought to download {len(asset_parameters_list)} file(s):\n')
-        if cfg.verbose: DataScraper.print_asset_parameters_list(asset_parameters_list)
+        print(f'ought to download {len(ap_list)} file(s):\n')
+        if cfg.verbose: DataScraper.print_asset_parameters_list(ap_list)
 
-        data_quality_reports = []
+        reports = []
 
-        for ap in asset_parameters_list:
+        for ap in ap_list:
             print(f'Downloading: {ap}')
             df = self.data_downloader.download_as_df(ap)
-            df_quality_report = get_df_quality_report(df, ap)
-            print(f'data report status: {df_quality_report.get_status().value}\n')
-            data_quality_reports.append(df_quality_report)
+            report = get_df_quality_report(df, ap)
+            print(f'data report status: {report.get_status().value}\n')
+            if report.get_status() is DataQualityReportStatus.NEGATIVE:
+                print(f'failed tests: {report.get_fails()}')
+
+            reports.append(report)
 
             to_csv_w_data_quality_reports(
                 df=df,
-                data_quality_reports=df_quality_report,
+                data_quality_reports=report,
                 dump_catalog=cfg.dump_path,
                 filename=get_base_of_root_csv_filename(ap)
             )
 
-            del df_quality_report, df
+            del report, df
 
         if cfg.verbose:
-            DataScraper.show_data_quality_report_list_summary(data_quality_reports)
+            DataScraper.show_data_quality_report_list_summary(reports)
 
     @staticmethod
     def _get_final_asset_parameters_list_to_be_downloaded(cfg: DataScraperConfig) -> list[AssetParameters]:
-        all_assets = [
+        apl = [
             AssetParameters(
                 market=m,
                 stream_type=s,
@@ -80,8 +84,8 @@ class DataScraper:
         ]
         if cfg.skip_existing:
             existing = get_list_of_existing_root_csvs_asset_parameters(cfg.dump_path)
-            return [a for a in all_assets if a not in existing]
-        return all_assets
+            return [a for a in apl if a not in existing]
+        return apl
 
     @staticmethod
     def print_asset_parameters_list(asset_parameters_list: list[AssetParameters]) -> None:
