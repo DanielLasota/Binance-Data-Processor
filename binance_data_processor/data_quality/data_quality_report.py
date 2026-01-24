@@ -27,6 +27,7 @@ class DataQualityReport:
         self.df_shape = df_shape
 
     def is_positive(self) -> bool:
+        #todo: remove is_positive, keep get_status
         return all(
             bool(result) is True
             for tests in self.tests_results_register.values()
@@ -34,17 +35,11 @@ class DataQualityReport:
         )
 
     def get_status(self) -> DataQualityReportStatus:
-        return (
-            DataQualityReportStatus.POSITIVE
-            if self.is_positive() == True
-            else DataQualityReportStatus.NEGATIVE
-        )
+        return DataQualityReportStatus.POSITIVE if self.is_positive() else DataQualityReportStatus.NEGATIVE
 
     def __str__(self) -> str:
         from datetime import datetime
         import pandas as pd
-
-        data_quality_status = 'POSITIVE' if self.is_positive() == True else 'NEGATIVE'
 
         if isinstance(self.asset_parameters, list):
             asset_parameters_str = "\n# ".join(str(f'{param}') for param in self.asset_parameters)
@@ -81,7 +76,7 @@ class DataQualityReport:
             df_str = df.to_string(index=False)
             df_lines = df_str.split('\n')
 
-            lines.append(f'# Data Quality Report Status: {data_quality_status}')
+            lines.append(f'# Data Quality Report Status: {self.get_status().value}')
             lines.append(f'# ------------------------------------')
             for line in df_lines:
                 if line.strip():
@@ -98,10 +93,20 @@ class DataQualityReport:
 
         return "\n".join(lines)
 
-    def add_result(self, column: str, test_name: str, result: bool) -> None:
-        if column not in self.tests_results_register:
-            self.tests_results_register[column] = {}
-        self.tests_results_register[column][test_name] = result
+    def add(self, col: str, test_name: str, result: bool) -> None:
+        if col not in self.tests_results_register:
+            self.tests_results_register[col] = {}
+        self.tests_results_register[col][test_name] = result
 
     def add_info(self, column: str, information: str) -> None:
         self.informational_data.append(f'{column}: {information}')
+
+    def get_fails(self) -> str:
+        fails: list[str] = []
+
+        for col, tests in self.tests_results_register.items():
+            for test_name, result in tests.items():
+                if not result:
+                    fails.append(f" {col} {test_name} {result}")
+
+        return ''.join(fails)

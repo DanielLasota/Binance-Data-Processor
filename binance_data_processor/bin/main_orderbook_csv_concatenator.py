@@ -10,8 +10,8 @@ load_dotenv(env_path)
 
 if __name__ == '__main__':
 
-    data_concatenator_config = DataConcatenatorConfig(
-        date_range=['07-12-2025', '01-01-2026'],
+    cfg = DataConcatenatorConfig(
+        date_range=['07-12-2025', '21-01-2026'],
         pairs=[
             "BTCUSDT",
             # "XRPUSDT",
@@ -19,7 +19,7 @@ if __name__ == '__main__':
         ],
         markets=[
             'SPOT',
-            # 'USD_M_FUTURES',
+            'USD_M_FUTURES',
             # 'COIN_M_FUTURES'
         ],
         stream_types=[
@@ -33,5 +33,4 @@ if __name__ == '__main__':
         dump_path='D:/merged_csvs/',
         skip_existing=True
     )
-    make_merged_csvs(data_concatenator_config)
-
+    make_merged_csvs(cfg)

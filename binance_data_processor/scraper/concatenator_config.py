@@ -7,7 +7,7 @@ from binance_data_processor.utils.file_utils import prepare_dump_path_catalog
 from binance_data_processor.utils.time_utils import generate_dates_string_list_from_range
 
 
-AMOUNT_OF_FILES_TO_BE_DOWNLOADED_AT_ONCE = 20
+AMOUNT_OF_FILES_TO_BE_DOWNLOADED_AT_ONCE = 40
 
 
 @dataclass
