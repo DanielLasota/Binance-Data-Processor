@@ -16,7 +16,7 @@ import threading
 
 import binance_data_processor.data_sink.data_sink_facade
 from binance_data_processor.core.stream_service import StreamService
-from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.enums.data_sink_config import DataSinkCfg
 from binance_data_processor.enums.commands_registry_enum import CommandsRegistry
 from binance_data_processor.enums.market_enum import Market
 
@@ -26,19 +26,19 @@ class CommandLineInterface:
         'stream_service',
         'data_sink_config',
         'logger',
-        'shutdown_callback'
+        'stop_callback'
     ]
 
     def __init__(
             self,
             stream_service: StreamService,
-            data_sink_config: DataSinkConfig,
-            shutdown_callback
+            cfg: DataSinkCfg,
+            stop_callback
     ):
         self.stream_service = stream_service
-        self.data_sink_config = data_sink_config
+        self.data_sink_config = cfg
         self.logger = logging.getLogger('binance_data_sink')
-        self.shutdown_callback = shutdown_callback
+        self.stop_callback = stop_callback
 
     def handle_command(
             self,
@@ -90,7 +90,7 @@ class CommandLineInterface:
             raise Exception(f'Bad command, try again')
 
     def shutdown(self):
-        self.shutdown_callback()
+        self.stop_callback()
 
     def modify_subscription(
             self,
@@ -115,7 +115,7 @@ class CommandLineInterface:
 
             final_output = {
                 'requested': f'{type_} {market} {instrument}',
-                'actual_instruments': f'{self.stream_service.data_sink_config.instruments.get_pairs(market=market)}'
+                'actual_instruments': f'{self.stream_service.cfg.instruments.get_pairs(market=market)}'
             }
 
             self.logger.info('^^^^^^^^^^^^')
@@ -134,7 +134,7 @@ class CommandLineInterface:
             new_interval: int
     ) -> str:
 
-        self.data_sink_config.time_settings.update_interval(
+        self.data_sink_config.time_cfg.update_interval(
             setting_name=selected_interval_name,
             new_time=new_interval,
             logger=self.logger
@@ -142,7 +142,7 @@ class CommandLineInterface:
 
         final_output = {
             'requested': f'override {selected_interval_name}, new interval: {new_interval}',
-            'actual_interval_time': f'{self.stream_service.data_sink_config.time_settings}'
+            'actual_interval_time': f'{self.stream_service.cfg.time_cfg}'
         }
 
         self.logger.info('^^^^^^^^^^^^')

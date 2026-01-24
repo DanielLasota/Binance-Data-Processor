@@ -8,14 +8,14 @@ import requests
 from pathlib import Path
 import time
 
-from binance_data_processor.enums.storage_connection_parameters import StorageConnectionParameters
+from binance_data_processor.enums.storage_connection_parameters import BlobConnParams
 
 
 class S3Client:
     REFRESH_INTERVAL = 4 * 3600
 
     __slots__ = [
-        'storage_connection_parameters',
+        'blob_conn_params',
         'region',
         'service',
         'host',
@@ -25,15 +25,15 @@ class S3Client:
 
     def __init__(
             self,
-            storage_connection_parameters: StorageConnectionParameters
+            blob_conn_params: BlobConnParams
     ) -> None:
-        self.storage_connection_parameters = storage_connection_parameters
+        self.blob_conn_params = blob_conn_params
         self._session = requests.Session()
         self._last_refresh_time = time.time()
 
         region_match = re.search(
             r's3\.([^.]+)\.backblazeb2\.com',
-            self.storage_connection_parameters.backblaze_endpoint_url
+            self.blob_conn_params.backblaze_endpoint_url
         )
         if not region_match:
             raise Exception('Region not found in endpoint url')
@@ -98,7 +98,7 @@ class S3Client:
         amz_date = t.strftime('%Y%m%dT%H%M%SZ')
         date_stamp = t.strftime('%Y%m%d')
         method = 'PUT'
-        canonical_uri = f'/{self.storage_connection_parameters.backblaze_bucket_name}/{object_name}'
+        canonical_uri = f'/{self.blob_conn_params.backblaze_bucket_name}/{object_name}'
         canonical_querystring = ""
         payload_hash = hashlib.sha256(payload).hexdigest()
 
@@ -125,14 +125,14 @@ class S3Client:
             f'{hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()}'
         )
         signing_key = self.get_signature_key(
-            self.storage_connection_parameters.backblaze_secret_access_key,
+            self.blob_conn_params.backblaze_secret_access_key,
             date_stamp,
             self.region,
             self.service
         )
         signature = hmac.new(signing_key, string_to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
         authorization_header = (
-            f'{algorithm} Credential={self.storage_connection_parameters.backblaze_access_key_id}/{credential_scope}, '
+            f'{algorithm} Credential={self.blob_conn_params.backblaze_access_key_id}/{credential_scope}, '
             f'SignedHeaders={signed_headers}, Signature={signature}'
         )
         headers = {
@@ -141,7 +141,7 @@ class S3Client:
             'Authorization': authorization_header,
             'Content-Type': content_type,
         }
-        url = self.storage_connection_parameters.backblaze_endpoint_url + canonical_uri
+        url = self.blob_conn_params.backblaze_endpoint_url + canonical_uri
 
         response = None
         try:

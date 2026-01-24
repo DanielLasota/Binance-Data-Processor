@@ -3,17 +3,17 @@ from dataclasses import dataclass
 
 
 @dataclass(slots=True)
-class IntervalSettings:
+class TimeCfg:
     file_duration_seconds: int = 60*5
     snapshot_fetcher_interval_seconds: int = 60
-    websocket_life_time_seconds: int = 60*60*6
+    websocket_lifetime_seconds: int = 60 * 60 * 6
 
     def validate(self):
         if self.file_duration_seconds <= 0:
             raise ValueError("file_duration_seconds must be greater than 0")
         if self.snapshot_fetcher_interval_seconds <= 0:
             raise ValueError("snapshot_fetcher_interval_seconds must be greater than 0")
-        if self.websocket_life_time_seconds <= 0:
+        if self.websocket_lifetime_seconds <= 0:
             raise ValueError("websocket_life_time_seconds must be greater than 0")
 
     def update_interval(

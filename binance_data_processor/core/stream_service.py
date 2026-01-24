@@ -9,7 +9,7 @@ from binance_data_processor.core.queue_pool import ListenerQueuePool, DataSinkQu
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
 from binance_data_processor.core.stream_listener import StreamListener
 from binance_data_processor.core.trade_queue import TradeQueue
-from binance_data_processor.enums.data_sink_config import DataSinkConfig
+from binance_data_processor.enums.data_sink_config import DataSinkCfg
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
@@ -20,8 +20,8 @@ class StreamService:
     __slots__ = [
         'logger',
         'queue_pool',
-        'global_shutdown_flag',
-        'data_sink_config',
+        'stop_flag',
+        'cfg',
         'is_someone_overlapping_right_now_flag',
         'stream_listeners',
         'overlap_lock'
@@ -30,24 +30,24 @@ class StreamService:
     def __init__(
         self,
         queue_pool: DataSinkQueuePool | ListenerQueuePool,
-        global_shutdown_flag: threading.Event,
-        data_sink_config: DataSinkConfig
+        stop_flag: threading.Event,
+        cfg: DataSinkCfg
     ):
         self.logger = logging.getLogger('binance_data_sink')
         self.queue_pool = queue_pool
-        self.data_sink_config = data_sink_config
-        self.global_shutdown_flag = global_shutdown_flag
+        self.cfg = cfg
+        self.stop_flag = stop_flag
         self.is_someone_overlapping_right_now_flag = threading.Event()
         self.stream_listeners: dict[tuple[Market, StreamType, str], StreamListener | None] = {}
         self.overlap_lock: threading.Lock = threading.Lock()
 
     def run(self):
-        for market, instruments in self.data_sink_config.instruments.dict.items():
+        for market, instruments in self.cfg.instruments.dict.items():
             for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
                 asset_parameters = AssetParameters(
                     market=market,
                     stream_type=stream_type,
-                    pairs=self.data_sink_config.instruments.get_pairs(market=market)
+                    pairs=self.cfg.instruments.get_pairs(market=market)
                 )
                 self.start_stream_service(
                     queue=self.queue_pool.get_queue(market, stream_type),
@@ -79,19 +79,16 @@ class StreamService:
         def sleep_with_flag_check(duration) -> None:
             interval = 1
             for _ in range(0, duration, interval):
-                if self.global_shutdown_flag.is_set():
+                if self.stop_flag.is_set():
                     break
                 time.sleep(interval)
 
-        while not self.global_shutdown_flag.is_set():
+        while not self.stop_flag.is_set():
             new_stream_listener = None
             old_stream_listener = None
 
             try:
-                old_stream_listener = StreamListener(
-                    queue=queue,
-                    asset_parameters=asset_parameters
-                )
+                old_stream_listener = StreamListener(queue, asset_parameters)
                 self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'old')] = old_stream_listener
 
                 queue.currently_accepted_stream_id_keys = old_stream_listener.id.id_keys
@@ -99,13 +96,13 @@ class StreamService:
                 old_stream_listener.start_websocket_app()
                 new_stream_listener = None
 
-                while not self.global_shutdown_flag.is_set():
-                    sleep_with_flag_check(self.data_sink_config.time_settings.websocket_life_time_seconds)
+                while not self.stop_flag.is_set():
+                    sleep_with_flag_check(self.cfg.time_cfg.websocket_lifetime_seconds)
 
                     while self.is_someone_overlapping_right_now_flag.is_set():
                         time.sleep(1)
 
-                    if self.global_shutdown_flag.is_set():
+                    if self.stop_flag.is_set():
                         break
 
                     with self.overlap_lock:
@@ -114,24 +111,21 @@ class StreamService:
                         self.logger.info(
                             f'{asset_parameters.market} {asset_parameters.stream_type} {old_stream_listener.id.start_timestamp} started changing ws')
 
-                        new_stream_listener = StreamListener(
-                            queue=queue,
-                            asset_parameters=asset_parameters
-                        )
+                        new_stream_listener = StreamListener(queue, asset_parameters)
 
                         new_stream_listener.start_websocket_app()
 
                         queue.set_switching_websockets_mode()
                         self.stream_listeners[(asset_parameters.market, asset_parameters.stream_type, 'new')] = new_stream_listener
 
-                    while not queue.did_websockets_switch_successfully and not self.global_shutdown_flag.is_set():
+                    while not queue.did_websockets_switch_successfully and not self.stop_flag.is_set():
                         time.sleep(1)
 
                     with self.overlap_lock:
                         self.is_someone_overlapping_right_now_flag.clear()
                     self.logger.info(f"{asset_parameters.market} {asset_parameters.stream_type} {old_stream_listener.id.start_timestamp} overlapped")
 
-                    if not self.global_shutdown_flag.is_set():
+                    if not self.stop_flag.is_set():
                         queue.did_websockets_switch_successfully = False
 
                         old_stream_listener.close_websocket_app()
