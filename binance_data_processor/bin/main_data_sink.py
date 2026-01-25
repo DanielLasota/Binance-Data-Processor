@@ -1,6 +1,6 @@
 import time
 from binance_data_processor import launch_data_sink
-from data_sink_cfg import cfg
+from binance_data_processor.bin.data_sink_cfg import cfg
 
 
 if __name__ == "__main__":
