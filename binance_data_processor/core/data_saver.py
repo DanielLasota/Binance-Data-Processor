@@ -125,6 +125,7 @@ class DataSaver:
         queue: DifferenceDepthQueue | TradeQueue,
         asset_parameters: AssetParameters,
     ) -> None:
+        print(f'data saver: {asset_parameters.market} {asset_parameters.stream_type}')
         thread = threading.Thread(
             target=self._write_stream_to_target,
             args=(queue, asset_parameters),

@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 
+from binance_data_processor.core.data_saver import DataSaver
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.core.queue_pool import DataSinkQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
@@ -54,11 +55,15 @@ class BinanceDataSink:
 
         self._queue_pool = DataSinkQueuePool()
 
+        self._data_saver = DataSaver(self._queue_pool, self.cfg, self.stop_flag)
+
         self._stream_service = StreamService(self._queue_pool, self.stop_flag, self.cfg)
 
     def run(self) -> None:
 
         self._stream_service.run()
+
+        self._data_saver.run()
 
         try:
             self._check_if_there_is_no_huge_library_imported()

@@ -12,24 +12,7 @@ load_dotenv(ENV_PATH)
 cfg = DataSinkCfg(
     instruments={
         'spot': {
-            "BTCUSDT",
-            "ETHUSDT",
-            "BNBUSDT",
-            "SOLUSDT",
-            "XRPUSDT",
-            "DOGEUSDT",
-            "ADAUSDT",
-            "SHIBUSDT",
-            "LTCUSDT",
-            "AVAXUSDT",
-            "TRXUSDT",
-            "DOTUSDT",
-            "BCHUSDT",
-            "SUIUSDT",
-            "PEPEUSDT",
-            "XLMUSDT",
-            "LINKUSDT",
-            "VIRTUALUSDT"
+            "BTCUSDT"
         }
     },
     time_cfg={
