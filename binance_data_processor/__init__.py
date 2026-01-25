@@ -1,5 +1,5 @@
-from binance_data_processor.enums.data_sink_config import DataSinkCfg
-from binance_data_processor.enums.data_sink_config import BlobConnParams
+from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
+from binance_data_processor.enums.data_sink_cfg import BlobConnParams
 from binance_data_processor.data_sink.data_sink_facade import launch_data_sink
 from binance_data_processor.data_sink.data_sink_facade import BinanceDataSink
 from binance_data_processor.listener.listener_facade import launch_data_listener

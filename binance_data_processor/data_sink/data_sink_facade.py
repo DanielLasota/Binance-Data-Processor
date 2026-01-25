@@ -5,7 +5,7 @@ import sys
 import threading
 import time
 
-from binance_data_processor.core.command_line_interface import CommandLineInterface
+from binance_data_processor.core.cli import CommandLineInterface
 from binance_data_processor.core.fastapi_manager import FastAPIManager
 from binance_data_processor.core.data_saver import DataSaver
 from binance_data_processor.core.logo import binance_archiver_logo
@@ -13,7 +13,7 @@ from binance_data_processor.core.queue_pool import DataSinkQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
 from binance_data_processor.core.snapshot_manager import DataSinkSnapshotStrategy, SnapshotService
 from binance_data_processor.core.stream_service import StreamService
-from binance_data_processor.enums.data_sink_config import DataSinkCfg
+from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
 from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
 
 __all__ = [
@@ -21,7 +21,7 @@ __all__ = [
     'BinanceDataSink'
 ]
 
-def launch_data_sink(cfg: DataSinkCfg = None) -> BinanceDataSink:
+def launch_data_sink(cfg: DataSinkCfg) -> BinanceDataSink:
 
     binance_data_sink = BinanceDataSink(cfg)
     binance_data_sink.run()
@@ -56,7 +56,7 @@ class BinanceDataSink:
 
         self.stop_flag = threading.Event()
 
-        self._queue_pool = DataSinkQueuePool()
+        self._queue_pool = DataSinkQueuePool(self.cfg)
 
         self._stream_service = StreamService(self._queue_pool, self.stop_flag, self.cfg)
 

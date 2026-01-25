@@ -15,7 +15,7 @@ from binance_data_processor.core.exceptions import BadStorageConnectionParameter
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
 from binance_data_processor.enums.storage_connection_parameters import BlobConnParams
-from binance_data_processor.enums.data_sink_config import DataSinkCfg
+from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
 from binance_data_processor.utils.file_utils import get_base_of_blob_file_name
 
 
@@ -49,7 +49,7 @@ class DataSaver:
             self._setup_cloud_storage_client()
             self._start_zip_reserve_sender_loop(60*60)
 
-        for (market, stream_type), queue in self.queue_pool.queue_lookup.items():
+        for (market, stream_type), queue in self.queue_pool.queues.items():
 
             asset_parameters = AssetParameters(
                 market=market,
@@ -74,11 +74,11 @@ class DataSaver:
                     break
                 time.sleep(1)
 
-            zip_files = [f for f in os.listdir(self.cfg.file_save_catalog) if f.endswith(".zip")]
+            zip_files = [f for f in os.listdir(self.cfg.save_path) if f.endswith(".zip")]
 
             for zip_file_filename in zip_files:
                 try:
-                    zip_file_path = f'{self.cfg.file_save_catalog}/{zip_file_filename}'
+                    zip_file_path = f'{self.cfg.save_path}/{zip_file_filename}'
                     self.send_existing_file_to_backblaze_bucket(file_path=zip_file_path)
                     os.remove(zip_file_path)
                 except Exception as e:
@@ -183,7 +183,7 @@ class DataSaver:
             try:
                 file_name = get_base_of_blob_file_name(asset_parameters.get_asset_parameter_with_specified_pair(pair))
                 json_payload = '[' + ','.join(messages) + ']'
-                self.save_data(json_payload, self.cfg.file_save_catalog, file_name)
+                self.save_data(json_payload, self.cfg.save_path, file_name)
             except Exception as e:
                 self.logger.info(f"Error whilst saving for: {asset_parameters}: {e}")
 

@@ -11,7 +11,7 @@ from binance_data_processor.core.data_saver import DataSaver
 from binance_data_processor.core.url_factory import URLFactory
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.stream_type_enum import StreamType
-from binance_data_processor.enums.data_sink_config import DataSinkCfg
+from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
 from binance_data_processor.utils.file_utils import get_base_of_blob_file_name
 from binance_data_processor.utils.time_utils import (
     get_utc_timestamp_epoch_milliseconds,
@@ -171,7 +171,7 @@ class SnapshotService:
                 self.snapshot_strategy.handle_snapshot(
                     json_content=snapshot,
                     file_name=file_name,
-                    file_save_catalog=self.cfg.file_save_catalog
+                    file_save_catalog=self.cfg.save_path
                 )
             except Exception as e:
                 self.logger.error(f"Error saving snapshot {file_name}: {e}")

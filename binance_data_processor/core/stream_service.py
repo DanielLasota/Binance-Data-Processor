@@ -9,7 +9,7 @@ from binance_data_processor.core.queue_pool import ListenerQueuePool, DataSinkQu
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
 from binance_data_processor.core.stream_listener import StreamListener
 from binance_data_processor.core.trade_queue import TradeQueue
-from binance_data_processor.enums.data_sink_config import DataSinkCfg
+from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
 from binance_data_processor.enums.asset_parameters import AssetParameters
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType

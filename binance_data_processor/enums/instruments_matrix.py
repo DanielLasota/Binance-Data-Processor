@@ -40,6 +40,5 @@ class InstrumentsMatrix:
     def get_pairs(self, market: Market) -> list[str]:
         return self.dict.get(market, [])
 
-    def is_pair(self, market: Market, instrument: str) -> bool:
-        instruments = self.dict.get(market, [])
-        return instrument in instruments
+    def get_markets(self) -> list:
+        return list(self.dict.keys())
