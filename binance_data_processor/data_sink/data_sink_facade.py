@@ -5,13 +5,9 @@ import sys
 import threading
 import time
 
-from binance_data_processor.core.command_line_interface import CommandLineInterface
-from binance_data_processor.core.fastapi_manager import FastAPIManager
-from binance_data_processor.core.data_saver import DataSaver
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.core.queue_pool import DataSinkQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
-from binance_data_processor.core.snapshot_manager import DataSinkSnapshotStrategy, SnapshotService
 from binance_data_processor.core.stream_service import StreamService
 from binance_data_processor.enums.data_sink_config import DataSinkCfg
 from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
@@ -60,23 +56,9 @@ class BinanceDataSink:
 
         self._stream_service = StreamService(self._queue_pool, self.stop_flag, self.cfg)
 
-        self._data_saver = DataSaver(self._queue_pool, self.cfg, self.stop_flag)
-
-        self._cli = CommandLineInterface(self._stream_service, self.cfg, self.stop)
-
-        self._fastapi = FastAPIManager(self._cli.handle_command)
-
-        self._snapshot_service = SnapshotService(DataSinkSnapshotStrategy(self._data_saver), self.cfg, self.stop_flag)
-
     def run(self) -> None:
 
         self._stream_service.run()
-
-        self._fastapi.run()
-
-        self._data_saver.run()
-
-        self._snapshot_service.run()
 
         try:
             self._check_if_there_is_no_huge_library_imported()

@@ -25,8 +25,8 @@ class QueuePool:
                 market=market,
                 **({"global_queue": self.global_queue} if self.global_queue else {})
             )
-            for market in Market if market is not Market.UNKNOWN
-            for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]
+            for market in [Market.SPOT]
+            for stream_type in [StreamType.TRADE_STREAM]
         }
 
     def get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:

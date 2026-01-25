@@ -30,45 +30,7 @@ cfg = DataSinkCfg(
             "XLMUSDT",
             "LINKUSDT",
             "VIRTUALUSDT"
-        },
-        'usd_m_futures': {
-            "BTCUSDT",
-            "ETHUSDT",
-            "BNBUSDT",
-            "SOLUSDT",
-            "XRPUSDT",
-            "DOGEUSDT",
-            "ADAUSDT",
-            "LTCUSDT",
-            "AVAXUSDT",
-            "TRXUSDT",
-            "DOTUSDT",
-            "BCHUSDT",
-            "SUIUSDT",
-            "1000PEPEUSDT",
-            "XLMUSDT",
-            "LINKUSDT",
-            "HYPEUSDT",
-            "1000SHIBUSDT",
-            "VIRTUALUSDT"
-        },
-        'coin_m_futures': {
-            "BTCUSD_PERP",
-            "ETHUSD_PERP",
-            "BNBUSD_PERP",
-            "SOLUSD_PERP",
-            "XRPUSD_PERP",
-            "DOGEUSD_PERP",
-            "ADAUSD_PERP",
-            "LTCUSD_PERP",
-            "AVAXUSD_PERP",
-            "TRXUSD_PERP",
-            "DOTUSD_PERP",
-            "BCHUSD_PERP",
-            "SUIUSD_PERP",
-            "LINKUSD_PERP",
-            "XLMUSD_PERP"
-        },
+        }
     },
     time_cfg={
         "file_duration_seconds": 180,
@@ -77,5 +39,4 @@ cfg = DataSinkCfg(
     },
     data_save_target='backblaze',
     blob_conn_params=BlobConnParams(),
-
 )

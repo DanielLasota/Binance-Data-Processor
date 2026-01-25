@@ -41,8 +41,9 @@ class ContinuousListeningStrategy(PutTradeMessageStrategy):
                 return
 
             if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
-                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.context.queue.put(message_with_timestamp_of_receive)
+                ...
+                # message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
+                # self.context.queue.put(message_with_timestamp_of_receive)
             else:
                 self.context.new_stream_listener_id_keys = stream_listener_id_keys
 
@@ -67,8 +68,9 @@ class SwitchingWebsocketsStrategy(PutTradeMessageStrategy):
                 return
 
             if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
-                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.context.queue.put(message_with_timestamp_of_receive)
+                ...
+                # message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
+                # self.context.queue.put(message_with_timestamp_of_receive)
             else:
                 self.context.new_stream_listener_id_keys = stream_listener_id_keys
 

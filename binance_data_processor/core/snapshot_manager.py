@@ -90,7 +90,7 @@ class SnapshotService:
         stop_flag: threading.Event
     ):
         self.logger = logging.getLogger('binance_data_sink')
-        self.snapshot_strategy = snapshot_strategy
+        self.snapshot_strategy = snapshot_strategy #todo: change to c++ style
         self.cfg = cfg
         self.stop_flag = stop_flag
         self._session = requests.Session()

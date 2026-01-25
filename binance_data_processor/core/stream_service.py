@@ -43,7 +43,7 @@ class StreamService:
 
     def run(self):
         for market, instruments in self.cfg.instruments.dict.items():
-            for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]:
+            for stream_type in [StreamType.TRADE_STREAM]:
                 asset_parameters = AssetParameters(
                     market=market,
                     stream_type=stream_type,
