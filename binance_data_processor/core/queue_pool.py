@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from queue import Queue
 
+from binance_data_processor import DataSinkCfg
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
 from binance_data_processor.core.trade_queue import TradeQueue
 from binance_data_processor.enums.market_enum import Market
@@ -10,14 +11,16 @@ from binance_data_processor.enums.stream_type_enum import StreamType
 
 class QueuePool:
     __slots__ = [
+        'cfg',
         'global_queue',
-        'queue_lookup'
+        'queues'
     ]
 
-    def __init__(self, global_queue: Queue | None = None):
+    def __init__(self, cfg: DataSinkCfg, global_queue: Queue | None = None):
+        self.cfg = cfg
         self.global_queue = global_queue
 
-        self.queue_lookup: dict[tuple[Market, StreamType], DifferenceDepthQueue | TradeQueue] = {
+        self.queues: dict[tuple[Market, StreamType], DifferenceDepthQueue | TradeQueue] = {
             (market, stream_type): (
                 DifferenceDepthQueue if stream_type == StreamType.DIFFERENCE_DEPTH_STREAM
                 else TradeQueue
@@ -30,14 +33,14 @@ class QueuePool:
         }
 
     def get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
-        return self.queue_lookup.get((market, stream_type))
+        return self.queues.get((market, stream_type))
 
 
 class ListenerQueuePool(QueuePool):
-    def __init__(self):
-        super().__init__(global_queue=Queue())
+    def __init__(self, cfg: DataSinkCfg):
+        super().__init__(cfg, global_queue=Queue())
 
 
 class DataSinkQueuePool(QueuePool):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, cfg: DataSinkCfg):
+        super().__init__(cfg)

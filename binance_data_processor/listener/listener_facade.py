@@ -11,7 +11,7 @@ from binance_data_processor.core.setup_logger import setup_logger
 from binance_data_processor.core.abstract_base_classes import Subject, Observer
 from binance_data_processor.core.snapshot_manager import ListenerDepthSnapshotStrategy, SnapshotService
 from binance_data_processor.core.stream_service import StreamService
-from binance_data_processor.enums.data_sink_config import DataSinkCfg
+from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
 
 __all__ = [
     'launch_data_listener',
@@ -20,7 +20,7 @@ __all__ = [
 
 
 def launch_data_listener(
-        cfg: DataSinkCfg = DataSinkCfg(),
+        cfg: DataSinkCfg,
         observers: list[object] = None
 ) -> BinanceDataListener:
 
@@ -95,7 +95,7 @@ class BinanceDataListener(Subject):
 
         self._whistleblower.run()
 
-        while not any(queue_.qsize() != 0 for queue_ in self._queue_pool.queue_lookup.values()):
+        while not any(queue_.qsize() != 0 for queue_ in self._queue_pool.queues.values()):
             time.sleep(0.001)
 
         time.sleep(5)
