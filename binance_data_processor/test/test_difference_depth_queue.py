@@ -1,13 +1,22 @@
-import queue
 import time
 from collections import deque
 import json
 from queue import Queue
+from unittest.mock import Mock
 import pytest
 
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue, SwitchingWsStrategy
 from binance_data_processor.core.difference_depth_queue import ClassInstancesAmountLimitException
 from binance_data_processor.enums.market_enum import Market
+from binance_data_processor.core.shared_ring_buffer import SharedRingBuffer
+
+
+@pytest.fixture(autouse=True)
+def isolate_queue(monkeypatch):
+    # Avoid shared-memory collisions and reset the instance count even if a test fails.
+    monkeypatch.setattr(SharedRingBuffer, "create", Mock(return_value=Mock(spec=SharedRingBuffer)))
+    yield
+    DifferenceDepthQueue.clear_instances()
 
 
 def format_pretty_msg_to_binance_str_format(msg: str) -> str:
@@ -593,6 +602,7 @@ class TestDifferenceDepthQueue:
         }
 
         ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
         old_client_id = False
         new_client_id = True
@@ -866,12 +876,13 @@ class TestDifferenceDepthQueue:
 
         assert ddq.accepted_cid == old_client_id
 
-        ddq_content_list = [ddq.get_nowait() for _ in range(4)]
+        ddq_content_list = [ddq.get_nowait() for _ in range(3)]
 
         assert ddq_content_list[0] == add_field_to_json_msg(_old_listener_message_1, "_E", test_ts)
         assert ddq_content_list[1] == add_field_to_json_msg(_old_listener_message_2, "_E", test_ts)
         assert ddq_content_list[2] == add_field_to_json_msg(_old_listener_message_3, "_E", test_ts)
-        assert ddq_content_list[3] is None
+        with pytest.raises(IndexError):
+            ddq.get_nowait()
 
         assert add_field_to_json_msg(_new_listener_message_1, "_E", test_ts) not in ddq_content_list
         assert add_field_to_json_msg(_new_listener_message_2, "_E", test_ts) not in ddq_content_list
@@ -1166,7 +1177,9 @@ class TestDifferenceDepthQueue:
             ts=mocked_timestamp_of_receive
         )
 
-        ddq_content_list = [ddq.get_nowait() for _ in range(4)]
+        ddq_content_list = [ddq.get_nowait() for _ in range(3)]
+        with pytest.raises(IndexError):
+            ddq.get_nowait()
 
         assert ddq.accepted_cid == new_client_id
 
@@ -1174,7 +1187,6 @@ class TestDifferenceDepthQueue:
             add_field_to_json_msg(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
             add_field_to_json_msg(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
             add_field_to_json_msg(_old_listener_message_3, "_E", mocked_timestamp_of_receive),
-            None
         ]
 
         assert ddq_content_list == expected_list
@@ -1182,17 +1194,15 @@ class TestDifferenceDepthQueue:
         ddq.close()
         DifferenceDepthQueue.clear_instances()
 
-    # todo: whole section after DataSink Listener Mode impl
     # DataSink Listener Mode
     #
-    def test_given_data_listener_mode_and_global_queue_when_initializing_difference_depth_queue_then_queue_is_set_to_global_queue(self):
+    def test_given_global_queue_when_initializing_difference_depth_queue_then_srb_is_set_to_global_queue(self):
         global_queue = Queue()
         ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
-        assert ddq.queue is global_queue
+        assert ddq.srb is global_queue
         DifferenceDepthQueue.clear_instances()
 
-    @pytest.mark.skip
-    def test_given_msg_in_data_continuous_listening_mode_when_put_msg_then_msg_is_added_to_global_queue(self):
+    def test_given_msg_and_global_queue_when_put_msg_then_msg_is_added_to_local_queue(self):
         global_queue = Queue()
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
         client_id = False
@@ -1213,14 +1223,14 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_pretty_msg_to_binance_str_format(message)
         ts = 1234567890
-        difference_depth_queue.put(client_id, formatted_message, ts)
-        assert not global_queue.empty()
-        queued_message = global_queue.get_nowait()
+        difference_depth_queue.put(cid=client_id, msg=formatted_message, ts=ts)
+        assert not difference_depth_queue.empty()
+        assert global_queue.empty()
+        queued_message = difference_depth_queue.get_nowait()
         assert queued_message == add_field_to_json_msg(formatted_message, "_E", ts)
         DifferenceDepthQueue.clear_instances()
 
-    @pytest.mark.skip
-    def test_given_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
+    def test_given_messages_and_global_queue_when_using_queue_operations_then_operations_reflect_local_queue_state(self):
         global_queue = Queue()
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
         stream_listener_id = False
@@ -1242,7 +1252,8 @@ class TestDifferenceDepthQueue:
         '''
         formatted_message = format_pretty_msg_to_binance_str_format(msg)
         ts = 1234567890
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(formatted_message, stream_listener_id, ts)
+        difference_depth_queue.set_switching_ws_mode()
+        difference_depth_queue.put(cid=stream_listener_id, msg=formatted_message, ts=ts)
         assert difference_depth_queue.qsize() == 1
         assert not difference_depth_queue.empty()
         queued_message = difference_depth_queue.get_nowait()
@@ -1250,12 +1261,11 @@ class TestDifferenceDepthQueue:
         assert difference_depth_queue.empty()
         DifferenceDepthQueue.clear_instances()
 
-    @pytest.mark.skip
-    def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
+    def test_given_empty_local_queue_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
         global_queue = Queue()
         difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
         assert difference_depth_queue.empty()
-        with pytest.raises(queue.Empty):
+        with pytest.raises(IndexError):
             difference_depth_queue.get_nowait()
         DifferenceDepthQueue.clear_instances()
 
@@ -5249,7 +5259,7 @@ class TestDifferenceDepthQueue:
         ddq.put(cid=third_client_id, msg=_third_listener_message_5, ts=mocked_timestamp_of_receive)
         ddq.put(cid=third_client_id, msg=_third_listener_message_6, ts=mocked_timestamp_of_receive)
 
-        ddq.clear()
+        ddq.queue.clear()
 
         assert ddq.qsize() == 0
         ddq.close()
@@ -5824,7 +5834,7 @@ class TestDifferenceDepthQueue:
         while ddq.qsize() > 0:
             ddq_content.append(ddq.get())
 
-        ddq.clear()
+        ddq.queue.clear()
 
         assert ddq.qsize() == 0
         assert ddq.empty() is True
@@ -5832,7 +5842,6 @@ class TestDifferenceDepthQueue:
         ddq.close()
         DifferenceDepthQueue.clear_instances()
 
-    @pytest.mark.skip
     def test_checking_size_when_method_invocation_then_result_is_ok(self):
         cfg = {
             "instruments": {
@@ -6394,7 +6403,8 @@ class TestDifferenceDepthQueue:
             ts=mocked_timestamp_of_receive
         )
 
-        # assert ddq.qsize() == 6
+        assert ddq.qsize() == 6
+        ddq.close()
         ddq.clear_instances()
 
     # benchmark
@@ -6648,6 +6658,7 @@ class TestDifferenceDepthQueue:
 
         for _ in range(number_of_runs):
             ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+            ddq.set_switching_ws_mode()
 
             old_client_id = False
             new_client_id = True
@@ -6666,6 +6677,9 @@ class TestDifferenceDepthQueue:
             ddq.put(cid=new_client_id, msg=_new_listener_message_3, ts=mocked_timestamp_of_receive)
 
             end_time = time.perf_counter()
+
+            assert ddq.accepted_cid == new_client_id
+            assert ddq.qsize() == 3
 
             execution_time = end_time - start_time
             total_execution_time += execution_time

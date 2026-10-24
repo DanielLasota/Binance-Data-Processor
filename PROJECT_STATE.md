@@ -150,10 +150,12 @@ Status „częściowo wykonane” oznacza potwierdzony postęp i nadal otwarte k
 - Merger liczy raporty **przed** `_drop_non_standard_x_and_m_unknown_parameters`, redukcją kolumn i `to_int`. Potem zapisuje ten sam raport nad innym dataframe. Shape/liczba wierszy i zakres sprawdzeń nie odpowiadają bezpośrednio eksportowi.
 - Gotowe: raport rozróżnia wejście i eksport albo końcowy zbiór jest walidowany ponownie; liczby usuniętych rekordów i schemat finalny są czytelne. Sprawdzić obsługę `'NA'`/NaN z pandas i puste wyniki filtrowania M/X.
 
-### P1-10 — urealnić testy kolejek i zagwarantować cleanup
+### P1-10 — urealnić testy kolejek i zagwarantować cleanup — częściowo wykonane
 
-- Ostatni pełny przebieg z 2026-10-10 nie przeszedł; 2026-10-24 wykonano tylko kolekcję całego zestawu i testy quality. Aktualny odczyt nadal potwierdza niezgodne założenia testów: m.in. `queue is global_queue`, pusty odczyt jako None lub `queue.Empty`, metodę `DifferenceDepthQueue.clear`, a część stare sygnatury `put` i usunięte metody.
-- Cleanup jest na końcu testu, więc nie wykonuje się po błędzie. `_instances` i stałe nazwy SRB powodują kaskadę błędów; `clear_instances()` nie zwalnia segmentów. Pominięty test rozmiaru depth nie zamyka instancji. Cztery testy są pominięte, wszystkie w depth: trzy listenera i jeden rozmiaru kolejki.
+- **Naprawa 2026-10-24 po audycie:** zachowano istniejące scenariusze, literalne wiadomości i styl asercji. Poprawiono argumenty `put`, pusty odczyt (`IndexError`), czyszczenie depth przez `queue.clear()` i przypisanie `global_queue` do `srb`. Dawne testy listenera opisują teraz lokalny bufor wyjściowy kolejki; nie dowodzą integracji observera.
+- Włączono cztery pominięte testy depth, przywrócono asercję rozmiaru i zamknięcie kolejki. Test niedopasowanych sekwencji oraz benchmark jawnie włączają tryb przełączania WS; benchmark sprawdza także zmianę cid i liczbę zaakceptowanych wiadomości. Kod produkcyjny kolejek pozostał bez zmian.
+- **Testy lokalne:** obie kolejki **45 passed**, cały zestaw uruchomiony w odwrotnej kolejności **176 passed**; szczegóły środowiska i ograniczenia w dodatku naprawy poniżej. Historyczne niepowodzenia z 2026-10-10 pozostają zapisem wcześniejszego stanu.
+- **Pozostało:** osobne testy rzeczywistego transportu, cleanup zasobów OS i integracji listenera. Benchmark pozostaje w dotychczasowym pliku zgodnie z zakresem tej naprawy; nie jest pomiarem wydajności produkcyjnego pipeline.
 - Gotowe: kontrakt odczytu/observera uzgodniony, fixtures mają `yield/finally`, nazwy zasobów są izolowane, testy przechodzą pojedynczo i w zestawie w dowolnej kolejności. Pomiary benchmarkowe oddzielone od testów poprawności.
 
 ### P1-11 — naprawić instalację i obraz kontenera
@@ -287,6 +289,23 @@ Kolejne naprawy powinny dopisać wynik konkretnej weryfikacji i odpowiednio zakt
 - Skrócono `AGENTS.md` do zasad pracy i walidacji. Dodano `MAP.md` z nawigacją według zadania, aktywnymi i odłączonymi ścieżkami oraz kontraktami przeniesionymi z instrukcji. Opis online uzgodniono z aktualnie odczytanym kodem; usunięto nieaktualne twierdzenia o braku zapisu i odłączonych depth/snapshot/retry.
 - Szczegółowy opis przepływu przeniesiono z tego dokumentu do mapy. Zachowano backlog, kryteria akceptacji, wyniki i ograniczenia wcześniejszych prób; opis zegarów pozostaje historyczny.
 - Zakres tej reorganizacji: tylko `AGENTS.md`, `MAP.md`, `PROJECT_STATE.md`. Odczytano źródła, bez uruchamiania sinka, testów runtime, sieci ani zmiany kodu. Wyniki testów powyżej pochodzą z wcześniejszego audytu, nie z reorganizacji dokumentacji.
+
+## Naprawa testów kolejek 2026-10-24
+
+- Zakres: `test/test_difference_depth_queue.py`, `test/test_trade_queue.py` i ten dokument. Zachowano istniejące dane testowe i prosty styl testów; bez zmian w implementacji kolejek i kryteriach overlap.
+- **Statycznie:** AST obu plików poprawne; import pakietu w świeżym interpreterze działa bez pandas/numpy/alive_progress; `git diff --check` bez błędów.
+- **Lokalnie:** Windows, CPython 3.11.4, pytest 9.0.2. Oba pliki kolejek: **45 passed in 0.26 s**, bez skip/xfail. Pełny zestaw z odwróconą kolejnością wszystkich testów: **176 passed in 1.21 s**. Uruchomienia z `-B`, `-p no:cacheprovider`.
+- Komenda kolejek z root: `.venv/Scripts/python.exe -X utf8 -B -m pytest binance_data_processor/test/test_difference_depth_queue.py binance_data_processor/test/test_trade_queue.py -q -p no:cacheprovider --tb=short`. Pełny zestaw z `binance_data_processor/test`, root dodany do `sys.path`; jednorazowy plugin `pytest_collection_modifyitems` wykonał `items.reverse()` przed uruchomieniem.
+- **Izolacja i ograniczenia:** testy wywołują domenowe `put` bezpośrednio, omijając przesył przez SRB. Po potwierdzeniu użytkownika 2026-10-24 przywrócono w obu plikach krótki fixture z komentarzem po angielsku: mockuje tworzenie SRB i czyści `_instances` również po nieudanej asercji. Testy nie tworzą segmentów pamięci współdzielonej; nie sprawdzają rzeczywistego transportu ani jego cleanup. Ponowny przebieg obu plików powyższą komendą: **45 passed in 0.24 s**, bez skip/xfail; pełnego zestawu ponownie nie uruchamiano. Pierwszy przebieg przed naprawą asercji, z izolacją obu klas, dał 32 passed / 9 failed / 4 skipped, bez kaskady limitu instancji.
+- **Integracja sieciowa:** nie uruchamiano Binance, Backblaze ani sinka. Zielony wynik potwierdza istniejące scenariusze kolejek, nie integrację listenera, transport między procesami ani pełny handshake rotacji WS. Zmiana dawnych testów listenera na testy lokalnej deque odzwierciedla aktualny przepływ; P1-02 pozostaje otwarte.
+
+## Naprawa ścieżek CSV w testach quality 2026-10-24
+
+- Przyczyna: `TestIndividualColumnCheckerQuantitativeEdition` otwierała `test_csvs/...` względem CWD. Przed zmianą uruchomienie z root kończyło się `FileNotFoundError`, a z katalogu testów przechodziło 55 testów.
+- W `test/test_data_quality_checker.py` dodano `TEST_CSVS_DIR = Path(__file__).resolve().parent / "test_csvs"` i użyto go w 59 odczytach CSV. Dane, asercje i kod produkcyjny pozostały bez zmian. Zaktualizowano instrukcję uruchamiania w `AGENTS.md`.
+- **Walidacja lokalna:** Windows, istniejąca `.venv` (CPython 3.11.4, pytest 9.0.2), `-B`, `-p no:cacheprovider`. Z root: `.venv/Scripts/python.exe -X utf8 -B -m pytest binance_data_processor/test/test_data_quality_checker.py -q -p no:cacheprovider --tb=short` → **131 passed in 1.86 s**. Z `binance_data_processor/test`, root w `sys.path`, ta sama klasa quantitative → **55 passed in 1.74 s**.
+- Równoległy zapis pliku cofnął pierwszą poprawkę ścieżek. Ponownie nałożono ją na aktualną wersję; końcowy przebieg całego pliku z root: **131 passed in 1.19 s**.
+- **Kontrola statyczna:** diff zawiera zmianę podstawy ścieżek, bez zmiany scenariuszy; `git diff --check` bez błędów. **Integracja sieciowa:** nie uruchamiano; testy korzystają z lokalnych CSV, bez mockowania odczytu plików.
 
 ## Historia wcześniejszych audytów
 

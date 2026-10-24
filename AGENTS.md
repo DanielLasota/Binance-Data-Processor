@@ -40,7 +40,7 @@ Kod jest źródłem prawdy. Po zmianie aktualizuj właściwy dokument: zależno�
 
 ## Walidacja po zmianie
 
-Testy fixture czytają `test_csvs/...` względem CWD. Przykład dla quality, z root, bez bytecode i cache pytest:
+Testy quality wyznaczają katalog `test_csvs` względem `__file__`, niezależnie od CWD. Poniższy przykład z root nadal działa, bez bytecode i cache pytest; można też użyć `.venv/Scripts/python.exe -X utf8 -B -m pytest binance_data_processor/test/test_data_quality_checker.py -q -p no:cacheprovider` bez zmiany katalogu:
 
 ```powershell
 Push-Location binance_data_processor/test

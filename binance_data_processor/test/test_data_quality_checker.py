@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 import pandas as pd
 
 from binance_data_processor.enums.asset_params import AssetParams
@@ -6,6 +7,9 @@ from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.enums.time_unit import TimeUnit
 from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker
+
+
+TEST_CSVS_DIR = Path(__file__).resolve().parent / "test_csvs"
 
 
 class TestIndividualColumnChecker:
@@ -1030,74 +1034,74 @@ class TestIndividualColumnChecker:
 class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_given_more_than_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Stream'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Stream'])
         result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=df['Stream'], expected_value='trxusd_perp@depth@100ms')
         assert result_of_check == True
 
     def test_given_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
 
         result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=df['Symbol'], expected_value='btcusdt@depth@100ms')
         assert result_of_check == False
 
     def test_given_pandas_series_with_non_descending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_true_is_being_returned(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
 
         result_of_check = IndividualColumnChecker.is_series_non_decreasing(series=df['EventTime'])
         assert result_of_check == True
 
     def test_given_pandas_series_with_non_ascending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_false_is_being_returned(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
         result_of_check = IndividualColumnChecker.is_series_non_decreasing(series=df['EventTime'])
         assert result_of_check == False
 
 ##### is_whole_series_epoch_valid
 
     def test_is_whole_series_epoch_milliseconds_valid_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
         result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=df['EventTime'])
         assert result_of_check == True
 
     def test_is_whole_series_epoch_microseconds_valid_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime'])
         series_us = df['EventTime']
         result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=series_us)
         assert result_of_check == True
 
     def test_is_whole_series_epoch_milliseconds_valid_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TransactionTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TransactionTime'])
         result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=df['TransactionTime'])
         assert result_of_check == False
 
     def test_is_whole_series_epoch_microseconds_valid_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime'])
         result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=df['EventTime'])
         assert result_of_check == False
 
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_milliseconds_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
         assert result_of_check == False
 
     def test_are_all_within_utc_z_day_range_microseconds_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_microseconds_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
         assert result_of_check == False
 
     ##### is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms
 
     def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
@@ -1109,7 +1113,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == True
 
     def test_are_event_times_close_to_receive_times_positive_microseconds(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
 
         result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
@@ -1122,7 +1126,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == True
 
     def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
@@ -1134,7 +1138,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == False
 
     def test_are_event_times_close_to_receive_times_negative_microseconds(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
         result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
             timestamp_of_receive_column=df['TimestampOfReceive'],
             event_time_column=df['EventTime'],
@@ -1149,7 +1153,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_milliseconds(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
         result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
@@ -1162,7 +1166,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_microseconds(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
         result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
@@ -1175,7 +1179,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_milliseconds(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
         result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
@@ -1187,7 +1191,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in milliseconds"
 
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
         result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
@@ -1200,7 +1204,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_microseconds(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
         result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
@@ -1212,7 +1216,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
 
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_trade_stream_spot_trxusdt_04-03-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_trade_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
         result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
@@ -1227,7 +1231,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     """Next 2 test needs to consider futures"""
 
     def test_is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['FirstUpdateId', 'FinalUpdateId'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['FirstUpdateId', 'FinalUpdateId'])
         result_of_check = IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(
             first_update_id=df['FirstUpdateId'],
             final_update_id=df['FinalUpdateId']
@@ -1235,7 +1239,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == True
 
     def test_is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['FirstUpdateId', 'FinalUpdateId'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['FirstUpdateId', 'FinalUpdateId'])
         result_of_check = IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(
             first_update_id=df['FirstUpdateId'],
             final_update_id=df['FinalUpdateId']
@@ -1245,7 +1249,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     #### is_each_current_entry_final_update_id_in_last_stream_equal_to_final_update_from_previous_entry
 
     def test_is_each_current_entry_final_update_id_in_last_stream_equal_to_final_update_from_previous_entry_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['FinalUpdateId', 'FinalUpdateIdInLastStream'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['FinalUpdateId', 'FinalUpdateIdInLastStream'])
         result_of_check = IndividualColumnChecker.is_final_update_id_equal_to_previous_entry_final_update(
             final_update_id=df['FinalUpdateId'],
             final_update_id_in_last_stream=df['FinalUpdateIdInLastStream']
@@ -1253,7 +1257,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == True
 
     def test_is_each_current_entry_final_update_id_in_last_stream_equal_to_final_update_from_previous_entry_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['FinalUpdateId', 'FinalUpdateIdInLastStream'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['FinalUpdateId', 'FinalUpdateIdInLastStream'])
         result_of_check = IndividualColumnChecker.is_final_update_id_equal_to_previous_entry_final_update(
             final_update_id=df['FinalUpdateId'],
             final_update_id_in_last_stream=df['FinalUpdateIdInLastStream']
@@ -1261,7 +1265,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result_of_check == False
 
     def test_is_each_current_entry_final_update_id_in_last_stream_equal_to_final_update_from_previous_entry_negative_because_of_deltas_came_mixed(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['FinalUpdateId', 'FinalUpdateIdInLastStream'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['FinalUpdateId', 'FinalUpdateIdInLastStream'])
         result_of_check = IndividualColumnChecker.is_final_update_id_equal_to_previous_entry_final_update(
             final_update_id=df['FinalUpdateId'],
             final_update_id_in_last_stream=df['FinalUpdateIdInLastStream']
@@ -1271,44 +1275,44 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     #### are_values_with_specified_type
 
     def test_are_values_with_specified_type_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
         result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['EventTime'], expected_type=int)
         assert result_of_check == True
 
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
         result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['Symbol'], expected_type=str)
         assert result_of_check == True
 
     def test_are_values_with_specified_type_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
         result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['EventTime'], expected_type=float)
         assert result_of_check == False
 
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
         result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['Symbol'], expected_type=int)
         assert result_of_check == False
 
     #### are_values_positive
 
     def test_are_values_positive_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
         result_of_check = IndividualColumnChecker.is_series_of_positive_values(series=df['EventTime'])
         assert result_of_check == True
 
     def test_are_values_positive_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Quantity'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Quantity'])
         result_of_check = IndividualColumnChecker.is_series_of_positive_values(series=df['Quantity'])
         assert result_of_check == False
 
     ##### is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values
 
     def test_are_values_within_reasonable_range_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
         result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == True
 
     def test_are_values_within_reasonable_range_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
         result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == False
 
@@ -1316,48 +1320,48 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
 
     def test_is_series_range_reasonable_greater_than_min_less_than_max_values_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
         result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == True
 
     def test_is_series_range_reasonable_greater_than_min_less_than_max_values_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['Price'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['Price'])
         result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
         assert result_of_check == False
 
     #### is_there_no_abnormal_price_tick_higher_than_2_percent
 
     def test_is_there_no_abnormal_price_tick_higher_than_2_percent_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
         result_of_check = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(series=df['Price'])
         assert result_of_check == True
 
     def test_is_there_no_abnormal_price_tick_higher_than_2_percent_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
         result_of_check = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(series=df['Price'])
         assert result_of_check == False
 
     #### are_values_zero_or_one
 
     def test_are_values_zero_or_one_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['IsAsk'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['IsAsk'])
         result_of_check = IndividualColumnChecker.is_series_of_zero_or_one_only(series=df['IsAsk'])
         assert result_of_check == True
 
     def test_are_values_zero_or_one_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['IsAsk'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['IsAsk'])
         result_of_check = IndividualColumnChecker.is_series_of_zero_or_one_only(series=df['IsAsk'])
         assert result_of_check == False
 
     #### is_each_trade_id_bigger_by_one_than_previous
 
     def test_is_each_trade_id_bigger_by_one_than_previous_positive(self):
-        df = pd.read_csv('test_csvs/test_positive_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TradeId'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TradeId'])
         result_of_check = IndividualColumnChecker.is_each_series_value_bigger_by_one_than_previous(series=df['TradeId'])
         assert result_of_check == True
 
     def test_is_each_trade_id_bigger_by_one_than_previous_negative(self):
-        df = pd.read_csv('test_csvs/test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TradeId'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TradeId'])
         result_of_check = IndividualColumnChecker.is_each_series_value_bigger_by_one_than_previous(series=df['TradeId'])
         assert result_of_check == False
 
@@ -1365,7 +1369,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_positive(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
@@ -1384,7 +1388,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_negative_exceeds_limit(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
@@ -1403,7 +1407,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_accurate_to_market_raises_exception_for_wrong_stream_type(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
@@ -1428,7 +1432,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_in_specified_range_positive(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
@@ -1448,7 +1452,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_in_specified_range_negative_exceeds_limit(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
@@ -1468,7 +1472,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_each_snapshot_price_level_amount_in_specified_range_raises_exception_for_wrong_stream_type(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
@@ -1493,7 +1497,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_islast_column_valid_for_merged_positive(self):
         df = pd.read_csv(
-            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv',
+            TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv',
             usecols=['StreamType', 'Market', 'Symbol', 'FinalUpdateId', 'LastUpdateId', 'IsLast'],
             comment='#'
         )
@@ -1502,7 +1506,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_islast_column_valid_for_merged_negative(self):
         df = pd.read_csv(
-            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv',
+            TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv',
             usecols=['StreamType', 'Market', 'Symbol', 'FinalUpdateId', 'LastUpdateId', 'IsLast'],
             comment='#'
         )
@@ -1511,7 +1515,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_snapshot_injection_valid_for_merged_positive_csv(self):
         df = pd.read_csv(
-            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv',
+            TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv',
             usecols=[
                 'StreamType',
                 'Market',
@@ -1528,7 +1532,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_snapshot_injection_valid_for_merged_negative_csv(self):
         df = pd.read_csv(
-            'test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv',
+            TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv',
             usecols=[
                 'StreamType',
                 'Market',
@@ -1546,7 +1550,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     #### is_series_within_n_seconds_before_utc_date_end
 
     def test_is_series_within_60_seconds_before_utc_date_end_positive_microseconds(self):
-        df = pd.read_csv('test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
         result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
             series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
             date="13-04-2025",
@@ -1556,7 +1560,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         assert result == True
 
     def test_is_series_within_60_seconds_before_utc_date_end_negative_microseconds(self):
-        df = pd.read_csv('test_csvs/merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
+        df = pd.read_csv(TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
 
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
             series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
@@ -1569,7 +1573,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_positive_milliseconds_csv(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['TimestampOfReceive'],
             comment='#'
         )
@@ -1583,7 +1587,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_negative_milliseconds_csv(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['TimestampOfReceive'],
             comment='#'
         )
@@ -1599,7 +1603,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_positive_milliseconds_csv(self):
         df = pd.read_csv(
-            'test_csvs/test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_positive_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['TimestampOfReceive'],
             comment='#'
         )
@@ -1613,7 +1617,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_negative_milliseconds_csv(self):
         df = pd.read_csv(
-            'test_csvs/test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
+            TEST_CSVS_DIR / 'test_negative_binance_depth_snapshot_spot_btcusdt_14-04-2025.csv',
             usecols=['TimestampOfReceive'],
             comment='#'
         )

@@ -1,10 +1,19 @@
-import queue
 import json
 from queue import Queue
+from unittest.mock import Mock
 import pytest
 
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.core.trade_queue import TradeQueue, ClassInstancesAmountLimitException, SwitchingWsStrategy
+from binance_data_processor.core.shared_ring_buffer import SharedRingBuffer
+
+
+@pytest.fixture(autouse=True)
+def isolate_queue(monkeypatch):
+    # Avoid shared-memory collisions and reset the instance count even if a test fails.
+    monkeypatch.setattr(SharedRingBuffer, "create", Mock(return_value=Mock(spec=SharedRingBuffer)))
+    yield
+    TradeQueue.clear_instances()
 
 
 def format_pretty_msg_to_binance_str_format(msg: str) -> str:
@@ -116,16 +125,16 @@ class TestTradeQueue:
         for _ in [x, y, z]: _.close()
         TradeQueue.clear_instances()
 
-    # run_mode tests
+    # Custom transport and local queue operations
     #
-    def test_given_data_listener_mode_and_global_queue_when_initializing_trade_queue_then_queue_is_set_to_global_queue(self):
+    def test_given_global_queue_when_initializing_trade_queue_then_srb_is_set_to_global_queue(self):
         global_queue = Queue()
         tq = TradeQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
-        assert tq.queue is global_queue
+        assert tq.srb is global_queue
 
         TradeQueue.clear_instances()
 
-    def test_given_trade_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
+    def test_given_trade_message_and_global_queue_when_putting_message_then_message_is_added_to_local_queue(self):
         global_queue = Queue()
         tq = TradeQueue(Market.SPOT, pairs_n=3, global_queue=global_queue)
         client_id = False
@@ -150,13 +159,14 @@ class TestTradeQueue:
         test_ts = 1234567890
         tq.put(cid=client_id, msg=msg, ts=test_ts)
 
-        assert not global_queue.empty()
-        msg_from_q = global_queue.get_nowait()
+        assert not tq.empty()
+        assert global_queue.empty()
+        msg_from_q = tq.get_nowait()
         assert msg_from_q == add_field_to_json(msg, "_E", test_ts)
 
         TradeQueue.clear_instances()
 
-    def test_given_trade_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
+    def test_given_trade_messages_and_global_queue_when_using_queue_operations_then_operations_reflect_local_queue_state(self):
         global_queue = Queue()
         tq = TradeQueue(market=Market.SPOT, pairs_n=3, global_queue=global_queue)
         client_id = False
@@ -177,7 +187,7 @@ class TestTradeQueue:
         }
         ''')
         timestamp_of_receive = 1234567890
-        tq.put(client_id, msg, timestamp_of_receive)
+        tq.put(cid=client_id, msg=msg, ts=timestamp_of_receive)
 
         assert tq.qsize() == 1
         assert not tq.empty()
@@ -187,11 +197,11 @@ class TestTradeQueue:
 
         TradeQueue.clear_instances()
 
-    def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
+    def test_given_empty_local_queue_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
         global_queue = Queue()
         tq = TradeQueue(market=Market.SPOT, pairs_n=3, global_queue=global_queue)
         assert tq.empty()
-        with pytest.raises(queue.Empty):
+        with pytest.raises(IndexError):
             tq.get_nowait()
 
         TradeQueue.clear_instances()
