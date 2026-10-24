@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.asset_params import AssetParams
 from binance_data_processor.enums.data_quality_report_status_enum import DataQualityReportStatus
 
 
@@ -17,7 +17,7 @@ class DataQualityReport:
 
     def __init__(
             self,
-            asset_parameters: list[AssetParameters] | AssetParameters,
+            asset_parameters: list[AssetParams] | AssetParams,
             df_shape: list[int]
     ):
         self.tests_results_register: {str, {str, bool | str}} = {}

@@ -8,7 +8,7 @@ from binance_data_processor.enums.stream_type_enum import StreamType
 
 
 @dataclass(slots=True)
-class AssetParameters:
+class AssetParams:
     market: Market
     stream_type: StreamType
     pairs: list[str]
@@ -22,8 +22,8 @@ class AssetParameters:
             f"{self.date if not None else ''}"
         )
 
-    def get_asset_parameter_with_specified_pair(self, pair: str) -> AssetParameters:
-        return AssetParameters(
+    def get_ap_with_specified_pair(self, pair: str) -> AssetParams:
+        return AssetParams(
             market=self.market,
             stream_type=self.stream_type,
             pairs=[pair]

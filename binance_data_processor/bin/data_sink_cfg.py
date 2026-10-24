@@ -1,11 +1,12 @@
 import os
 from dotenv import load_dotenv
 
-from binance_data_processor import DataSinkCfg
+from binance_data_processor import DataSinkCfg, BlobConnParams
+from binance_data_processor.enums.save_target_enum import SaveTarget
 from binance_data_processor.enums.instruments_matrix import InstrumentsMatrix
-from binance_data_processor.enums.interval_settings import TimeCfg
+from binance_data_processor.enums.time_cfg import TimeCfg
 
-ENV_PATH = os.path.join(os.path.expanduser('~'), 'Documents/binance-archiver-ba2-v2-test.env')
+ENV_PATH = os.path.join(os.path.expanduser('~'), 'Documents/env/binance-archiver-ba2-v2-test.env')
 if 'prod' in ENV_PATH: raise Exception('prod .env not allowed locally')
 load_dotenv(ENV_PATH)
 
@@ -71,10 +72,12 @@ cfg = DataSinkCfg(
             "XLMUSD_PERP"
         ]
     ),
-    time_cfg=TimeCfg(
+    time=TimeCfg(
         file_duration_seconds=180,
-        snapshot_fetcher_interval_seconds=180,
-        websocket_lifetime_seconds=60*30,
+        snapshot_interval_seconds=180,
+        # ws_lifetime_seconds=60*30,
+        ws_lifetime_seconds=30,
     ),
-    data_save_target='zip'
+    save_target=SaveTarget.JSON,
+    blob_conn_params=BlobConnParams()
 )

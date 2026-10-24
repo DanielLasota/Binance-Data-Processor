@@ -6,9 +6,9 @@ import os
 from binance_data_processor import download_csv_data
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.scraper.concatenator_config import DataConcatenatorConfig
-from binance_data_processor.scraper.scraper_config import DataScraperConfig
+from binance_data_processor.scraper.scraper_config import ScraperCfg
 from binance_data_processor.data_quality.data_quality_checker import get_merged_csv_quality_reports
-from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.asset_params import AssetParams
 from binance_data_processor.enums.market_enum import Market, M_STREAM_CODE
 from binance_data_processor.enums.stream_type_enum import StreamType, ST_STREAM_CODE
 from binance_data_processor.enums.symbol_enum import symbol_to_int
@@ -16,7 +16,7 @@ from binance_data_processor.utils.file_utils import get_base_of_root_csv_filenam
 from binance_data_processor.utils.file_utils import get_list_of_existing_merged_csvs_asset_parameters
 from binance_data_processor.utils.file_utils import get_base_of_merged_csv_filename
 from binance_data_processor.utils.file_utils import to_csv_w_data_quality_reports
-from binance_data_processor.utils.time_utils import generate_dates_string_list_from_range
+from binance_data_processor.utils.time_utils import gen_dates
 from binance_data_processor.utils.time_utils import get_yesterday_date
 
 __all__ = [
@@ -101,7 +101,7 @@ class BinanceDataMerger:
         )
 
     @staticmethod
-    def _resolve_list_of_asset_parameters_list(cfg: DataConcatenatorConfig) -> list[list[AssetParameters]]:
+    def _resolve_list_of_asset_parameters_list(cfg: DataConcatenatorConfig) -> list[list[AssetParams]]:
         to_merge = BinanceDataMerger._get_list_of_asset_parameters_list_to_be_merged(
             date_range=cfg.date_range,
             pairs=cfg.pairs,
@@ -116,7 +116,7 @@ class BinanceDataMerger:
 
         existing = get_list_of_existing_merged_csvs_asset_parameters(cfg.dump_path)
 
-        def canonical(group: list[AssetParameters]) -> list[str]:
+        def canonical(group: list[AssetParams]) -> list[str]:
             return sorted(str(ap) for ap in group)
 
         existing_canon = {tuple(canonical(g)) for g in existing}
@@ -137,9 +137,9 @@ class BinanceDataMerger:
             stream_types: list[StreamType],
             join_pairs_into_one_csv: bool = False,
             join_markets_into_one_csv: bool = False
-    ) -> list[list[AssetParameters]]:
+    ) -> list[list[AssetParams]]:
 
-        dates = generate_dates_string_list_from_range(date_range)
+        dates = gen_dates(date_range)
 
         groups = []
 
@@ -151,7 +151,7 @@ class BinanceDataMerger:
                     for date in dates:
                         group = []
                         for stream in stream_types:
-                            asset_param = AssetParameters(
+                            asset_param = AssetParams(
                                 market=Market(market),
                                 stream_type=StreamType(stream),
                                 pairs=[(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)],
@@ -168,7 +168,7 @@ class BinanceDataMerger:
                     group = []
                     for market in markets:
                         for stream in stream_types:
-                            asset_param = AssetParameters(
+                            asset_param = AssetParams(
                                 market=Market(market),
                                 stream_type=StreamType(stream),
                                 pairs=[(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)],
@@ -185,7 +185,7 @@ class BinanceDataMerger:
                     for pair in pairs:
                         pair = pair.lower()
                         for stream in stream_types:
-                            asset_param = AssetParameters(
+                            asset_param = AssetParams(
                                 market=Market(market),
                                 stream_type=StreamType(stream),
                                 pairs=[(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)],
@@ -202,7 +202,7 @@ class BinanceDataMerger:
                     pair = pair.lower()
                     for market in markets:
                         for stream in stream_types:
-                            asset_param = AssetParameters(
+                            asset_param = AssetParams(
                                 market=Market(market),
                                 stream_type=StreamType(stream),
                                 pairs=[(f'{pair[:-1]}_perp' if market == Market.COIN_M_FUTURES else pair)],
@@ -219,7 +219,7 @@ class BinanceDataMerger:
         date_from = get_yesterday_date(cfg.date_range[0])
         date_to = cfg.date_range[1]
 
-        scraper_cfg = DataScraperConfig(
+        scraper_cfg = ScraperCfg(
             date_range=[date_from, date_to],
             pairs=cfg.pairs,
             markets=cfg.markets,
@@ -229,7 +229,7 @@ class BinanceDataMerger:
         download_csv_data(scraper_cfg)
 
     @staticmethod
-    def _main_merge_loop(list_of_asset_parameters_list: list[list[AssetParameters]], csvs_nest_catalog: str, dump_catalog: str) -> None:
+    def _main_merge_loop(list_of_asset_parameters_list: list[list[AssetParams]], csvs_nest_catalog: str, dump_catalog: str) -> None:
         from alive_progress import alive_bar
         print(f'\033[36mought to concatenate {len(list_of_asset_parameters_list)} file(s):\n')
 
@@ -267,7 +267,7 @@ class BinanceDataMerger:
         print(f'\033[0m')
 
     @staticmethod
-    def _target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
+    def _target_csv_loop(list_of_asset_parameters_for_single_csv: list[AssetParams], csvs_nest_catalog) -> pd.DataFrame:
         dfs_to_be_merged_within_single_csv = []
         per_market_dict = BinanceDataMerger._group_asset_parameters_by_market(list_of_asset_parameters_for_single_csv)
         for market, params_for_market in per_market_dict.items():
@@ -288,21 +288,21 @@ class BinanceDataMerger:
         return single_target_csv_df
 
     @staticmethod
-    def _group_asset_parameters_by_market(asset_parameters: list[AssetParameters]) -> dict[Market, list[AssetParameters]]:
-        grouped: dict[Market, list[AssetParameters]] = defaultdict(list)
+    def _group_asset_parameters_by_market(asset_parameters: list[AssetParams]) -> dict[Market, list[AssetParams]]:
+        grouped: dict[Market, list[AssetParams]] = defaultdict(list)
         for ap in asset_parameters:
             grouped[ap.market].append(ap)
         return dict(grouped)
 
     @staticmethod
-    def _group_asset_parameters_by_pair(asset_parameters: list[AssetParameters]) -> dict[str, list[AssetParameters]]:
-        grouped: dict[str, list[AssetParameters]] = defaultdict(list)
+    def _group_asset_parameters_by_pair(asset_parameters: list[AssetParams]) -> dict[str, list[AssetParams]]:
+        grouped: dict[str, list[AssetParams]] = defaultdict(list)
         for ap in asset_parameters:
             grouped[ap.pairs[0]].append(ap)
         return dict(grouped)
 
     @staticmethod
-    def _merge_difference_depth_with_depth_snapshot_with_trade_within_single_pair(asset_parameters_list_for_single_market: list[AssetParameters], csvs_nest_catalog) -> pd.DataFrame:
+    def _merge_difference_depth_with_depth_snapshot_with_trade_within_single_pair(asset_parameters_list_for_single_market: list[AssetParams], csvs_nest_catalog) -> pd.DataFrame:
         import pandas as pd
 
         print('                       └─single pair')
@@ -388,10 +388,10 @@ class BinanceDataMerger:
         return comb
 
     @staticmethod
-    def _get_final_depth_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+    def _get_final_depth_snapshot_from_cpp_binance_orderbook(asset_parameter: AssetParams, csvs_nest_catalog: str) -> pd.DataFrame:
         from cpp_binance_orderbook import compute_final_ob
 
-        prev_day_ap = AssetParameters(
+        prev_day_ap = AssetParams(
             market=asset_parameter.market,
             stream_type=asset_parameter.stream_type,
             pairs=asset_parameter.pairs,
@@ -426,7 +426,7 @@ class BinanceDataMerger:
         return df
 
     @staticmethod
-    def _load_depth_snapshot_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+    def _load_depth_snapshot_root_csv(asset_parameter: AssetParams, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
 
         file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
@@ -452,7 +452,7 @@ class BinanceDataMerger:
         return df
 
     @staticmethod
-    def _load_difference_depth_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+    def _load_difference_depth_root_csv(asset_parameter: AssetParams, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
 
         path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'
@@ -472,7 +472,7 @@ class BinanceDataMerger:
         return df
 
     @staticmethod
-    def _load_trade_root_csv(asset_parameter: AssetParameters, csvs_nest_catalog: str) -> pd.DataFrame:
+    def _load_trade_root_csv(asset_parameter: AssetParams, csvs_nest_catalog: str) -> pd.DataFrame:
         import pandas as pd
 
         file_path_for_csv = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter)}.csv'

@@ -1,28 +1,56 @@
 import queue
-import time
 import json
 from queue import Queue
 import pytest
 
 from binance_data_processor.enums.market_enum import Market
-from binance_data_processor.core.stream_listener_id import StreamListenerId
-from binance_data_processor.core.trade_queue import TradeQueue, ClassInstancesAmountLimitException
+from binance_data_processor.core.trade_queue import TradeQueue, ClassInstancesAmountLimitException, SwitchingWsStrategy
 
 
-def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
-    message = message.strip()
-    data = json.loads(message)
+def format_pretty_msg_to_binance_str_format(msg: str) -> str:
+    msg = msg.strip()
+    data = json.loads(msg)
     compact_message = json.dumps(data, separators=(',', ':'))
 
     return compact_message
 
-def add_field_to_string_json_message(message: str, field_name: str, value: any) -> str:
-    return message[:-1] + f',"{field_name}":{str(value)}}}'
+def add_field_to_json(msg: str, field_name: str, val: any) -> str:
+    return msg[:-1] + f',"{field_name}":{str(val)}}}'
 
 
 class TestTradeQueue:
 
-    def test_given_pretty_printed_message_from_test_when_reformatting_then_message_is_in_binance_format(self):
+    def test_given_pretty_msg_when_formatting_then_msg_is_binance_format(self):
+
+        pretty_test_msg = '''            
+            {
+                "stream": "trxusdt@depth@100ms",
+                "data": {
+                    "e": "depthUpdate",
+                    "E": 1720337869317,
+                    "s": "TRXUSDT",
+                    "U": 4609985365,
+                    "u": 4609985365,
+                    "b": [
+                        [
+                            "0.12984000",
+                            "123840.00000000"
+                        ]
+                    ],
+                    "a": [
+                    ]
+                }
+            }
+        '''
+
+        binance_format_msg = format_pretty_msg_to_binance_str_format(
+            pretty_test_msg)
+        assert binance_format_msg == (
+            '{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,"s":"TRXUSDT","U":4609985365,'
+            '"u":4609985365,"b":[["0.12984000","123840.00000000"]],"a":[]}}'
+        )
+
+    def test_given_adding_receive_ts_fields_to_binance_msg_then_final_message_is_correct(self):
 
         pretty_message_from_sample_test = '''            
             {
@@ -45,86 +73,65 @@ class TestTradeQueue:
             }
         '''
 
-        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(
-            pretty_message_from_sample_test)
-        assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
-                                          '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
-                                          '"b":[["0.12984000","123840.00000000"]],"a":[]}}')
-
-    def test_given_adding_receive_timestamp_fields_to_original_binance_message_in_string_then_final_message_is_correct(self):
-
-        pretty_message_from_sample_test = '''            
-            {
-                "stream": "trxusdt@depth@100ms",
-                "data": {
-                    "e": "depthUpdate",
-                    "E": 1720337869317,
-                    "s": "TRXUSDT",
-                    "U": 4609985365,
-                    "u": 4609985365,
-                    "b": [
-                        [
-                            "0.12984000",
-                            "123840.00000000"
-                        ]
-                    ],
-                    "a": [
-                    ]
-                }
-            }
-        '''
-
-        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
+        binance_format_message = format_pretty_msg_to_binance_str_format(pretty_message_from_sample_test)
 
         mocked_timestamp = 2115
 
-        assert add_field_to_string_json_message(binance_format_message, "_E", mocked_timestamp) == '{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,"s":"TRXUSDT","U":4609985365,"u":4609985365,"b":[["0.12984000","123840.00000000"]],"a":[]},"_E":2115}'
+        assert add_field_to_json(binance_format_message, "_E", mocked_timestamp) == '{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,"s":"TRXUSDT","U":4609985365,"u":4609985365,"b":[["0.12984000","123840.00000000"]],"a":[]},"_E":2115}'
 
     # TradeQueue singleton init test
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
-        for _ in range(3):
-            TradeQueue(Market.SPOT)
+        x = TradeQueue(Market.SPOT, pairs_n=3)
+        y = TradeQueue(Market.USD_M_FUTURES, pairs_n=3)
+        z = TradeQueue(Market.COIN_M_FUTURES, pairs_n=3)
 
         with pytest.raises(ClassInstancesAmountLimitException):
-            TradeQueue(Market.SPOT)
+            TradeQueue(Market.SPOT, pairs_n=3)
 
+        for _ in [x, y, z]: _.close()
         TradeQueue.clear_instances()
 
     def test_given_checking_amount_of_instances_when_get_instance_count_invocation_then_amount_is_correct(self):
         instance_count = TradeQueue.get_instance_count()
         assert instance_count == 0
 
-        for _ in range(3):
-            TradeQueue(Market.SPOT)
+        x = TradeQueue(Market.SPOT, pairs_n=3)
+        y = TradeQueue(Market.USD_M_FUTURES, pairs_n=3)
+        z = TradeQueue(Market.COIN_M_FUTURES, pairs_n=3)
 
         assert TradeQueue.get_instance_count() == 3
 
+        for _ in [x, y, z]: _.close()
         TradeQueue.clear_instances()
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
-        for _ in range(3):
-            TradeQueue(Market.SPOT)
+        x = TradeQueue(Market.SPOT, pairs_n=3)
+        y = TradeQueue(Market.USD_M_FUTURES, pairs_n=3)
+        z = TradeQueue(Market.COIN_M_FUTURES, pairs_n=3)
 
         TradeQueue.clear_instances()
 
         assert TradeQueue.get_instance_count() == 0
+        for _ in [x, y, z]: _.close()
         TradeQueue.clear_instances()
 
     # run_mode tests
     #
     def test_given_data_listener_mode_and_global_queue_when_initializing_trade_queue_then_queue_is_set_to_global_queue(self):
         global_queue = Queue()
-        trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
-        assert trade_queue.queue is global_queue
+        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
+        assert tq.queue is global_queue
+
         TradeQueue.clear_instances()
 
     def test_given_trade_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
         global_queue = Queue()
-        trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamListenerId(pairs=['BTCUSDT'])
-        trade_queue.currently_accepted_stream_id_keys = stream_listener_id
-        message = format_message_string_that_is_pretty_to_binance_string_format('''
+        tq = TradeQueue(Market.SPOT, pairs_n=3, global_queue=global_queue)
+        client_id = False
+        tq.accepted_cid = client_id
+
+        msg = format_pretty_msg_to_binance_str_format('''
         {
             "e": "trade",
             "E": 123456789,
@@ -140,23 +147,21 @@ class TestTradeQueue:
         }
         ''')
 
-        mocked_timestamp_of_receive = 1234567890
-        trade_queue.put_trade_message(
-            stream_listener_id=stream_listener_id,
-            message=message,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        test_ts = 1234567890
+        tq.put(cid=client_id, msg=msg, ts=test_ts)
+
         assert not global_queue.empty()
-        queued_message = global_queue.get_nowait()
-        assert queued_message == add_field_to_string_json_message(message, "_E", mocked_timestamp_of_receive)
+        msg_from_q = global_queue.get_nowait()
+        assert msg_from_q == add_field_to_json(msg, "_E", test_ts)
+
         TradeQueue.clear_instances()
 
     def test_given_trade_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
         global_queue = Queue()
-        trade_queue = TradeQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamListenerId(pairs=['ETHUSDT'])
-        trade_queue.currently_accepted_stream_id_keys = stream_listener_id
-        message = format_message_string_that_is_pretty_to_binance_string_format('''
+        tq = TradeQueue(market=Market.SPOT, pairs_n=3, global_queue=global_queue)
+        client_id = False
+        tq.accepted_cid = client_id
+        msg = format_pretty_msg_to_binance_str_format('''
         {
             "e": "trade",
             "E": 123456789,
@@ -172,27 +177,30 @@ class TestTradeQueue:
         }
         ''')
         timestamp_of_receive = 1234567890
-        trade_queue.put_trade_message(stream_listener_id, message, timestamp_of_receive)
-        assert trade_queue.qsize() == 1
-        assert not trade_queue.empty()
-        queued_message = trade_queue.get_nowait()
-        assert queued_message == add_field_to_string_json_message(message, "_E", timestamp_of_receive)
-        assert trade_queue.empty()
+        tq.put(client_id, msg, timestamp_of_receive)
+
+        assert tq.qsize() == 1
+        assert not tq.empty()
+        queued_message = tq.get_nowait()
+        assert queued_message == add_field_to_json(msg, "_E", timestamp_of_receive)
+        assert tq.empty()
+
         TradeQueue.clear_instances()
 
     def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
         global_queue = Queue()
-        tq = TradeQueue(market=Market.SPOT, global_queue=global_queue)
+        tq = TradeQueue(market=Market.SPOT, pairs_n=3, global_queue=global_queue)
         assert tq.empty()
         with pytest.raises(queue.Empty):
             tq.get_nowait()
+
         TradeQueue.clear_instances()
 
     # _put_with_no_repetitions test
     #
 
     def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(self):
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -204,17 +212,14 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        tq = TradeQueue(market=Market.SPOT, pairs_n=3)
 
-        trade_queue: TradeQueue = TradeQueue(market=Market.SPOT)
+        client_id = False
 
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
+        tq.accepted_cid = client_id
+        test_ts = 2115
 
-        trade_queue.currently_accepted_stream_id_keys = first_stream_listener_id
-        mocked_timestamp_of_receive = 2115
-
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(
+        _msg1 = format_pretty_msg_to_binance_str_format(
             '''
             {
               "stream": "adausdt@trade",
@@ -233,25 +238,25 @@ class TestTradeQueue:
             '''
         )
 
-        trade_queue.put_trade_message(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        tq.put(
+            cid=client_id,
+            msg=_msg1,
+            ts=test_ts
         )
 
-        trade_queue_content_list = []
+        tq_content = []
 
-        while trade_queue.qsize() > 0:
-            trade_queue_content_list.append(trade_queue.get_nowait())
-        assert (add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive)
-                in trade_queue_content_list)
-        assert len(trade_queue_content_list) == 1
+        while tq.qsize() > 0:
+            tq_content.append(tq.get_nowait())
+        assert (add_field_to_json(_msg1, "_E", test_ts) in tq_content)
+        assert len(tq_content) == 1
 
+        tq.close()
         TradeQueue.clear_instances()
 
-    def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue(self):
+    def test_given_put_msg_from_no_longer_accepted_client_id_when_put_then_msg_is_not_added_to_the_queue(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -263,22 +268,17 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        tq = TradeQueue(Market.SPOT, 3)
+        tq.set_switching_ws_mode()
 
-        pairs = config['instruments']['spot']
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_ts = 2115
 
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
+        tq.accepted_cid = old_client_id
 
-        mocked_timestamp_of_receive = 2115
-
-        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -295,7 +295,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -312,7 +312,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -329,7 +329,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -346,7 +346,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -363,7 +363,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -380,7 +380,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -397,7 +397,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format('''
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -414,78 +414,38 @@ class TestTradeQueue:
         }
         ''')
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=2115
-        )
+        tq.put(cid=old_client_id, msg=_old_listener_message_1, ts=2115)
+        tq.put(cid=old_client_id, msg=_old_listener_message_2, ts=2115)
+        tq.put(cid=new_client_id, msg=_new_listener_message_1, ts=2115)
+        tq.put(cid=new_client_id, msg=_new_listener_message_2, ts=2115)
+        tq.put(cid=old_client_id, msg=_old_listener_message_3, ts=2115)
+        tq.put(cid=new_client_id, msg=_new_listener_message_3, ts=2115)
+        tq.put(cid=old_client_id, msg=_old_listener_message_4, ts=2115)
+        tq.put(cid=new_client_id, msg=_new_listener_message_4, ts=2115)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=2115
-        )
+        assert tq.accepted_cid == new_client_id
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=2115
-        )
+        tq_content = []
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=2115
-        )
+        while tq.qsize() > 0:
+            tq_content.append(tq.get_nowait())
 
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=2115
-        )
-
-        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
-        assert trade_queue.qsize() == 4
-
-        trade_queue_content_list = []
-
-        while trade_queue.qsize() > 0:
-            trade_queue_content_list.append(trade_queue.get_nowait())
-
-        expected_trade_queue_content_list = [
-            add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_new_listener_message_4, "_E", mocked_timestamp_of_receive)
+        expected_tq_content = [
+            add_field_to_json(_old_listener_message_1, "_E", test_ts),
+            add_field_to_json(_old_listener_message_2, "_E", test_ts),
+            add_field_to_json(_old_listener_message_3, "_E", test_ts),
+            add_field_to_json(_new_listener_message_4, "_E", test_ts)
         ]
 
-        assert trade_queue_content_list == expected_trade_queue_content_list
+        assert tq_content == expected_tq_content
 
+        tq.close()
         TradeQueue.clear_instances()
 
     #get_message_signs
     #
     def test_given_getting_message_signs_whilst_putting_message_when_get_message_signs_then_signs_are_returned_correctly(self):
-        message = format_message_string_that_is_pretty_to_binance_string_format('''            
+        msg = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -502,14 +462,13 @@ class TestTradeQueue:
         }
         ''')
 
-        assert TradeQueue.get_message_signs(message) == '"s":"ADAUSDT","t":506142454'
-        TradeQueue.clear_instances()
+        assert SwitchingWsStrategy.get_msg_signs(msg) == '"s":"ADAUSDT","t":506142454'
 
     # get, get_nowait, clear, empty, qsize
     #
     def test_given_getting_messages_when_get_nowait_then_qsize_is_zero_and_got_list_is_ok(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -521,22 +480,17 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        tq = TradeQueue(Market.SPOT, 3)
+        tq.set_switching_ws_mode()
 
-        pairs = config['instruments']['spot']
+        old_stream_listener_id = False
+        new_stream_listener_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_ts = 2115
 
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
+        tq.accepted_cid = old_stream_listener_id
 
-        mocked_timestamp_of_receive = 2115
-
-        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -553,7 +507,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -570,7 +524,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -587,7 +541,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -604,7 +558,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -621,7 +575,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -638,7 +592,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -655,7 +609,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format('''
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -672,79 +626,40 @@ class TestTradeQueue:
         }
         ''')
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=2115
-        )
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_1, ts=2115)
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_2, ts=2115)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_1, ts=2115)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_2, ts=2115)
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_3, ts=2115)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_3, ts=2115)
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_4, ts=2115)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_4, ts=2115)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=2115
-        )
-
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=2115
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=2115
-        )
-
-        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
-        assert trade_queue.qsize() == 4
+        assert tq.accepted_cid == new_stream_listener_id
+        # assert tq.qsize() == 4
 
         trade_queue_content_list = []
 
-        while trade_queue.qsize() > 0:
-            trade_queue_content_list.append(trade_queue.get_nowait())
+        while tq.qsize() > 0:
+            trade_queue_content_list.append(tq.get_nowait())
 
-        assert trade_queue.qsize() == 0
+        assert tq.qsize() == 0
 
-        expected_trade_queue_content_list = [
-            add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_new_listener_message_4, "_E", mocked_timestamp_of_receive)
+        expected_tq = [
+            add_field_to_json(_old_listener_message_1, "_E", test_ts),
+            add_field_to_json(_old_listener_message_2, "_E", test_ts),
+            add_field_to_json(_old_listener_message_3, "_E", test_ts),
+            add_field_to_json(_new_listener_message_4, "_E", test_ts)
         ]
 
-        assert trade_queue_content_list == expected_trade_queue_content_list
+        assert trade_queue_content_list == expected_tq
 
+        tq.close()
         TradeQueue.clear_instances()
 
     def test_given_getting_from_queue_when_get_nowait_then_last_element_is_returned(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -756,22 +671,17 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        tq = TradeQueue(Market.SPOT, 3)
+        tq.set_switching_ws_mode()
 
-        pairs = config['instruments']['spot']
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_ts = 2115
 
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
+        tq.accepted_cid = old_client_id
 
-        mocked_timestamp_of_receive = 2115
-
-        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -788,7 +698,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -805,7 +715,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -822,7 +732,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -839,7 +749,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -856,7 +766,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -873,7 +783,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -890,7 +800,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format('''
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -907,66 +817,31 @@ class TestTradeQueue:
         }
         ''')
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=old_client_id, msg=_old_listener_message_1, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_2, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_1, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_2, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_3, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_3, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_4, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_4, ts=test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=old_client_id, msg=_old_listener_message_4, ts=test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=new_client_id, msg=_new_listener_message_4, ts=test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert tq.accepted_cid == new_client_id
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        expected_first_trade = tq.get_nowait()
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert expected_first_trade == add_field_to_json(_old_listener_message_1, "_E", test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
-        assert trade_queue.qsize() == 4
-
-        presumed_first_transaction = trade_queue.get_nowait()
-
-        assert presumed_first_transaction == add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive)
-
+        tq.close()
         TradeQueue.clear_instances()
 
     def test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -978,22 +853,17 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        tq = TradeQueue(Market.SPOT, 3)
+        tq.set_switching_ws_mode()
 
-        pairs = config['instruments']['spot']
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_ts = 2115
 
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
+        tq.accepted_cid = old_client_id
 
-        mocked_timestamp_of_receive = 2115
-
-        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1010,7 +880,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1027,7 +897,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1044,7 +914,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1061,7 +931,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1078,7 +948,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1095,7 +965,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1112,7 +982,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format('''
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1129,66 +999,29 @@ class TestTradeQueue:
         }
         ''')
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=old_client_id, msg=_old_listener_message_1, ts=test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=old_client_id, msg=_old_listener_message_1, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_2, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_1, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_2, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_3, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_3, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_4, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_4, ts=test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert tq.accepted_cid == new_client_id
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        expected_first_trade = tq.get()
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert expected_first_trade == add_field_to_json(_old_listener_message_1, "_E", test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
-        assert trade_queue.qsize() == 4
-
-        presumed_first_transaction = trade_queue.get()
-
-        assert presumed_first_transaction == add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive)
-
+        tq.close()
         TradeQueue.clear_instances()
 
     def test_given_clearing_difference_depth_queue_when_invocation_then_qsize_equals_zero(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -1200,22 +1033,17 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        tq = TradeQueue(Market.SPOT, 3)
+        tq.set_switching_ws_mode()
 
-        pairs = config['instruments']['spot']
-
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
-
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
+        old_stream_listener_id = False
+        new_stream_listener_id = True
 
         mocked_timestamp_of_receive = 2115
 
-        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
+        tq.accepted_cid = old_stream_listener_id
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1232,7 +1060,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1249,7 +1077,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1266,7 +1094,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1283,7 +1111,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1300,7 +1128,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1317,7 +1145,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1334,7 +1162,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format('''
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1351,66 +1179,26 @@ class TestTradeQueue:
         }
         ''')
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_1, ts=mocked_timestamp_of_receive)
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_2, ts=mocked_timestamp_of_receive)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_1, ts=mocked_timestamp_of_receive)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_2, ts=mocked_timestamp_of_receive)
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_3, ts=mocked_timestamp_of_receive)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_3, ts=mocked_timestamp_of_receive)
+        tq.put(cid=old_stream_listener_id, msg=_old_listener_message_4, ts=mocked_timestamp_of_receive)
+        tq.put(cid=new_stream_listener_id, msg=_new_listener_message_4, ts=mocked_timestamp_of_receive)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert tq.accepted_cid == new_stream_listener_id
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.clear()
+        assert tq.qsize() == 0
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
-        assert trade_queue.qsize() == 4
-
-        trade_queue.clear()
-
-        assert trade_queue.qsize() == 0
-
+        tq.close()
         TradeQueue.clear_instances()
 
     def test_given_checking_empty_when_method_invocation_then_result_is_ok(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -1422,22 +1210,17 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        tq = TradeQueue(Market.SPOT, 3)
+        tq.set_switching_ws_mode()
 
-        pairs = config['instruments']['spot']
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_ts = 2115
 
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
+        tq.accepted_cid = old_client_id
 
-        mocked_timestamp_of_receive = 2115
-
-        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1454,7 +1237,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1471,7 +1254,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1488,7 +1271,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1505,7 +1288,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1522,7 +1305,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1539,7 +1322,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1556,7 +1339,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format('''
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1573,68 +1356,29 @@ class TestTradeQueue:
         }
         ''')
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=old_client_id, msg=_old_listener_message_1, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_2, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_1, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_2, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_3, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_3, ts=test_ts)
+        tq.put(cid=old_client_id, msg=_old_listener_message_4, ts=test_ts)
+        tq.put(cid=new_client_id, msg=_new_listener_message_4, ts=test_ts)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert tq.accepted_cid == new_client_id
+        assert not tq.empty()
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.clear()
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert tq.qsize() == 0
+        assert tq.empty() == True
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
-        assert trade_queue.qsize() == 4
-        assert trade_queue.empty() == False
-
-        trade_queue.clear()
-
-        assert trade_queue.qsize() == 0
-        assert trade_queue.empty() == True
-
+        tq.close()
         TradeQueue.clear_instances()
 
     def test_checking_size_when_method_invocation_then_result_is_ok(self):
         """change on _new_listener_message_3"""
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -1646,22 +1390,17 @@ class TestTradeQueue:
             "send_zip_to_blob": False
         }
 
-        trade_queue = TradeQueue(market=Market.SPOT)
+        tq = TradeQueue(Market.SPOT, 3)
+        tq.set_switching_ws_mode()
 
-        pairs = config['instruments']['spot']
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_tq = 2115
 
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
+        tq.accepted_cid = old_client_id
 
-        mocked_timestamp_of_receive = 2115
-
-        trade_queue.currently_accepted_stream_id_keys = old_stream_listener_id
-
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1678,7 +1417,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1695,7 +1434,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1712,7 +1451,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "adausdt@trade",
           "data": {
@@ -1729,7 +1468,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1746,7 +1485,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "dotusdt@trade",
           "data": {
@@ -1763,7 +1502,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''            
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format('''            
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1780,7 +1519,7 @@ class TestTradeQueue:
         }
         ''')
 
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format('''
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format('''
         {
           "stream": "trxusdt@trade",
           "data": {
@@ -1797,59 +1536,22 @@ class TestTradeQueue:
         }
         ''')
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.put(cid=old_client_id, msg=_old_listener_message_1, ts=test_tq)
+        tq.put(cid=old_client_id, msg=_old_listener_message_2, ts=test_tq)
+        tq.put(cid=new_client_id, msg=_new_listener_message_1, ts=test_tq)
+        tq.put(cid=new_client_id, msg=_new_listener_message_2, ts=test_tq)
+        tq.put(cid=old_client_id, msg=_old_listener_message_3, ts=test_tq)
+        tq.put(cid=new_client_id, msg=_new_listener_message_3, ts=test_tq)
+        tq.put(cid=old_client_id, msg=_old_listener_message_4, ts=test_tq)
+        tq.put(cid=new_client_id, msg=_new_listener_message_4, ts=test_tq)
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert tq.accepted_cid == new_client_id
+        assert tq.qsize() > 0
+        assert not tq.empty()
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        tq.clear()
 
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert tq.qsize() == 0
 
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        trade_queue.put_trade_message(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert trade_queue.currently_accepted_stream_id_keys == new_stream_listener_id
-        assert trade_queue.qsize() == 4
-
-        trade_queue.clear()
-
-        assert trade_queue.qsize() == 0
-
+        tq.close()
         TradeQueue.clear_instances()

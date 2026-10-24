@@ -91,12 +91,12 @@ if __name__ == "__main__":
             'usd_m_futures': ['BTCUSDT', 'TRXUSDT'],
             'coin_m_futures': ['BTCUSD_PERP', 'TRXUSD_PERP']
         },
-        time_cfg={
+        time={
             "file_duration_seconds": 300,
             "snapshot_fetcher_interval_seconds": 60,
             "websocket_life_time_seconds": 60 * 60 * 23
         },
-        data_save_target='azure_blob',
+        save_target='azure_blob',
         storage_connection_parameters=BlobConnParams()
     )
 

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from binance_data_processor import download_csv_data
 from binance_data_processor import conduct_data_quality_analysis_on_specified_csv_list
 from binance_data_processor import conduct_data_quality_analysis_on_whole_directory
-from binance_data_processor.scraper.scraper_config import DataScraperConfig
+from binance_data_processor.scraper.scraper_config import ScraperCfg
 
 env_path = os.path.join(os.path.expanduser('~'), 'Documents/env/binance-archiver-ba2-v2-prod.env')
 load_dotenv(env_path)
@@ -12,7 +12,7 @@ load_dotenv(env_path)
 
 if __name__ == '__main__':
 
-    scraper_config = DataScraperConfig(
+    scraper_config = ScraperCfg(
         date_range=['13-07-2025', '23-07-2025'],
         pairs=[
             "BTCUSDT",

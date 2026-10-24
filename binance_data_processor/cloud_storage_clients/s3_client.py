@@ -8,7 +8,7 @@ import requests
 from pathlib import Path
 import time
 
-from binance_data_processor.enums.storage_connection_parameters import BlobConnParams
+from binance_data_processor.enums.blob_conn_params import BlobConnParams
 
 
 class S3Client:
@@ -31,10 +31,7 @@ class S3Client:
         self._session = requests.Session()
         self._last_refresh_time = time.time()
 
-        region_match = re.search(
-            r's3\.([^.]+)\.backblazeb2\.com',
-            self.blob_conn_params.backblaze_endpoint_url
-        )
+        region_match = re.search(r's3\.([^.]+)\.backblazeb2\.com', self.blob_conn_params.backblaze_endpoint_url)
         if not region_match:
             raise Exception('Region not found in endpoint url')
         self.region = region_match.group(1)
@@ -148,11 +145,10 @@ class S3Client:
             response = self._session.put(url, data=payload, headers=headers, timeout=120)
             response.raise_for_status()
         except Exception as e:
-            # print(f"Backblaze upload failed for {object_name}: {e}")
             raise RuntimeError(f"Backblaze upload failed for {object_name}: {e}")
         finally:
             if response is not None:
                 response.close()
 
-    def shutdown(self) -> None:
+    def stop(self) -> None:
         self._session.close()

@@ -1,110 +1,131 @@
 from __future__ import annotations
 
 import pprint
-import sys
-import threading
 import time
+import multiprocessing as mp
+import psutil
 
-from binance_data_processor.core.cli import CommandLineInterface
-from binance_data_processor.core.fastapi_manager import FastAPIManager
-from binance_data_processor.core.data_saver import DataSaver
+# from binance_data_processor.core.cli import CLI
+# from binance_data_processor.core.api_srv import ApiSrv
+from binance_data_processor.core.data_collector import DataCollector
+from binance_data_processor.core.emergency_sender import EmergencySender
 from binance_data_processor.core.logo import binance_archiver_logo
-from binance_data_processor.core.queue_pool import DataSinkQueuePool
+from binance_data_processor.core.queue_flags_pool import QueueFlagsPool
 from binance_data_processor.core.setup_logger import setup_logger
-from binance_data_processor.core.snapshot_manager import DataSinkSnapshotStrategy, SnapshotService
-from binance_data_processor.core.stream_service import StreamService
+from binance_data_processor.core.snapshot_srv import SnapshotSrv
+from binance_data_processor.core.stream_srv import StreamService
 from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
-from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
+from binance_data_processor.enums.save_target_enum import SaveTarget
 
 __all__ = [
     'launch_data_sink',
     'BinanceDataSink'
 ]
 
+from binance_data_processor.utils.sys import check_if_there_is_no_huge_library_imported
+
+
 def launch_data_sink(cfg: DataSinkCfg) -> BinanceDataSink:
+    _ = BinanceDataSink(cfg)
+    _.run()
+    return _
 
-    binance_data_sink = BinanceDataSink(cfg)
-    binance_data_sink.run()
+def _p_stream_srv(cfg, queue_flags_pool, stop_flag):
+    proc = psutil.Process()
+    proc.cpu_affinity([12])
 
-    return binance_data_sink
+    # print(f"STREAM: PID={proc.pid}, affinity={proc.cpu_affinity()}", flush=True)
+
+    srv = StreamService(cfg, queue_flags_pool, stop_flag)
+    srv.run()
+
+def _p_data_collector_srv(cfg, queue_flags_pool, stop_flag) -> None:
+    proc = psutil.Process()
+    proc.cpu_affinity([6])
+
+    # print(f"STREAM: PID={proc.pid}, affinity={proc.cpu_affinity()}", flush=True)
+
+    srv = DataCollector(cfg, queue_flags_pool, stop_flag)
+    srv.run()
+
+def _p_snapshot_srv(cfg, stop_flag) -> None:
+    proc = psutil.Process()
+    proc.cpu_affinity([6])
+
+    srv = SnapshotSrv(cfg, stop_flag)
+    srv.run()
+
+def _proc_emergency_sender(cfg: DataSinkCfg, stop_flag) -> None:
+    proc = psutil.Process()
+    proc.cpu_affinity([6])
+
+    srv = EmergencySender(cfg, stop_flag)
+    srv.start()
+
+# def _proc_api(cfg, queue_pool) -> None:
+#     proc = psutil.Process()
+#     proc.cpu_affinity([6])
+#
+#     cli = CLI(cfg, queue_pool)
+#     api = ApiSrv(cli.handle_command)
+#     api.run()
 
 
 class BinanceDataSink:
 
-    __slots__ = [
+    __slots__ = (
         'cfg',
-        '_logger',
         'stop_flag',
-        '_queue_pool',
-        '_stream_service',
-        '_cli',
-        '_fastapi',
-        '_data_saver',
-        '_snapshot_service'
-    ]
+        '_qfp',
+        '_logger'
+    )
 
-    def __init__(
-            self,
-            cfg: DataSinkCfg
-    ) -> None:
+    def __init__(self, cfg: DataSinkCfg) -> None:
+        mp.set_start_method("spawn", force=True)
         self.cfg = cfg
-        self._logger = setup_logger(should_dump_logs=True)
+        self.stop_flag = mp.Event()
+        self._qfp = QueueFlagsPool(cfg)
+
+        self._logger = setup_logger(dump=True)
         self._logger.info("\n%s", binance_archiver_logo)
-        self._logger.info("Configuration:\n%s", pprint.pformat(cfg, indent=1))
-        if self.cfg.data_save_target is DataSaveTarget.BACKBLAZE:
-            self._logger.info(f'Bucket: {cfg.blob_conn_params.backblaze_bucket_name}')
+        self._logger.info("Cfg:\n%s", pprint.pformat(cfg, indent=1))
+        if cfg.save_target is SaveTarget.BACKBLAZE:
+            self._logger.info(f'Bucket: {cfg.blob_conn_params.backblaze_bucket_name}\n')
 
-        self.stop_flag = threading.Event()
+    def run(self):
+        p2 = mp.Process(target=_p_data_collector_srv, args=(self.cfg, self._qfp, self.stop_flag), daemon=False, name='_data_collector')
+        p2.start()
 
-        self._queue_pool = DataSinkQueuePool(self.cfg)
+        time.sleep(3)
 
-        self._stream_service = StreamService(self._queue_pool, self.stop_flag, self.cfg)
+        p1 = mp.Process(target=_p_stream_srv, args=(self.cfg, self._qfp, self.stop_flag), daemon=False, name='_stream_srv')
+        p1.start()
 
-        self._data_saver = DataSaver(self._queue_pool, self.cfg, self.stop_flag)
+        p3 = mp.Process(target=_p_snapshot_srv, args=(self.cfg, self.stop_flag), daemon=False, name='_snapshot_srv')
+        p3.start()
 
-        self._cli = CommandLineInterface(self._stream_service, self.cfg, self.stop)
+        if self.cfg.save_target is SaveTarget.BACKBLAZE:
+            p4 = mp.Process(target=_proc_emergency_sender, args=(self.cfg, self.stop_flag), daemon=False, name='_emergency_sender')
+            p4.start()
 
-        self._fastapi = FastAPIManager(self._cli.handle_command)
+        # p5 = mp.Process(target=_proc_api, args=(self.cfg, self._qfp), daemon=False, name='_api')
+        # p5.start()
 
-        self._snapshot_service = SnapshotService(DataSinkSnapshotStrategy(self._data_saver), self.cfg, self.stop_flag)
-
-    def run(self) -> None:
-
-        self._stream_service.run()
-
-        self._fastapi.run()
-
-        self._data_saver.run()
-
-        self._snapshot_service.run()
+        # self._logger.info(f'{p1.name}: {p1.pid} {psutil.Process(p1.pid).cpu_affinity()}')
+        # self._logger.info(f'{p2.name}: {p2.pid} {psutil.Process(p2.pid).cpu_affinity()}')
+        # self._logger.info(f'{p3.name}: {p3.pid} {psutil.Process(p3.pid).cpu_affinity()}')
+        # self._logger.info(f'{p4.name}: {p4.pid} {psutil.Process(p4.pid).cpu_affinity()}')
+        # self._logger.info(f'{p5.name}: {p5.pid} {psutil.Process(p5.pid).cpu_affinity()}')
 
         try:
-            self._check_if_there_is_no_huge_library_imported()
+            check_if_there_is_no_huge_library_imported()
         except Exception as e:
             self._logger.info(f'Exception occurred: {e}')
             self.stop()
 
-    @staticmethod
-    def _check_if_there_is_no_huge_library_imported():
-        for lib in ['pandas', 'numpy', 'alive_progress']:
-            if lib in list(sys.modules.keys()):
-                raise Exception(f'Imported {lib} whilst running data sink. Check the imports')
-
     def stop(self):
-
-        self._logger.info("Shutting down archiver")
+        self._logger.info("Shutting down Binance Data Archiver")
 
         self.stop_flag.set()
 
-        self._fastapi.shutdown()
-
         time.sleep(5)
-
-        remaining_threads = [t for t in threading.enumerate() if t is not threading.current_thread() and t.is_alive()]
-
-        if remaining_threads:
-            self._logger.warning(f"Some threads are still alive:")
-            for thread in remaining_threads:
-                self._logger.warning(f"Thread {thread.name} is still alive {thread.is_alive()}")
-        else:
-            self._logger.info("All threads have been successfully stopped.")

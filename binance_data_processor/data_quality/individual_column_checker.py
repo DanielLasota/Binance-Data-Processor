@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from binance_data_processor.enums.asset_parameters import AssetParameters
-from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
+from binance_data_processor.enums.asset_params import AssetParams
+from binance_data_processor.enums.time_unit import TimeUnit
 from binance_data_processor.enums.stream_type_enum import StreamType
 
 
@@ -32,7 +32,7 @@ class IndividualColumnChecker:
         )
 
     @staticmethod
-    def is_series_epoch_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: EpochTimeUnit) -> bool:
+    def is_series_epoch_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -45,7 +45,7 @@ class IndividualColumnChecker:
         return series.between(day_start_ms, day_end_ms).all()
 
     @staticmethod
-    def is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, x_ms: int, y_ms: int, epoch_time_unit: EpochTimeUnit) -> bool:
+    def is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, x_ms: int, y_ms: int, epoch_time_unit: TimeUnit) -> bool:
         """
         func checks drift between TimestampOfReceive and EventTime or other combination:
 
@@ -72,13 +72,13 @@ class IndividualColumnChecker:
         1743495203952,1743495203815
         """
 
-        factor = 1_000 if epoch_time_unit is EpochTimeUnit.MICROSECONDS else 1
+        factor = 1_000 if epoch_time_unit is TimeUnit.US else 1
         x_ms *= factor
         y_ms *= factor
         return (timestamp_of_receive_column - event_time_column).between(x_ms, y_ms).all()
 
     @staticmethod
-    def are_first_and_last_timestamps_within_n_seconds_from_the_borders(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
+    def are_first_and_last_timestamps_within_n_seconds_from_the_borders(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -97,7 +97,7 @@ class IndividualColumnChecker:
         return first_within_range and last_within_range
 
     @staticmethod
-    def is_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
+    def is_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -111,7 +111,7 @@ class IndividualColumnChecker:
         return first_within_range
 
     @staticmethod
-    def is_last_timestamp_within_n_seconds_from_the_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
+    def is_last_timestamp_within_n_seconds_from_the_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -128,7 +128,7 @@ class IndividualColumnChecker:
         return last_within_range
 
     @staticmethod
-    def is_series_within_n_seconds_before_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: EpochTimeUnit) -> bool:
+    def is_series_within_n_seconds_before_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -195,7 +195,7 @@ class IndividualColumnChecker:
         return series.diff()[1:].eq(1).all()
 
     @staticmethod
-    def is_each_snapshot_price_level_amount_accurate_to_market(df: pd.DataFrame, asset_parameters: AssetParameters, expected_amount_of_price_levels_per_side: int) -> bool:
+    def is_each_snapshot_price_level_amount_accurate_to_market(df: pd.DataFrame, asset_parameters: AssetParams, expected_amount_of_price_levels_per_side: int) -> bool:
         if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT:
             raise Exception('is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT')
 
@@ -204,7 +204,7 @@ class IndividualColumnChecker:
         return (price_level_counts == expected_amount_of_price_levels_per_side).all()
 
     @staticmethod
-    def is_each_snapshot_price_level_amount_in_specified_range(df: pd.DataFrame, asset_parameters: AssetParameters, expected_minimum_amount: int, expected_maximum_amount) -> bool:
+    def is_each_snapshot_price_level_amount_in_specified_range(df: pd.DataFrame, asset_parameters: AssetParams, expected_minimum_amount: int, expected_maximum_amount) -> bool:
         if asset_parameters.stream_type is not StreamType.DEPTH_SNAPSHOT:
             raise Exception('is_each_snapshot_price_level_amount_accurate_to_market test is designed for StreamType.DEPTH_SNAPSHOT')
 

@@ -3,10 +3,10 @@ from __future__ import annotations
 from binance_data_processor.core.logo import binance_archiver_logo
 from binance_data_processor.enums.data_quality_report_status_enum import DataQualityReportStatus
 from binance_data_processor.scraper.data_downloader import DataDownloader
-from binance_data_processor.scraper.scraper_config import DataScraperConfig
+from binance_data_processor.scraper.scraper_config import ScraperCfg
 from binance_data_processor.data_quality.data_quality_report import DataQualityReport
 from binance_data_processor.data_quality.data_quality_checker import get_df_quality_report
-from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.asset_params import AssetParams
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.utils.file_utils import get_list_of_existing_root_csvs_asset_parameters
 from binance_data_processor.utils.file_utils import get_base_of_root_csv_filename
@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-def download_csv_data(cfg: DataScraperConfig) -> None:
+def download_csv_data(cfg: ScraperCfg) -> None:
     data_scraper = DataScraper()
     data_scraper.run(cfg=cfg)
 
@@ -32,11 +32,11 @@ class DataScraper:
     def __init__(self) -> None:
         self.data_downloader = DataDownloader()
 
-    def run(self, cfg: DataScraperConfig) -> None:
+    def run(self, cfg: ScraperCfg) -> None:
         if cfg.verbose: print(f'\033[35m{binance_archiver_logo}')
         self._main_loop(cfg)
 
-    def _main_loop(self, cfg: DataScraperConfig) -> None:
+    def _main_loop(self, cfg: ScraperCfg) -> None:
         print(f'\033[36m')
 
         ap_list = self._get_final_asset_parameters_list_to_be_downloaded(cfg)
@@ -69,9 +69,9 @@ class DataScraper:
             DataScraper.show_data_quality_report_list_summary(reports)
 
     @staticmethod
-    def _get_final_asset_parameters_list_to_be_downloaded(cfg: DataScraperConfig) -> list[AssetParameters]:
+    def _get_final_asset_parameters_list_to_be_downloaded(cfg: ScraperCfg) -> list[AssetParams]:
         apl = [
-            AssetParameters(
+            AssetParams(
                 market=m,
                 stream_type=s,
                 pairs=[(f'{p[:-1]}_perp'.lower() if m is Market.COIN_M_FUTURES else p.lower())],
@@ -88,7 +88,7 @@ class DataScraper:
         return apl
 
     @staticmethod
-    def print_asset_parameters_list(asset_parameters_list: list[AssetParameters]) -> None:
+    def print_asset_parameters_list(asset_parameters_list: list[AssetParams]) -> None:
         rows = []
         for ap in asset_parameters_list:
             rows.append((

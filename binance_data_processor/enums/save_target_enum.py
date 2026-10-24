@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class DataSaveTarget(Enum):
+class SaveTarget(Enum):
     JSON = "json"
     ZIP = "zip"
     BACKBLAZE = "backblaze"

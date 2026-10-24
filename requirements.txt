@@ -9,3 +9,5 @@ numpy
 pandas
 alive-progress
 matplotlib
+psutil
+pytest

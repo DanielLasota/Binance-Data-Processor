@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class CommandsRegistry(Enum):
+class CmdReg(Enum):
     SHUTDOWN = 'shutdown'
 
     MODIFY_SUBSCRIPTION = 'modify_subscription'

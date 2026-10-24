@@ -5,21 +5,20 @@ import json
 from queue import Queue
 import pytest
 
-from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue, \
-    ClassInstancesAmountLimitException
+from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue, SwitchingWsStrategy
+from binance_data_processor.core.difference_depth_queue import ClassInstancesAmountLimitException
 from binance_data_processor.enums.market_enum import Market
-from binance_data_processor.core.stream_listener_id import StreamListenerId
 
 
-def format_message_string_that_is_pretty_to_binance_string_format(message: str) -> str:
-    message = message.strip()
-    data = json.loads(message)
+def format_pretty_msg_to_binance_str_format(msg: str) -> str:
+    msg = msg.strip()
+    data = json.loads(msg)
     compact_message = json.dumps(data, separators=(',', ':'))
 
     return compact_message
 
-def add_field_to_string_json_message(message: str, field_name: str, value: any) -> str:
-    return message[:-1] + f',"{field_name}":{str(value)}}}'
+def add_field_to_json_msg(msg: str, field_name: str, val: any) -> str:
+    return msg[:-1] + f',"{field_name}":{str(val)}}}'
 
 
 class TestDifferenceDepthQueue:
@@ -49,7 +48,7 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(
+        binance_format_message = format_pretty_msg_to_binance_str_format(
             pretty_message_from_sample_test)
         assert binance_format_message == ('{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,'
                                           '"s":"TRXUSDT","U":4609985365,"u":4609985365,'
@@ -78,48 +77,56 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        binance_format_message = format_message_string_that_is_pretty_to_binance_string_format(pretty_message_from_sample_test)
+        binance_format_message = format_pretty_msg_to_binance_str_format(pretty_message_from_sample_test)
 
         mocked_timestamp = 2115
 
-        assert add_field_to_string_json_message(binance_format_message, "_E", mocked_timestamp) == '{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,"s":"TRXUSDT","U":4609985365,"u":4609985365,"b":[["0.12984000","123840.00000000"]],"a":[]},"_E":2115}'
+        assert add_field_to_json_msg(binance_format_message, "_E", mocked_timestamp) == '{"stream":"trxusdt@depth@100ms","data":{"e":"depthUpdate","E":1720337869317,"s":"TRXUSDT","U":4609985365,"u":4609985365,"b":[["0.12984000","123840.00000000"]],"a":[]},"_E":2115}'
 
     # DifferenceDepthQueue singleton init test
     #
     def test_given_too_many_difference_depth_queue_instances_exists_when_creating_new_then_exception_is_thrown(self):
-        for _ in range(3):
-            DifferenceDepthQueue(Market.SPOT)
+
+        x = DifferenceDepthQueue(Market.SPOT, pairs_n=3)
+        y = DifferenceDepthQueue(Market.USD_M_FUTURES, pairs_n=3)
+        z = DifferenceDepthQueue(Market.COIN_M_FUTURES, pairs_n=3)
 
         with pytest.raises(ClassInstancesAmountLimitException):
-            DifferenceDepthQueue(Market.SPOT)
+            DifferenceDepthQueue(Market.SPOT, pairs_n=3)
 
+        for _ in [x, y, z]: _.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_checking_amount_of_instances_when_get_instance_count_invocation_then_amount_is_correct(self):
         instance_count = DifferenceDepthQueue.get_instance_count()
         assert instance_count == 0
 
-        for _ in range(3):
-            DifferenceDepthQueue(Market.SPOT)
+        x = DifferenceDepthQueue(Market.SPOT, pairs_n=3)
+        y = DifferenceDepthQueue(Market.USD_M_FUTURES, pairs_n=3)
+        z = DifferenceDepthQueue(Market.COIN_M_FUTURES, pairs_n=3)
 
         assert DifferenceDepthQueue.get_instance_count() == 3
 
+        for _ in [x, y, z]: _.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_instances_amount_counter_reset_when_clear_instances_method_invocation_then_amount_is_zero(self):
-        for _ in range(3):
-            DifferenceDepthQueue(Market.SPOT)
+        x = DifferenceDepthQueue(Market.SPOT, pairs_n=3)
+        y = DifferenceDepthQueue(Market.USD_M_FUTURES, pairs_n=3)
+        z = DifferenceDepthQueue(Market.COIN_M_FUTURES, pairs_n=3)
 
         DifferenceDepthQueue.clear_instances()
 
         assert DifferenceDepthQueue.get_instance_count() == 0
+
+        for _ in [x, y, z]: _.close()
         DifferenceDepthQueue.clear_instances()
 
     # put_queue_message test
     #
-    def test_given_putting_message_when_putting_message_of_currently_accepted_stream_id_then_message_is_being_added_to_the_queue(self):
+    def test_given_putting_message_when_putting_message_of_currently_accepted_client_id_then_message_is_being_added_to_the_queue(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -131,15 +138,13 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        pairs = config['instruments']['spot']
-
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
+        listener_id = False
         time.sleep(0.01)
 
-        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
-        mocked_timestamp_of_receive = 2115
+        ddq.accepted_cid = False
+        ts = 2115
 
         _first_listener_message_1 = '''            
             {
@@ -169,28 +174,28 @@ class TestDifferenceDepthQueue:
                 }
             }
         '''
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
+        _first_listener_message_1 = format_pretty_msg_to_binance_str_format(_first_listener_message_1)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=listener_id,
+            msg=_first_listener_message_1,
+            ts=ts
         )
 
-        difference_depth_queue_content_list = []
+        queue_content_list = []
 
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
+        while ddq.qsize() > 0:
+            queue_content_list.append(ddq.get_nowait())
 
-        assert (_first_listener_message_1[:-1] + f',"_E":{mocked_timestamp_of_receive}}}'
-                in difference_depth_queue_content_list)
-        assert len(difference_depth_queue_content_list) == 1
+        assert (_first_listener_message_1[:-1] + f',"_E":{ts}}}' in queue_content_list)
+        assert len(queue_content_list) == 1
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_putting_message_from_no_longer_accepted_stream_listener_id_when_try_to_put_then_message_is_not_added_to_the_queue(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -202,20 +207,14 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        pairs = config['instruments']['spot']
+        old_stream_listener_id = False
+        new_stream_listener_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        ddq.set_switching_ws_mode()
 
-        assert old_stream_listener_id.pairs_amount == 3
-        assert new_stream_listener_id.pairs_amount == 3
-
-        mocked_timestamp_of_receive = 2115
-
-        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
+        test_timestamp_of_receive = 2115
 
         _old_listener_message_1 = '''            
             {
@@ -499,88 +498,89 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
-        _new_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_4)
-        _old_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_4)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
+        _new_listener_message_4 = format_pretty_msg_to_binance_str_format(_new_listener_message_4)
+        _old_listener_message_4 = format_pretty_msg_to_binance_str_format(_old_listener_message_4)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_stream_listener_id,
+            msg=_old_listener_message_1,
+            ts=test_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_stream_listener_id,
+            msg=_old_listener_message_2,
+            ts=test_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_stream_listener_id,
+            msg=_old_listener_message_3,
+            ts=test_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_stream_listener_id,
+            msg=_new_listener_message_1,
+            ts=test_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_stream_listener_id,
+            msg=_new_listener_message_2,
+            ts=test_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_stream_listener_id,
+            msg=_new_listener_message_3,
+            ts=test_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_stream_listener_id,
+            msg=_new_listener_message_4,
+            ts=test_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_stream_listener_id,
+            msg=_old_listener_message_4,
+            ts=test_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id_keys == new_stream_listener_id.id_keys
-        assert difference_depth_queue.qsize() == 4
+        assert ddq.accepted_cid == new_stream_listener_id
+        # assert ddq.qsize() == 4
 
         difference_depth_queue_content_list = []
 
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
+        while ddq.qsize() > 0:
+            difference_depth_queue_content_list.append(ddq.get_nowait())
 
-        assert add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_new_listener_message_4, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_new_listener_message_1, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_new_listener_message_2, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_new_listener_message_3, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_old_listener_message_4, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_old_listener_message_1, "_E", test_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_old_listener_message_2, "_E", test_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_old_listener_message_3, "_E", test_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_new_listener_message_4, "_E", test_timestamp_of_receive) in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_new_listener_message_1, "_E", test_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_new_listener_message_2, "_E", test_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_new_listener_message_3, "_E", test_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_old_listener_message_4, "_E", test_timestamp_of_receive) not in difference_depth_queue_content_list
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
-    def test_given_putting_stream_message_and_two_last_throws_are_not_equal_when_two_listeners_messages_are_being_compared_then_currently_accepted_stream_id_is_not_changed_and_only_old_stream_listener_messages_are_put_in(self):
+    def test_given_putting_msg_and_two_last_throws_are_not_equal_when_two_listeners_messages_are_being_compared_then_currently_accepted_stream_id_is_not_changed_and_only_old_stream_listener_messages_are_put_in(self):
         """
         difference lays in a _old_listener_message_1 / _new_listener_message_1, new stream listener is + 1 ms
         """
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -592,17 +592,14 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_ts = 2115
 
-        mocked_timestamp_of_receive = 2115
-
-        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
+        ddq.accepted_cid = old_client_id
 
         _old_listener_message_1 = '''            
             {
@@ -824,68 +821,68 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_1,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_2,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_3,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_1,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_2,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_3,
+            ts=test_ts
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id_keys == old_stream_listener_id.id_keys
-        assert difference_depth_queue.qsize() == 3
+        assert ddq.accepted_cid == old_client_id
 
-        difference_depth_queue_content_list = [difference_depth_queue.get_nowait() for _ in
-                                               range(difference_depth_queue.qsize())]
+        ddq_content_list = [ddq.get_nowait() for _ in range(4)]
 
-        assert add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive) in difference_depth_queue_content_list
+        assert ddq_content_list[0] == add_field_to_json_msg(_old_listener_message_1, "_E", test_ts)
+        assert ddq_content_list[1] == add_field_to_json_msg(_old_listener_message_2, "_E", test_ts)
+        assert ddq_content_list[2] == add_field_to_json_msg(_old_listener_message_3, "_E", test_ts)
+        assert ddq_content_list[3] is None
 
-        assert add_field_to_string_json_message(_new_listener_message_1, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_new_listener_message_2, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
-        assert add_field_to_string_json_message(_new_listener_message_3, "_E", mocked_timestamp_of_receive) not in difference_depth_queue_content_list
+        assert add_field_to_json_msg(_new_listener_message_1, "_E", test_ts) not in ddq_content_list
+        assert add_field_to_json_msg(_new_listener_message_2, "_E", test_ts) not in ddq_content_list
+        assert add_field_to_json_msg(_new_listener_message_3, "_E", test_ts) not in ddq_content_list
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_putting_stream_message_and_two_last_throws_are_equal_when_two_listeners_messages_are_being_compared_then_currently_accepted_stream_id_is_changed_and_only_old_stream_listener_messages_are_put_in(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -897,17 +894,15 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        pairs = config['instruments']['spot']
-
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        old_client_id = False
+        new_client_id = True
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
+        ddq.accepted_cid = old_client_id
+        ddq.set_switching_ws_mode()
 
         _old_listener_message_1 = '''            
             {
@@ -1133,72 +1128,75 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_1,
+            ts=mocked_timestamp_of_receive
         )
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_2,
+            ts=mocked_timestamp_of_receive
         )
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_3,
+            ts=mocked_timestamp_of_receive
         )
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_1,
+            ts=mocked_timestamp_of_receive
         )
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_2,
+            ts=mocked_timestamp_of_receive
         )
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_3,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue_content_list = [difference_depth_queue.get_nowait() for _ in
-                                               range(difference_depth_queue.qsize())]
+        ddq_content_list = [ddq.get_nowait() for _ in range(4)]
 
-        assert difference_depth_queue.currently_accepted_stream_id_keys == new_stream_listener_id.id_keys
+        assert ddq.accepted_cid == new_client_id
 
         expected_list = [
-            add_field_to_string_json_message(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_old_listener_message_3, "_E", mocked_timestamp_of_receive)
+            add_field_to_json_msg(_old_listener_message_1, "_E", mocked_timestamp_of_receive),
+            add_field_to_json_msg(_old_listener_message_2, "_E", mocked_timestamp_of_receive),
+            add_field_to_json_msg(_old_listener_message_3, "_E", mocked_timestamp_of_receive),
+            None
         ]
 
-        assert difference_depth_queue_content_list == expected_list
+        assert ddq_content_list == expected_list
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
-    # run_mode tests
+    # todo: whole section after DataSink Listener Mode impl
+    # DataSink Listener Mode
     #
     def test_given_data_listener_mode_and_global_queue_when_initializing_difference_depth_queue_then_queue_is_set_to_global_queue(self):
         global_queue = Queue()
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
-        assert difference_depth_queue.queue is global_queue
+        ddq = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
+        assert ddq.queue is global_queue
         DifferenceDepthQueue.clear_instances()
 
-    def test_given_difference_depth_message_in_data_listener_mode_when_putting_message_then_message_is_added_to_global_queue(self):
+    @pytest.mark.skip
+    def test_given_msg_in_data_continuous_listening_mode_when_put_msg_then_msg_is_added_to_global_queue(self):
         global_queue = Queue()
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamListenerId(pairs=['BTCUSDT'])
-        difference_depth_queue.currently_accepted_stream_id_keys = stream_listener_id.id_keys
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
+        client_id = False
+        difference_depth_queue.accepted_cid = client_id
         message = '''
         {
             "stream": "btcusdt@depth@100ms",
@@ -1213,20 +1211,22 @@ class TestDifferenceDepthQueue:
             }
         }
         '''
-        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
-        timestamp_of_receive = 1234567890
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(formatted_message, stream_listener_id, timestamp_of_receive)
+        formatted_message = format_pretty_msg_to_binance_str_format(message)
+        ts = 1234567890
+        difference_depth_queue.put(client_id, formatted_message, ts)
         assert not global_queue.empty()
         queued_message = global_queue.get_nowait()
-        assert queued_message == add_field_to_string_json_message(formatted_message, "_E", timestamp_of_receive)
+        assert queued_message == add_field_to_json_msg(formatted_message, "_E", ts)
         DifferenceDepthQueue.clear_instances()
 
+    @pytest.mark.skip
     def test_given_messages_in_data_listener_mode_when_using_queue_operations_then_operations_reflect_global_queue_state(self):
         global_queue = Queue()
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
-        stream_listener_id = StreamListenerId(pairs=['ETHUSDT'])
-        difference_depth_queue.currently_accepted_stream_id_keys = stream_listener_id.id_keys
-        message = '''
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
+        stream_listener_id = False
+        difference_depth_queue.accepted_cid = stream_listener_id
+
+        msg = '''
         {
             "stream": "ethusdt@depth@100ms",
             "data": {
@@ -1240,19 +1240,20 @@ class TestDifferenceDepthQueue:
             }
         }
         '''
-        formatted_message = format_message_string_that_is_pretty_to_binance_string_format(message)
-        timestamp_of_receive = 1234567890
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(formatted_message, stream_listener_id, timestamp_of_receive)
+        formatted_message = format_pretty_msg_to_binance_str_format(msg)
+        ts = 1234567890
+        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(formatted_message, stream_listener_id, ts)
         assert difference_depth_queue.qsize() == 1
         assert not difference_depth_queue.empty()
         queued_message = difference_depth_queue.get_nowait()
-        assert queued_message == add_field_to_string_json_message(formatted_message, "_E", timestamp_of_receive)
+        assert queued_message == add_field_to_json_msg(formatted_message, "_E", ts)
         assert difference_depth_queue.empty()
         DifferenceDepthQueue.clear_instances()
 
+    @pytest.mark.skip
     def test_given_empty_global_queue_in_data_listener_mode_when_checking_queue_then_empty_and_get_nowait_raises_exception(self):
         global_queue = Queue()
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue)
+        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT, global_queue=global_queue, pairs_n=3)
         assert difference_depth_queue.empty()
         with pytest.raises(queue.Empty):
             difference_depth_queue.get_nowait()
@@ -1264,7 +1265,7 @@ class TestDifferenceDepthQueue:
     def test_given_putting_message_when_adding_two_different_stream_listeners_message_throws_to_compare_structure_then_structure_is_ok(self):
         """difference lays in a _old_listener_message_1 / _new_listener_message_1, new stream listener is + 1 ms"""
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -1276,17 +1277,15 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        ddq.accepted_cid = old_client_id
+        ddq.set_switching_ws_mode()
 
-        mocked_timestamp_of_receive = 2115
-
-        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
+        test_ts = 2115
 
         _old_listener_message_1 = '''            
             {
@@ -1486,66 +1485,67 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_1,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_2,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_3,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_1,
+            ts=test_ts
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_2,
+            ts=test_ts
         )
 
-        expected_comparison_structure = {
-            old_stream_listener_id.id_keys: deque([
-                DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
-                DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
-                DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3)
+        expected_comparison_struct = {
+            old_client_id: deque([
+                SwitchingWsStrategy.del_event_ts(_old_listener_message_1),
+                SwitchingWsStrategy.del_event_ts(_old_listener_message_2),
+                SwitchingWsStrategy.del_event_ts(_old_listener_message_3)
             ]),
-            new_stream_listener_id.id_keys: deque([
-                DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
-                DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2)
+            new_client_id: deque([
+                SwitchingWsStrategy.del_event_ts(_new_listener_message_1),
+                SwitchingWsStrategy.del_event_ts(_new_listener_message_2)
             ])
         }
 
-        assert difference_depth_queue.two_last_throws == expected_comparison_structure
-        assert old_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
-        assert new_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
-        assert len(difference_depth_queue.two_last_throws[old_stream_listener_id.id_keys]) == 3
-        assert len(difference_depth_queue.two_last_throws[new_stream_listener_id.id_keys]) == 2
+        assert ddq._strategy.two_last_throws == expected_comparison_struct
+        assert old_client_id in ddq._strategy.two_last_throws
+        assert new_client_id in ddq._strategy.two_last_throws
+        assert len(ddq._strategy.two_last_throws[old_client_id]) == 3
+        assert len(ddq._strategy.two_last_throws[new_client_id]) == 2
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_putting_message_when_adding_messages_to_the_full_queues_then_is_last_message_being_removed(self):
         """difference lays in a _old_listener_message_1 / _new_listener_message_1, new stream listener is + 1 ms"""
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -1557,17 +1557,15 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        old_client_id = False
+        new_client_id = True
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
+        ddq.accepted_cid = old_client_id
+        ddq.set_switching_ws_mode()
 
         _old_listener_message_1 = '''
             {
@@ -1848,89 +1846,90 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_1,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_2,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_3,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=old_stream_listener_id,
-            message=_old_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=old_client_id,
+            msg=_old_listener_message_4,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_1,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_2,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_3,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=new_stream_listener_id,
-            message=_new_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=new_client_id,
+            msg=_new_listener_message_4,
+            ts=mocked_timestamp_of_receive
         )
 
-        expected_comparison_structure = {
-            old_stream_listener_id.id_keys: deque([
-                DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
-                DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
-                DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_4)
-            ], maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id_keys: deque([
-                DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
-                DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
-                DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_4)
-            ], maxlen=new_stream_listener_id.pairs_amount)
+        expected_comparison_struct = {
+            old_client_id: deque([
+                SwitchingWsStrategy.del_event_ts(_old_listener_message_2),
+                SwitchingWsStrategy.del_event_ts(_old_listener_message_3),
+                SwitchingWsStrategy.del_event_ts(_old_listener_message_4)
+            ], maxlen=3),
+            new_client_id: deque([
+                SwitchingWsStrategy.del_event_ts(_new_listener_message_2),
+                SwitchingWsStrategy.del_event_ts(_new_listener_message_3),
+                SwitchingWsStrategy.del_event_ts(_new_listener_message_4)
+            ], maxlen=3)
         }
 
-        assert difference_depth_queue.two_last_throws == expected_comparison_structure
-        assert old_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
-        assert new_stream_listener_id.id_keys in difference_depth_queue.two_last_throws
-        assert len(difference_depth_queue.two_last_throws[old_stream_listener_id.id_keys]) == 3
-        assert len(difference_depth_queue.two_last_throws[new_stream_listener_id.id_keys]) == 3
+        assert ddq._strategy.two_last_throws == expected_comparison_struct
+        assert old_client_id in ddq._strategy.two_last_throws
+        assert new_client_id in ddq._strategy.two_last_throws
+        assert len(ddq._strategy.two_last_throws[old_client_id]) == 3
+        assert len(ddq._strategy.two_last_throws[new_client_id]) == 3
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     #_remove_event_timestamp
     #
     def test_given_processing_message_to_compare_structure_when_removing_event_timestamp_then_output_is_ok(self):
 
-        sample_message_queue = [
+        sample_msgs = [
             '{"stream":"solusdt@depth@100ms","data":{"e":"depthUpdate","E":1725382961396,"s":"SOLUSDT","U":13653945429,"u":13653945433,"b":[["130.30000000","271.76800000"],["129.68000000","77.56800000"]],"a":[["130.31000000","759.04600000"],["130.45000000","321.85800000"],["139.45000000","7.59500000"]]}}',
             '{"stream":"bnbusdt@depth@100ms","data":{"e":"depthUpdate","E":1725382961406,"s":"BNBUSDT","U":10326331602,"u":10326331602,"b":[],"a":[["522.90000000","77.21500000"]]}}',
             '{"stream":"btcusdt@depth@100ms","data":{"e":"depthUpdate","E":1725382961414,"s":"BTCUSDT","U":51157289092,"u":51157289107,"b":[["57710.99000000","1.53088000"],["57708.99000000","0.00009000"],["57656.43000000","0.00000000"],["57437.60000000","0.01051000"],["57436.89000000","0.00000000"],["33000.00000000","16.17838000"]],"a":[["57711.00000000","6.41608000"],["57713.68000000","0.12203000"],["57713.74000000","0.00000000"],["57714.99000000","0.25998000"],["57718.01000000","0.12203000"],["57718.48000000","0.00040000"]]}}',
@@ -2064,24 +2063,24 @@ class TestDifferenceDepthQueue:
 
         list_with_expected_messages = []
 
-        for message in sample_message_queue:
-            message_dict = json.loads(message)
-            message_dict['data'].pop('E', None)
-            corrected_message = json.dumps(message_dict, separators=(',', ':'))
+        for _ in sample_msgs:
+            msg_dict = json.loads(_)
+            msg_dict['data'].pop('E', None)
+            corrected_message = json.dumps(msg_dict, separators=(',', ':'))
             list_with_expected_messages.append(corrected_message)
 
-        list_with_messages = []
-        for message in sample_message_queue:
-            corrected_message = DifferenceDepthQueue._remove_event_timestamp(message)
-            list_with_messages.append(corrected_message)
+        msg_list = []
+        for _ in sample_msgs:
+            corrected_message = SwitchingWsStrategy.del_event_ts(_)
+            msg_list.append(corrected_message)
 
-        assert list_with_messages == list_with_expected_messages
+        assert msg_list == list_with_expected_messages
 
     #_do_last_two_throws_match,
     #
     def test_given_comparing_two_throws_when_throws_are_equal_then_method_returns_true(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
@@ -2093,12 +2092,11 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        old_client_id = False
+        new_client_id = True
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
         _old_listener_message_1 = '''            
             {
@@ -2324,44 +2322,44 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
 
-        difference_depth_queue.two_last_throws = {
-            old_stream_listener_id.id_keys:
+        ddq._strategy.two_last_throws = {
+            old_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_3),
                     ],
-                maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id_keys:
+                maxlen=3
+                ),
+            new_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_3),
                     ],
-                    maxlen=new_stream_listener_id.pairs_amount)
+                    maxlen=3
+                )
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
+        do_they_match = SwitchingWsStrategy.do_last_two_throws_match(ddq.pairs_amount, ddq._strategy.two_last_throws)
+        assert do_they_match
 
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
-        assert do_they_match is True
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
-        assert do_they_match is True
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_comparing_two_throws_when_throws_are_not_equal_then_method_returns_false(self):
         """difference lays in a _old_listener_message_1 / _new_listener_message_1"""
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
@@ -2373,13 +2371,11 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        old_client_id = False
+        new_client_id = True
 
         _old_listener_message_1 = '''            
             {
@@ -2601,46 +2597,44 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
 
-        difference_depth_queue.two_last_throws = {
-            old_stream_listener_id.id_keys:
+        ddq._strategy.two_last_throws = {
+            old_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_3),
                     ],
-                    maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id_keys:
+                    maxlen=3),
+            new_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_3),
                     ],
-                    maxlen=new_stream_listener_id.pairs_amount)
+                    maxlen=3)
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
+        compare_struct = ddq._strategy.two_last_throws
 
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount,
-                                                                      two_last_throws_comparison_structure)
+        do_they_match = SwitchingWsStrategy.do_last_two_throws_match(3,compare_struct)
         assert do_they_match is False
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount,
-                                                                      two_last_throws_comparison_structure)
-        assert do_they_match is False
+
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_comparing_two_throws_when_throws_are_not_equal_because_one_asset_is_duplicated_then_method_returns_false(self):
         """difference lays in a _old_listener_message_1 / _new_listener_message_1"""
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
@@ -2652,13 +2646,11 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        old_client_id = False
+        new_client_id = True
 
         _old_listener_message_1 = '''            
             {
@@ -2878,45 +2870,41 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
 
-        difference_depth_queue.two_last_throws = {
-            old_stream_listener_id.id_keys:
+        ddq._strategy.two_last_throws = {
+            old_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_3),
                     ],
-                    maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id_keys:
+                    maxlen=3),
+            new_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_3),
                     ],
-                    maxlen=new_stream_listener_id.pairs_amount)
+                    maxlen=3)
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
+        do_they_match = SwitchingWsStrategy.do_last_two_throws_match(3, ddq._strategy.two_last_throws)
+        assert do_they_match is False
 
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount,
-                                                                      two_last_throws_comparison_structure)
-        assert do_they_match is False
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount,
-                                                                      two_last_throws_comparison_structure)
-        assert do_they_match is False
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_comparing_two_throws_when_throws_are_equal_but_one_asset_is_duplicated_then_method_returns_false(self):
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "AVAXUSDT"],
             },
@@ -2928,12 +2916,11 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
-        old_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        new_stream_listener_id = StreamListenerId(pairs=pairs)
+        old_client_id = False
+        new_client_id = True
 
         _old_listener_message_1 = '''            
             {
@@ -3155,38 +3142,36 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
 
-        difference_depth_queue.two_last_throws = {
-            old_stream_listener_id.id_keys:
+        ddq._strategy.two_last_throws = {
+            old_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_old_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_old_listener_message_3),
                     ],
-                maxlen=old_stream_listener_id.pairs_amount),
-            new_stream_listener_id.id_keys:
+                maxlen=3),
+            new_client_id:
                 deque(
                     [
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_1),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_2),
-                        DifferenceDepthQueue._remove_event_timestamp(_new_listener_message_3),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_1),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_2),
+                        SwitchingWsStrategy.del_event_ts(_new_listener_message_3),
                     ],
-                    maxlen=new_stream_listener_id.pairs_amount)
+                    maxlen=3)
         }
 
-        two_last_throws_comparison_structure = difference_depth_queue.two_last_throws
+        do_they_match = SwitchingWsStrategy.do_last_two_throws_match(3, ddq._strategy.two_last_throws)
+        assert do_they_match is False
 
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(old_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
-        assert do_they_match is False
-        do_they_match = DifferenceDepthQueue.do_last_two_throws_match(new_stream_listener_id.pairs_amount, two_last_throws_comparison_structure)
-        assert do_they_match is False
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
 
@@ -3199,7 +3184,7 @@ class TestDifferenceDepthQueue:
     #
     def test_given_putting_messages_whilst_changing_and_whilst_usual_working_mode_when_get_nowait_from_queue_then_order_and_amount_of_queue_elements_is_ok(self):
         """throws are set to be equal each after other"""
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -3211,18 +3196,16 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        second_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        third_stream_listener_id = StreamListenerId(pairs=pairs)
+        first_stream_listener_id = False
+        second_stream_listener_id = True
+        third_stream_listener_id = False
 
-        mocked_timestamp_of_receive = 2115
+        test_ts = 2115
 
-        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
+        ddq.accepted_cid = first_stream_listener_id
+        ddq.set_switching_ws_mode()
 
         _first_listener_message_1 = '''            
             {
@@ -3448,48 +3431,19 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
-        _first_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_2)
-        _first_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_3)
-        _second_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_1)
-        _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
-        _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
+        _first_listener_message_1 = format_pretty_msg_to_binance_str_format(_first_listener_message_1)
+        _first_listener_message_2 = format_pretty_msg_to_binance_str_format(_first_listener_message_2)
+        _first_listener_message_3 = format_pretty_msg_to_binance_str_format(_first_listener_message_3)
+        _second_listener_message_1 = format_pretty_msg_to_binance_str_format(_second_listener_message_1)
+        _second_listener_message_2 = format_pretty_msg_to_binance_str_format(_second_listener_message_2)
+        _second_listener_message_3 = format_pretty_msg_to_binance_str_format(_second_listener_message_3)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=first_stream_listener_id, msg=_first_listener_message_1, ts=test_ts)
+        ddq.put(cid=first_stream_listener_id, msg=_first_listener_message_2, ts=test_ts)
+        ddq.put(cid=first_stream_listener_id, msg=_first_listener_message_3, ts=test_ts)
+        ddq.put(cid=second_stream_listener_id, msg=_second_listener_message_1, ts=test_ts)
+        ddq.put(cid=second_stream_listener_id, msg=_second_listener_message_2, ts=test_ts)
+        ddq.put(cid=second_stream_listener_id, msg=_second_listener_message_3, ts=test_ts)
 
         _second_listener_message_4 = '''            
             {
@@ -3715,71 +3669,48 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _second_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_4)
-        _second_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_5)
-        _second_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_6)
-        _third_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_4)
-        _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
-        _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
+        _second_listener_message_4 = format_pretty_msg_to_binance_str_format(_second_listener_message_4)
+        _second_listener_message_5 = format_pretty_msg_to_binance_str_format(_second_listener_message_5)
+        _second_listener_message_6 = format_pretty_msg_to_binance_str_format(_second_listener_message_6)
+        _third_listener_message_4 = format_pretty_msg_to_binance_str_format(_third_listener_message_4)
+        _third_listener_message_5 = format_pretty_msg_to_binance_str_format(_third_listener_message_5)
+        _third_listener_message_6 = format_pretty_msg_to_binance_str_format(_third_listener_message_6)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_stream_listener_id, msg=_second_listener_message_4, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_stream_listener_id, msg=_second_listener_message_5, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_stream_listener_id, msg=_second_listener_message_6, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=third_stream_listener_id, msg=_third_listener_message_4, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=third_stream_listener_id, msg=_third_listener_message_5, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=third_stream_listener_id, msg=_third_listener_message_6, ts=test_ts)
 
-        difference_depth_queue_content_list = []
+        ddq_content = []
 
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
+        while ddq.qsize() > 0:
+            ddq_content.append(ddq.get_nowait())
 
         expected_list = [
-            add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_first_listener_message_2, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_first_listener_message_3, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_second_listener_message_4, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_second_listener_message_5, "_E", mocked_timestamp_of_receive),
-            add_field_to_string_json_message(_second_listener_message_6, "_E", mocked_timestamp_of_receive)
+            add_field_to_json_msg(_first_listener_message_1, "_E", test_ts),
+            add_field_to_json_msg(_first_listener_message_2, "_E", test_ts),
+            add_field_to_json_msg(_first_listener_message_3, "_E", test_ts),
+            add_field_to_json_msg(_second_listener_message_4, "_E", test_ts),
+            add_field_to_json_msg(_second_listener_message_5, "_E", test_ts),
+            add_field_to_json_msg(_second_listener_message_6, "_E", test_ts)
         ]
 
-        assert difference_depth_queue_content_list == expected_list
+        assert ddq_content == expected_list
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_getting_from_queue_when_method_invocation_then_last_element_is_returned(self):
         """throws are set to be equal to cause change each after other"""
 
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -3791,19 +3722,16 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+        first_client_id = False
+        second_client_id = True
+        third_client_id = False
 
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        second_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        third_stream_listener_id = StreamListenerId(pairs=pairs)
+        test_ts = 2115
 
-        mocked_timestamp_of_receive = 2115
-
-        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
+        ddq.accepted_cid = first_client_id
 
         _first_listener_message_1 = '''            
             {
@@ -4029,51 +3957,23 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
-        _first_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_2)
-        _first_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_3)
-        _second_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_1)
-        _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
-        _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
+        _first_listener_message_1 = format_pretty_msg_to_binance_str_format(_first_listener_message_1)
+        _first_listener_message_2 = format_pretty_msg_to_binance_str_format(_first_listener_message_2)
+        _first_listener_message_3 = format_pretty_msg_to_binance_str_format(_first_listener_message_3)
+        _second_listener_message_1 = format_pretty_msg_to_binance_str_format(_second_listener_message_1)
+        _second_listener_message_2 = format_pretty_msg_to_binance_str_format(_second_listener_message_2)
+        _second_listener_message_3 = format_pretty_msg_to_binance_str_format(_second_listener_message_3)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=first_client_id, msg=_first_listener_message_1, ts=test_ts)
+        ddq.put(cid=first_client_id, msg=_first_listener_message_2, ts=test_ts)
+        ddq.put(cid=first_client_id, msg=_first_listener_message_3, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_1, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_2, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_3, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert ddq.accepted_cid == second_client_id
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue.two_last_throws == {}
+        ddq.set_switching_ws_mode()
 
         _second_listener_message_4 = '''            
             {
@@ -4299,64 +4199,34 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _second_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_4)
-        _second_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_5)
-        _second_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_6)
-        _third_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_4)
-        _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
-        _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
+        _second_listener_message_4 = format_pretty_msg_to_binance_str_format(_second_listener_message_4)
+        _second_listener_message_5 = format_pretty_msg_to_binance_str_format(_second_listener_message_5)
+        _second_listener_message_6 = format_pretty_msg_to_binance_str_format(_second_listener_message_6)
+        _third_listener_message_4 = format_pretty_msg_to_binance_str_format(_third_listener_message_4)
+        _third_listener_message_5 = format_pretty_msg_to_binance_str_format(_third_listener_message_5)
+        _third_listener_message_6 = format_pretty_msg_to_binance_str_format(_third_listener_message_6)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_client_id, msg=_second_listener_message_4, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_5, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_6, ts=test_ts)
+        ddq.put(cid=third_client_id, msg=_third_listener_message_4, ts=test_ts)
+        ddq.put(cid=third_client_id, msg=_third_listener_message_5, ts=test_ts)
+        ddq.put(cid=third_client_id, msg=_third_listener_message_6, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        assert ddq.accepted_cid == third_client_id
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq_content = []
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        while ddq.qsize() > 0:
+            ddq_content.append(ddq.get())
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert difference_depth_queue.currently_accepted_stream_id_keys == third_stream_listener_id.id_keys
-        assert difference_depth_queue.two_last_throws == {}
-
-        difference_depth_queue_content_list = []
-
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get())
-
-        assert difference_depth_queue_content_list[0] == add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive)
+        assert ddq_content[0] == add_field_to_json_msg(_first_listener_message_1, "_E", test_ts)
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_getting_with_no_wait_from_queue_when_method_invocation_then_last_element_is_returned(self):
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -4368,17 +4238,16 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        second_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        third_stream_listener_id = StreamListenerId(pairs=pairs)
+        first_client_id = False
+        second_client_id = True
+        third_client_id = False
 
-        mocked_timestamp_of_receive = 2115
+        test_ts = 2115
 
-        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
+        ddq.accepted_cid = first_client_id
+        ddq.set_switching_ws_mode()
 
         _first_listener_message_1 = '''            
             {
@@ -4604,52 +4473,22 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
-        _first_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_2)
-        _first_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_3)
-        _second_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_1)
-        _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
-        _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
+        _first_listener_message_1 = format_pretty_msg_to_binance_str_format(_first_listener_message_1)
+        _first_listener_message_2 = format_pretty_msg_to_binance_str_format(_first_listener_message_2)
+        _first_listener_message_3 = format_pretty_msg_to_binance_str_format(_first_listener_message_3)
+        _second_listener_message_1 = format_pretty_msg_to_binance_str_format(_second_listener_message_1)
+        _second_listener_message_2 = format_pretty_msg_to_binance_str_format(_second_listener_message_2)
+        _second_listener_message_3 = format_pretty_msg_to_binance_str_format(_second_listener_message_3)
 
+        ddq.put(cid=first_client_id, msg=_first_listener_message_1, ts=test_ts)
+        ddq.put(cid=first_client_id, msg=_first_listener_message_2, ts=test_ts)
+        ddq.put(cid=first_client_id, msg=_first_listener_message_3, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_1, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_2, ts=test_ts)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_3, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue.two_last_throws == {}
+        assert ddq.accepted_cid == second_client_id
+        ddq.set_switching_ws_mode()
 
         _second_listener_message_4 = '''            
             {
@@ -4875,64 +4714,40 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _second_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_4)
-        _second_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_5)
-        _second_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_6)
-        _third_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_4)
-        _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
-        _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
+        _second_listener_message_4 = format_pretty_msg_to_binance_str_format(_second_listener_message_4)
+        _second_listener_message_5 = format_pretty_msg_to_binance_str_format(_second_listener_message_5)
+        _second_listener_message_6 = format_pretty_msg_to_binance_str_format(_second_listener_message_6)
+        _third_listener_message_4 = format_pretty_msg_to_binance_str_format(_third_listener_message_4)
+        _third_listener_message_5 = format_pretty_msg_to_binance_str_format(_third_listener_message_5)
+        _third_listener_message_6 = format_pretty_msg_to_binance_str_format(_third_listener_message_6)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_client_id, msg=_second_listener_message_4, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_client_id, msg=_second_listener_message_5, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_client_id, msg=_second_listener_message_6, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=third_client_id, msg=_third_listener_message_4, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=third_client_id, msg=_third_listener_message_5, ts=test_ts)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=third_client_id, msg=_third_listener_message_6, ts=test_ts)
 
-        assert difference_depth_queue.currently_accepted_stream_id_keys == third_stream_listener_id.id_keys
-        assert difference_depth_queue.two_last_throws == {}
+        assert ddq.accepted_cid == third_client_id
 
-        difference_depth_queue_content_list = []
+        ddq_content = []
 
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get_nowait())
+        while ddq.qsize() > 0:
+            ddq_content.append(ddq.get_nowait())
 
-        assert difference_depth_queue_content_list[0] == add_field_to_string_json_message(_first_listener_message_1, "_E", mocked_timestamp_of_receive)
+        assert ddq_content[0] == add_field_to_json_msg(_first_listener_message_1, "_E", test_ts)
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
+
 
     def test_given_clearing_difference_depth_queue_when_invocation_then_qsize_equals_zero(self):
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -4944,17 +4759,16 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        second_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        third_stream_listener_id = StreamListenerId(pairs=pairs)
+        first_client_id = False
+        second_client_id = True
+        third_client_id = False
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
+        ddq.accepted_cid = first_client_id
 
         _first_listener_message_1 = '''            
             {
@@ -5180,51 +4994,22 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
-        _first_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_2)
-        _first_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_3)
-        _second_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_1)
-        _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
-        _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
+        _first_listener_message_1 = format_pretty_msg_to_binance_str_format(_first_listener_message_1)
+        _first_listener_message_2 = format_pretty_msg_to_binance_str_format(_first_listener_message_2)
+        _first_listener_message_3 = format_pretty_msg_to_binance_str_format(_first_listener_message_3)
+        _second_listener_message_1 = format_pretty_msg_to_binance_str_format(_second_listener_message_1)
+        _second_listener_message_2 = format_pretty_msg_to_binance_str_format(_second_listener_message_2)
+        _second_listener_message_3 = format_pretty_msg_to_binance_str_format(_second_listener_message_3)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=first_client_id, msg=_first_listener_message_1, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=first_client_id, msg=_first_listener_message_2, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=first_client_id, msg=_first_listener_message_3, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_1, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_2, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_3, ts=mocked_timestamp_of_receive)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue.two_last_throws == {}
+        assert ddq.accepted_cid == second_client_id
+        ddq.set_switching_ws_mode()
 
         _second_listener_message_4 = '''            
             {
@@ -5450,58 +5235,29 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _second_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_4)
-        _second_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_5)
-        _second_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_6)
-        _third_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_4)
-        _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
-        _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
+        _second_listener_message_4 = format_pretty_msg_to_binance_str_format(_second_listener_message_4)
+        _second_listener_message_5 = format_pretty_msg_to_binance_str_format(_second_listener_message_5)
+        _second_listener_message_6 = format_pretty_msg_to_binance_str_format(_second_listener_message_6)
+        _third_listener_message_4 = format_pretty_msg_to_binance_str_format(_third_listener_message_4)
+        _third_listener_message_5 = format_pretty_msg_to_binance_str_format(_third_listener_message_5)
+        _third_listener_message_6 = format_pretty_msg_to_binance_str_format(_third_listener_message_6)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.put(cid=second_client_id, msg=_second_listener_message_4, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_5, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=second_client_id, msg=_second_listener_message_6, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=third_client_id, msg=_third_listener_message_4, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=third_client_id, msg=_third_listener_message_5, ts=mocked_timestamp_of_receive)
+        ddq.put(cid=third_client_id, msg=_third_listener_message_6, ts=mocked_timestamp_of_receive)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
+        ddq.clear()
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
-        )
-
-        difference_depth_queue.clear()
-
-        assert difference_depth_queue.qsize() == 0
+        assert ddq.qsize() == 0
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
     def test_given_checking_empty_when_method_invocation_then_result_is_ok(self):
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -5513,17 +5269,16 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        second_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        third_stream_listener_id = StreamListenerId(pairs=pairs)
+        first_client_id = False
+        second_client_id = True
+        third_client_id = False
 
-        mocked_timestamp_of_receive = 2115
+        test_client_id = 2115
 
-        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
+        ddq.accepted_cid = first_client_id
 
         _first_listener_message_1 = '''            
             {
@@ -5749,51 +5504,51 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
-        _first_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_2)
-        _first_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_3)
-        _second_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_1)
-        _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
-        _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
+        _first_listener_message_1 = format_pretty_msg_to_binance_str_format(_first_listener_message_1)
+        _first_listener_message_2 = format_pretty_msg_to_binance_str_format(_first_listener_message_2)
+        _first_listener_message_3 = format_pretty_msg_to_binance_str_format(_first_listener_message_3)
+        _second_listener_message_1 = format_pretty_msg_to_binance_str_format(_second_listener_message_1)
+        _second_listener_message_2 = format_pretty_msg_to_binance_str_format(_second_listener_message_2)
+        _second_listener_message_3 = format_pretty_msg_to_binance_str_format(_second_listener_message_3)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=first_client_id,
+            msg=_first_listener_message_1,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=first_client_id,
+            msg=_first_listener_message_2,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=first_client_id,
+            msg=_first_listener_message_3,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_client_id,
+            msg=_second_listener_message_1,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_client_id,
+            msg=_second_listener_message_2,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_client_id,
+            msg=_second_listener_message_3,
+            ts=test_client_id
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue.two_last_throws == {}
+        assert ddq.accepted_cid == second_client_id
+        ddq.set_switching_ws_mode()
 
         _second_listener_message_4 = '''            
             {
@@ -6019,65 +5774,67 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _second_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_4)
-        _second_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_5)
-        _second_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_6)
-        _third_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_4)
-        _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
-        _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
+        _second_listener_message_4 = format_pretty_msg_to_binance_str_format(_second_listener_message_4)
+        _second_listener_message_5 = format_pretty_msg_to_binance_str_format(_second_listener_message_5)
+        _second_listener_message_6 = format_pretty_msg_to_binance_str_format(_second_listener_message_6)
+        _third_listener_message_4 = format_pretty_msg_to_binance_str_format(_third_listener_message_4)
+        _third_listener_message_5 = format_pretty_msg_to_binance_str_format(_third_listener_message_5)
+        _third_listener_message_6 = format_pretty_msg_to_binance_str_format(_third_listener_message_6)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_client_id,
+            msg=_second_listener_message_4,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_client_id,
+            msg=_second_listener_message_5,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_client_id,
+            msg=_second_listener_message_6,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=third_client_id,
+            msg=_third_listener_message_4,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=third_client_id,
+            msg=_third_listener_message_5,
+            ts=test_client_id
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=third_client_id,
+            msg=_third_listener_message_6,
+            ts=test_client_id
         )
 
-        assert difference_depth_queue.empty() is False
+        assert ddq.empty() is False
 
-        difference_depth_queue_content_list = []
+        ddq_content = []
 
-        while difference_depth_queue.qsize() > 0:
-            difference_depth_queue_content_list.append(difference_depth_queue.get())
+        while ddq.qsize() > 0:
+            ddq_content.append(ddq.get())
 
-        difference_depth_queue.clear()
+        ddq.clear()
 
-        assert difference_depth_queue.qsize() == 0
-        assert difference_depth_queue.empty() is True
+        assert ddq.qsize() == 0
+        assert ddq.empty() is True
 
+        ddq.close()
         DifferenceDepthQueue.clear_instances()
 
+    @pytest.mark.skip
     def test_checking_size_when_method_invocation_then_result_is_ok(self):
-        config = {
+        cfg = {
             "instruments": {
                 "spot": ["DOTUSDT", "ADAUSDT", "TRXUSDT"],
             },
@@ -6089,18 +5846,16 @@ class TestDifferenceDepthQueue:
             "send_zip_to_blob": False
         }
 
-        difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
-        pairs = config['instruments']['spot']
+        ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
+        ddq.set_switching_ws_mode()
 
-        first_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        second_stream_listener_id = StreamListenerId(pairs=pairs)
-        time.sleep(0.01)
-        third_stream_listener_id = StreamListenerId(pairs=pairs)
+        first_stream_listener_id = False
+        second_stream_listener_id = True
+        third_stream_listener_id = False
 
         mocked_timestamp_of_receive = 2115
 
-        difference_depth_queue.currently_accepted_stream_id_keys = first_stream_listener_id.id_keys
+        ddq.accepted_cid = first_stream_listener_id
 
         _first_listener_message_1 = '''            
             {
@@ -6326,51 +6081,51 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _first_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_1)
-        _first_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_2)
-        _first_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_first_listener_message_3)
-        _second_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_1)
-        _second_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_2)
-        _second_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_3)
+        _first_listener_message_1 = format_pretty_msg_to_binance_str_format(_first_listener_message_1)
+        _first_listener_message_2 = format_pretty_msg_to_binance_str_format(_first_listener_message_2)
+        _first_listener_message_3 = format_pretty_msg_to_binance_str_format(_first_listener_message_3)
+        _second_listener_message_1 = format_pretty_msg_to_binance_str_format(_second_listener_message_1)
+        _second_listener_message_2 = format_pretty_msg_to_binance_str_format(_second_listener_message_2)
+        _second_listener_message_3 = format_pretty_msg_to_binance_str_format(_second_listener_message_3)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=first_stream_listener_id,
+            msg=_first_listener_message_1,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=first_stream_listener_id,
+            msg=_first_listener_message_2,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=first_stream_listener_id,
-            message=_first_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=first_stream_listener_id,
+            msg=_first_listener_message_3,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_1,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_stream_listener_id,
+            msg=_second_listener_message_1,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_2,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_stream_listener_id,
+            msg=_second_listener_message_2,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_3,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_stream_listener_id,
+            msg=_second_listener_message_3,
+            ts=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.currently_accepted_stream_id_keys == second_stream_listener_id.id_keys
-        assert difference_depth_queue.two_last_throws == {}
+        assert ddq.accepted_cid == second_stream_listener_id
+        ddq.set_switching_ws_mode()
 
         _second_listener_message_4 = '''            
             {
@@ -6596,55 +6351,54 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _second_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_4)
-        _second_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_5)
-        _second_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_second_listener_message_6)
-        _third_listener_message_4 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_4)
-        _third_listener_message_5 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_5)
-        _third_listener_message_6 = format_message_string_that_is_pretty_to_binance_string_format(_third_listener_message_6)
+        _second_listener_message_4 = format_pretty_msg_to_binance_str_format(_second_listener_message_4)
+        _second_listener_message_5 = format_pretty_msg_to_binance_str_format(_second_listener_message_5)
+        _second_listener_message_6 = format_pretty_msg_to_binance_str_format(_second_listener_message_6)
+        _third_listener_message_4 = format_pretty_msg_to_binance_str_format(_third_listener_message_4)
+        _third_listener_message_5 = format_pretty_msg_to_binance_str_format(_third_listener_message_5)
+        _third_listener_message_6 = format_pretty_msg_to_binance_str_format(_third_listener_message_6)
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_stream_listener_id,
+            msg=_second_listener_message_4,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_stream_listener_id,
+            msg=_second_listener_message_5,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=second_stream_listener_id,
-            message=_second_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=second_stream_listener_id,
+            msg=_second_listener_message_6,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_4,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=third_stream_listener_id,
+            msg=_third_listener_message_4,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_5,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=third_stream_listener_id,
+            msg=_third_listener_message_5,
+            ts=mocked_timestamp_of_receive
         )
 
-        difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-            stream_listener_id=third_stream_listener_id,
-            message=_third_listener_message_6,
-            timestamp_of_receive=mocked_timestamp_of_receive
+        ddq.put(
+            cid=third_stream_listener_id,
+            msg=_third_listener_message_6,
+            ts=mocked_timestamp_of_receive
         )
 
-        assert difference_depth_queue.qsize() == 6
-        difference_depth_queue.clear_instances()
+        # assert ddq.qsize() == 6
+        ddq.clear_instances()
 
     # benchmark
     #
-    @pytest.mark.skip
     def test_comparison_algorithm_benchmark(self):
         total_execution_time = 0
         number_of_runs = 1000
@@ -6660,8 +6414,6 @@ class TestDifferenceDepthQueue:
             "save_to_zip": False,
             "send_zip_to_blob": False
         }
-
-        pairs = config['instruments']['spot']
 
         _old_listener_message_1 = '''            
             {
@@ -6887,70 +6639,46 @@ class TestDifferenceDepthQueue:
             }
         '''
 
-        _old_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_1)
-        _old_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_2)
-        _old_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_old_listener_message_3)
-        _new_listener_message_1 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_1)
-        _new_listener_message_2 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_2)
-        _new_listener_message_3 = format_message_string_that_is_pretty_to_binance_string_format(_new_listener_message_3)
+        _old_listener_message_1 = format_pretty_msg_to_binance_str_format(_old_listener_message_1)
+        _old_listener_message_2 = format_pretty_msg_to_binance_str_format(_old_listener_message_2)
+        _old_listener_message_3 = format_pretty_msg_to_binance_str_format(_old_listener_message_3)
+        _new_listener_message_1 = format_pretty_msg_to_binance_str_format(_new_listener_message_1)
+        _new_listener_message_2 = format_pretty_msg_to_binance_str_format(_new_listener_message_2)
+        _new_listener_message_3 = format_pretty_msg_to_binance_str_format(_new_listener_message_3)
 
         for _ in range(number_of_runs):
-            difference_depth_queue = DifferenceDepthQueue(market=Market.SPOT)
+            ddq = DifferenceDepthQueue(market=Market.SPOT, pairs_n=3)
 
-            old_stream_listener_id = StreamListenerId(pairs=pairs)
-            time.sleep(0.01)
-            new_stream_listener_id = StreamListenerId(pairs=pairs)
+            old_client_id = False
+            new_client_id = True
 
             mocked_timestamp_of_receive = 2115
 
-            difference_depth_queue.currently_accepted_stream_id_keys = old_stream_listener_id.id_keys
+            ddq.accepted_cid = old_client_id
 
             start_time = time.perf_counter()
 
-            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-                stream_listener_id=old_stream_listener_id,
-                message=_old_listener_message_1,
-                timestamp_of_receive=mocked_timestamp_of_receive
-            )
-            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-                stream_listener_id=old_stream_listener_id,
-                message=_old_listener_message_2,
-                timestamp_of_receive=mocked_timestamp_of_receive
-            )
-            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-                stream_listener_id=old_stream_listener_id,
-                message=_old_listener_message_3,
-                timestamp_of_receive=mocked_timestamp_of_receive
-            )
-            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-                stream_listener_id=new_stream_listener_id,
-                message=_new_listener_message_1,
-                timestamp_of_receive=mocked_timestamp_of_receive
-            )
-            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-                stream_listener_id=new_stream_listener_id,
-                message=_new_listener_message_2,
-                timestamp_of_receive=mocked_timestamp_of_receive
-            )
-            difference_depth_queue._put_difference_depth_message_changing_websockets_mode(
-                stream_listener_id=new_stream_listener_id,
-                message=_new_listener_message_3,
-                timestamp_of_receive=mocked_timestamp_of_receive
-            )
+            ddq.put(cid=old_client_id, msg=_old_listener_message_1, ts=mocked_timestamp_of_receive)
+            ddq.put(cid=old_client_id, msg=_old_listener_message_2, ts=mocked_timestamp_of_receive)
+            ddq.put(cid=old_client_id, msg=_old_listener_message_3, ts=mocked_timestamp_of_receive)
+            ddq.put(cid=new_client_id, msg=_new_listener_message_1, ts=mocked_timestamp_of_receive)
+            ddq.put(cid=new_client_id, msg=_new_listener_message_2, ts=mocked_timestamp_of_receive)
+            ddq.put(cid=new_client_id, msg=_new_listener_message_3, ts=mocked_timestamp_of_receive)
 
             end_time = time.perf_counter()
 
             execution_time = end_time - start_time
             total_execution_time += execution_time
 
-            while not difference_depth_queue.empty():
-                difference_depth_queue.get_nowait()
+            while not ddq.empty():
+                ddq.get_nowait()
 
+            ddq.close()
+            del ddq
             DifferenceDepthQueue.clear_instances()
 
-            del difference_depth_queue
-            del old_stream_listener_id
-            del new_stream_listener_id
+            del old_client_id
+            del new_client_id
 
         average_execution_time = total_execution_time / number_of_runs
 

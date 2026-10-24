@@ -1,117 +1,86 @@
-import uuid
-from queue import Queue
-from typing import final, Tuple
-import threading
+from collections import deque
+from typing import final
 import re
 from abc import ABC, abstractmethod
 
 from binance_data_processor.core.exceptions import ClassInstancesAmountLimitException
-from binance_data_processor.core.stream_listener_id import StreamListenerId
+from binance_data_processor.core.shared_ring_buffer import SharedRingBuffer
 from binance_data_processor.enums.market_enum import Market
 
 
-class PutTradeMessageStrategy(ABC):
+class QueueStrategy(ABC):
+    __slots__ = ()
+
     @abstractmethod
-    def put_trade_message(
-        self,
-        stream_listener_id: StreamListenerId,
-        message: str,
-        timestamp_of_receive: int
-    ) -> None:
+    def put(self, id_: bool, message: str, ts: int) -> None:
         ...
 
 
-class ContinuousListeningStrategy(PutTradeMessageStrategy):
-    def __init__(
-            self,
-            context: 'TradeQueue'
-    ):
+class ContinuousListeningStrategy(QueueStrategy):
+    __slots__ = ('context',)
+
+    def __init__(self, context: 'TradeQueue'):
         self.context = context
 
-    def put_trade_message(
-        self,
-        stream_listener_id: StreamListenerId,
-        message: str,
-        timestamp_of_receive: int
-    ) -> None:
-        with self.context.lock:
-            stream_listener_id_keys = stream_listener_id.id_keys
-
-            if stream_listener_id_keys == self.context.no_longer_accepted_stream_id_keys:
-                return
-
-            if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
-                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.context.queue.put(message_with_timestamp_of_receive)
-            else:
-                self.context.new_stream_listener_id_keys = stream_listener_id_keys
+    def put(self, msg: str, ts: int, cid: bool) -> None:
+        if cid == self.context.not_accepted_cid:
+            return
+        elif cid == self.context.accepted_cid:
+            self.context.queue.append(msg[:-1] + f',"_E":{ts}}}') #todo: wyjebac laczenie do data collector update: chyba jednak nie trzeba teraz
 
 
-class SwitchingWebsocketsStrategy(PutTradeMessageStrategy):
-    def __init__(
-            self,
-            context: 'TradeQueue'
-    ):
-        self.context = context
+class SwitchingWsStrategy(QueueStrategy):
+    __slots__ = ('context', )
 
-    def put_trade_message(
-        self,
-        stream_listener_id: StreamListenerId,
-        message: str,
-        timestamp_of_receive: int
-    ) -> None:
-        with self.context.lock:
-            stream_listener_id_keys = stream_listener_id.id_keys
-
-            if stream_listener_id_keys == self.context.no_longer_accepted_stream_id_keys:
-                return
-
-            if stream_listener_id_keys == self.context.currently_accepted_stream_id_keys:
-                message_with_timestamp_of_receive = message[:-1] + f',"_E":{timestamp_of_receive}}}'
-                self.context.queue.put(message_with_timestamp_of_receive)
-            else:
-                self.context.new_stream_listener_id_keys = stream_listener_id_keys
-
-            current_message_signs = self.context.get_message_signs(message)
-
-            if current_message_signs == self.context.last_message_signs:
-                self.context.no_longer_accepted_stream_id_keys = self.context.currently_accepted_stream_id_keys
-                self.context.currently_accepted_stream_id_keys = self.context.new_stream_listener_id_keys
-                self.context.new_stream_listener_id_keys = None
-                self.context.did_websockets_switch_successfully = True
-                self.context.set_continuous_listening_mode()
-
-            self.context.last_message_signs = current_message_signs
-
-            del message
-
-
-class TradeQueue:
-    __slots__ = [
-        'lock',
-        '_market',
-        'did_websockets_switch_successfully',
-        'new_stream_listener_id_keys',
-        'currently_accepted_stream_id_keys',
-        'no_longer_accepted_stream_id_keys',
-        'last_message_signs',
-        '_strategy',
-        'queue'
-    ]
-
-    _instances = []
-    _lock = threading.Lock()
-    _INSTANCES_AMOUNT_LIMIT = 3
     _TRANSACTION_SIGNS_COMPILED_PATTERN = re.compile(r'"s":"([^"]+)","t":(\d+)')
 
+    def __init__(self, context: 'TradeQueue'):
+        self.context = context
+
+    def put(self, msg: str, ts: int, cid: bool) -> None:
+        if cid == self.context.accepted_cid:
+            self.context.queue.append(msg[:-1] + f',"_E":{ts}}}')
+
+        current_msg_signs = self.get_msg_signs(msg)
+
+        if current_msg_signs == self.context.last_msg_signs:
+            self.context.not_accepted_cid = not self.context.not_accepted_cid
+            self.context.accepted_cid = not self.context.accepted_cid
+            self.context.did_ws_switch = True
+            self.context.set_continuous_listening_mode()
+
+        self.context.last_msg_signs = current_msg_signs
+
+        del msg
+
+    @staticmethod
+    def get_msg_signs(msg: str) -> str:
+        match = SwitchingWsStrategy._TRANSACTION_SIGNS_COMPILED_PATTERN.search(msg)
+        return '"s":"' + match.group(1) + '","t":' + match.group(2)
+
+class TradeQueue:
+    __slots__ = (
+        'queue',
+        'srb',
+        'accepted_cid',
+        'not_accepted_cid',
+        'pairs_amount',
+        'did_ws_switch',
+        'last_msg_signs',
+        '_strategy',
+        '_market'
+    )
+
+    _instances = []
+    _INSTANCES_AMOUNT_LIMIT = 3
+
     def __new__(cls, *args, **kwargs):
-        with cls._lock:
-            if len(cls._instances) >= cls._INSTANCES_AMOUNT_LIMIT:
-                raise ClassInstancesAmountLimitException(
-                    f"Cannot create more than {cls._INSTANCES_AMOUNT_LIMIT} instances of TradeQueue")
-            instance = super(TradeQueue, cls).__new__(cls)
-            cls._instances.append(instance)
-            return instance
+        if len(cls._instances) >= cls._INSTANCES_AMOUNT_LIMIT:
+            raise ClassInstancesAmountLimitException(
+                f"Cannot create more than {cls._INSTANCES_AMOUNT_LIMIT} instances of TradeQueue")
+        instance = super(TradeQueue, cls).__new__(cls)
+        cls._instances.append(instance)
+        return instance
 
     @classmethod
     def get_instance_count(cls):
@@ -119,65 +88,56 @@ class TradeQueue:
 
     @classmethod
     def clear_instances(cls):
-        with cls._lock:
-            cls._instances.clear()
+        cls._instances.clear()
 
-    def __init__(
-        self,
-        market: Market,
-        global_queue: Queue | None = None
-    ):
-        self.lock = threading.Lock()
+    def __init__(self, market: Market, pairs_n: int, global_queue = None):
+        self.queue = deque()
+        self.srb = SharedRingBuffer.create(f'client_to_collector_tq_{market.name}', 1 << 22) if not global_queue else global_queue
+        self.accepted_cid: bool = False
+        self.not_accepted_cid: bool = True
+        self.pairs_amount = pairs_n
+        self.did_ws_switch = False
+        self.last_msg_signs: str = ''
+        self._strategy: SwitchingWsStrategy | ContinuousListeningStrategy = ContinuousListeningStrategy(self)
         self._market = market
-
-        self.did_websockets_switch_successfully = False
-        self.new_stream_listener_id_keys: Tuple[int, uuid.UUID] | None = None
-        self.currently_accepted_stream_id_keys: Tuple[int, uuid.UUID] | None = None
-        self.no_longer_accepted_stream_id_keys: Tuple[int, uuid.UUID] = StreamListenerId(pairs=[]).id_keys
-        self.last_message_signs: str = ''
-
-        self._strategy: PutTradeMessageStrategy = ContinuousListeningStrategy(self)
-        self.set_continuous_listening_mode()
-
-        self.queue = Queue() if global_queue is None else global_queue
 
     @property
     @final
     def market(self):
         return self._market
 
+    def update_pairs_n(self, n: int) -> None:
+        ...
+        #todo
+        # if isinstance(self._strategy, SwitchingWsStrategy):
+            # self._strategy.update_pairs_amount(val)
+
     def set_continuous_listening_mode(self) -> None:
         self._strategy = ContinuousListeningStrategy(self)
 
-    def set_switching_websockets_mode(self) -> None:
-        self._strategy = SwitchingWebsocketsStrategy(self)
+    def set_switching_ws_mode(self) -> None:
+        self._strategy = SwitchingWsStrategy(self)
 
-    def put_trade_message(
-        self,
-        stream_listener_id: StreamListenerId,
-        message: str,
-        timestamp_of_receive: int
-    ) -> None:
-        self._strategy.put_trade_message(stream_listener_id, message, timestamp_of_receive)
+    def put(self, msg: str, ts: int, cid: bool) -> None:
+        self._strategy.put(msg, ts, cid)
 
-    @staticmethod
-    def get_message_signs(message: str) -> str:
-        match = TradeQueue._TRANSACTION_SIGNS_COMPILED_PATTERN.search(message)
-        return '"s":"' + match.group(1) + '","t":' + match.group(2)
+    def get(self) -> str:
+        return self.queue.popleft()
 
-    def get(self) -> any:
-        entry = self.queue.get()
-        return entry
-
-    def get_nowait(self) -> any:
-        entry = self.queue.get_nowait()
-        return entry
-
-    def clear(self) -> None:
-        self.queue.queue.clear()
+    def get_nowait(self) -> str:
+        return self.queue.popleft()
 
     def empty(self) -> bool:
-        return self.queue.empty()
+        return not self.queue
 
     def qsize(self) -> int:
-        return self.queue.qsize()
+        return len(self.queue)
+
+    def clear(self) -> None:
+        self.queue.clear()
+
+    def close(self):
+        self.srb.close()
+        self.srb.unlink()
+        del self.srb
+        del self.queue
