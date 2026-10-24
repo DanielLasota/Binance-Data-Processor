@@ -3,14 +3,14 @@ from dataclasses import dataclass
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.utils.file_utils import prepare_dump_path_catalog
-from binance_data_processor.utils.time_utils import generate_dates_string_list_from_range
+from binance_data_processor.utils.time_utils import gen_dates
 
 
 AMOUNT_OF_FILES_TO_BE_DOWNLOADED_AT_ONCE = 10
 
 
 @dataclass
-class DataScraperConfig:
+class ScraperCfg:
     date_range: list[str]
     pairs: list[str]
     markets: list[str | Market]
@@ -20,7 +20,7 @@ class DataScraperConfig:
     verbose: bool = False
 
     def __post_init__(self):
-        self.dates_to_be_downloaded = generate_dates_string_list_from_range(self.date_range)
+        self.dates_to_be_downloaded = gen_dates(self.date_range)
 
         prepare_dump_path_catalog(self.dump_path)
 

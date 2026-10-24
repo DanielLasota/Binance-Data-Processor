@@ -5,12 +5,12 @@ import time
 import threading
 
 from binance_data_processor.core.logo import binance_archiver_logo
-from binance_data_processor.core.listener_observer_updater import Whistleblower
+from binance_data_processor.core.listener_whistleblower import Whistleblower
 from binance_data_processor.core.queue_pool import ListenerQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
 from binance_data_processor.core.abstract_base_classes import Subject, Observer
-from binance_data_processor.core.snapshot_manager import ListenerDepthSnapshotStrategy, SnapshotService
-from binance_data_processor.core.stream_service import StreamService
+from binance_data_processor.core.snapshot_srv import ListenerDepthSnapshotStrategy, SnapshotSrv
+from binance_data_processor.core.stream_srv import StreamService
 from binance_data_processor.enums.data_sink_cfg import DataSinkCfg
 
 __all__ = [
@@ -50,7 +50,7 @@ class BinanceDataListener(Subject):
 
         self.cfg = cfg
 
-        self.logger = setup_logger(should_dump_logs=True)
+        self.logger = setup_logger(dump=True)
         if cfg.show_logo is True:
             self.logger.info("\n%s", binance_archiver_logo)
             self.logger.info("Configuration:\n%s", pprint.pformat(cfg, indent=1))
@@ -73,7 +73,7 @@ class BinanceDataListener(Subject):
             global_shutdown_flag=self.global_shutdown_flag
         )
 
-        self._snapshot_service = SnapshotService(
+        self._snapshot_service = SnapshotSrv(
             snapshot_strategy=ListenerDepthSnapshotStrategy(global_queue=self._queue_pool.global_queue),
             cfg=cfg,
             stop_flag=self.global_shutdown_flag

@@ -12,8 +12,8 @@ import time
 
 from binance_data_processor import BlobConnParams
 from binance_data_processor.scraper.scraper_config import AMOUNT_OF_FILES_TO_BE_DOWNLOADED_AT_ONCE
-from binance_data_processor.enums.asset_parameters import AssetParameters
-from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
+from binance_data_processor.enums.asset_params import AssetParams
+from binance_data_processor.enums.time_unit import TimeUnit
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.utils.file_utils import get_prefix_of_blob_csv_filename
@@ -34,10 +34,10 @@ class DataDownloader:
         else:
             raise ValueError('No storage specified...')
 
-    def download_as_df(self, asset_parameters: AssetParameters) -> pd.DataFrame:
+    def download_as_df(self, asset_parameters: AssetParams) -> pd.DataFrame:
         return self._download_as_df(asset_parameters)
 
-    def _download_as_df(self, asset_parameters: AssetParameters) -> pd.DataFrame:
+    def _download_as_df(self, asset_parameters: AssetParams) -> pd.DataFrame:
         file_prefixes = (self._get_file_prefixes_for_date(asset_parameters))
         files_to_download = self.storage_client.list_files_with_prefixes(file_prefixes)
 
@@ -49,7 +49,7 @@ class DataDownloader:
         return df
 
     @staticmethod
-    def _cut_df_to_single_day_range(df: pd.DataFrame, target_day: str, epoch_time_unit: EpochTimeUnit) -> pd.DataFrame:
+    def _cut_df_to_single_day_range(df: pd.DataFrame, target_day: str, epoch_time_unit: TimeUnit) -> pd.DataFrame:
         import pandas as pd
 
         date_obj = datetime.strptime(target_day, '%d-%m-%Y')
@@ -62,7 +62,7 @@ class DataDownloader:
         return df[(df['TimestampOfReceive'] >= start_epoch) & (df['TimestampOfReceive'] <= end_epoch)]
 
     @staticmethod
-    def _get_file_prefixes_for_date(asset_parameters: AssetParameters) -> list[str]:
+    def _get_file_prefixes_for_date(asset_parameters: AssetParams) -> list[str]:
         one_date_after = (datetime.strptime(asset_parameters.date, '%d-%m-%Y') + timedelta(days=1)).strftime('%d-%m-%Y')
 
         asset_parameters_for_the_next_day = copy.copy(asset_parameters)

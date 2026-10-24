@@ -4,9 +4,9 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class TimeCfg:
-    file_duration_seconds: int = 60*5
-    snapshot_fetcher_interval_seconds: int = 60
-    websocket_lifetime_seconds: int = 60 * 60 * 6
+    file_duration_seconds: int = 60*3
+    snapshot_interval_seconds: int = 180
+    ws_lifetime_seconds: int = 60 * 60 * 6
 
     def update_interval(
             self,
@@ -14,7 +14,6 @@ class TimeCfg:
             new_time: int,
             logger: logging.Logger
     ) -> None:
-
 
         if time_type not in {'file_duration_seconds', 'snapshot_fetcher_interval_seconds', 'websocket_lifetime_seconds'}:
             raise AttributeError(f"'{time_type}' is not a valid setting name. ")

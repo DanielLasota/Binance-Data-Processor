@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from queue import Queue
+import multiprocessing as mp
 
 from binance_data_processor import DataSinkCfg
 from binance_data_processor.core.difference_depth_queue import DifferenceDepthQueue
@@ -13,23 +13,24 @@ class QueuePool:
     __slots__ = [
         'cfg',
         'global_queue',
-        'queues'
+        'queues',
+        # 'cmd_queue'
     ]
 
-    def __init__(self, cfg: DataSinkCfg, global_queue: Queue | None = None):
+    def __init__(self, cfg: DataSinkCfg, global_queue: mp.Queue | None = None):
         self.cfg = cfg
         self.global_queue = global_queue
+        # self.cmd_queue = mp.Queue()
 
         self.queues: dict[tuple[Market, StreamType], DifferenceDepthQueue | TradeQueue] = {
-            (market, stream_type): (
-                DifferenceDepthQueue if stream_type == StreamType.DIFFERENCE_DEPTH_STREAM
-                else TradeQueue
-            )(
-                market=market,
-                **({"global_queue": self.global_queue} if self.global_queue else {})
-            )
-            for market in Market if market is not Market.UNKNOWN
-            for stream_type in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]
+            (m, st):
+                (DifferenceDepthQueue if st == StreamType.DIFFERENCE_DEPTH_STREAM else TradeQueue)(
+                    market=m,
+                    pairs_n=len(cfg.instruments.get_pairs(m)),
+                    **({"global_queue": self.global_queue} if self.global_queue else {})
+                )
+            for m in cfg.instruments.dict.keys()
+            for st in [StreamType.DIFFERENCE_DEPTH_STREAM, StreamType.TRADE_STREAM]
         }
 
     def get_queue(self, market: Market, stream_type: StreamType) -> DifferenceDepthQueue | TradeQueue:
@@ -38,7 +39,7 @@ class QueuePool:
 
 class ListenerQueuePool(QueuePool):
     def __init__(self, cfg: DataSinkCfg):
-        super().__init__(cfg, global_queue=Queue())
+        super().__init__(cfg, global_queue=mp.Queue(maxsize=100_000))
 
 
 class DataSinkQueuePool(QueuePool):

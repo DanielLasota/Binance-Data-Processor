@@ -1,17 +1,17 @@
 from dataclasses import dataclass, field
 import os
 
-from binance_data_processor.enums.data_save_target_enum import DataSaveTarget
+from binance_data_processor.enums.save_target_enum import SaveTarget
 from binance_data_processor.enums.instruments_matrix import InstrumentsMatrix
-from binance_data_processor.enums.interval_settings import TimeCfg
-from binance_data_processor.enums.storage_connection_parameters import BlobConnParams
+from binance_data_processor.enums.time_cfg import TimeCfg
+from binance_data_processor.enums.blob_conn_params import BlobConnParams
 
 
 @dataclass(slots=True)
 class DataSinkCfg:
     instruments: InstrumentsMatrix
-    time_cfg: TimeCfg
-    data_save_target: DataSaveTarget | str
+    time: TimeCfg
+    save_target: SaveTarget | str
     blob_conn_params: BlobConnParams | None = field(default=None, repr=False)
     save_path: str = '../dump/'
     show_logo: bool = True

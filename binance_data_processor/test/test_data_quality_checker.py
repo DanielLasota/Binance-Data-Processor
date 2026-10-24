@@ -1,10 +1,10 @@
 import io
 import pandas as pd
 
-from binance_data_processor.enums.asset_parameters import AssetParameters
+from binance_data_processor.enums.asset_params import AssetParams
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
-from binance_data_processor.enums.epoch_time_unit import EpochTimeUnit
+from binance_data_processor.enums.time_unit import TimeUnit
 from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker
 
 
@@ -100,29 +100,29 @@ class TestIndividualColumnChecker:
 
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
         series = pd.Series([1718150400000, 1718193600000, 1718236799999])
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series, "12-06-2024", EpochTimeUnit.MILLISECONDS) == True
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series, "12-06-2024", TimeUnit.MS) == True
 
     def test_are_all_within_utc_z_day_range_milliseconds_negative(self):
         series1 = pd.Series([1718150400000, 1718193600000, 1718236800000])
         series2 = pd.Series([1718150399999, 1718193600000, 1718236799999])
         series3 = pd.Series([1718150399999, 1718193600000, 1718236799999])
 
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series1, "12-06-2024", EpochTimeUnit.MILLISECONDS) == False
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series2, "12-06-2024", EpochTimeUnit.MILLISECONDS) == False
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series3, "12-06-2024", EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series1, "12-06-2024", TimeUnit.MS) == False
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series2, "12-06-2024", TimeUnit.MS) == False
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series3, "12-06-2024", TimeUnit.MS) == False
 
     def test_are_all_within_utc_z_day_range_microseconds_positive(self):
         series = pd.Series([1718150400000_000, 1718193600000_000, 1718236799999_999])
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series, "12-06-2024", epoch_time_unit=TimeUnit.US) == True
 
     def test_are_all_within_utc_z_day_range_microseconds_negative(self):
         series1 = pd.Series([1718150400000_000, 1718193600000_000, 1718236800000_000])
         series2 = pd.Series([1718150399999_999, 1718193600000_000, 1718236799999_999])
         series3 = pd.Series([1718150399999_999, 1718193600000_000, 1718236800000_000])
 
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series1, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series2, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
-        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series3, "12-06-2024", epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series1, "12-06-2024", epoch_time_unit=TimeUnit.US) == False
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series2, "12-06-2024", epoch_time_unit=TimeUnit.US) == False
+        assert IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series3, "12-06-2024", epoch_time_unit=TimeUnit.US) == False
 
     ##### is_event_time_column_close_to_receive_time_column_by_100_ms
 
@@ -130,30 +130,30 @@ class TestIndividualColumnChecker:
         event_time = pd.Series([1718196460_656, 1718196461_280, 1718196460_656])
         timestamp_of_receive = pd.Series([1718196460_660, 1718196461_290, 1718196460_660])
 
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == True
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == True
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_positive_microseconds(self):
         event_time = pd.Series([1718196460_656_000, 1718196461_280_000, 1718196460_656_000])
         timestamp_of_receive = pd.Series([1718196460_660_000, 1718196461_290_000, 1718196460_660_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == True
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == True
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_milliseconds(self):
         event_time              = pd.Series([1718196460_656, 1718196461_280])
         timestamp_of_receive    = pd.Series([1718196461_657, 1718196461_280])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == False
 
         event_time              = pd.Series([1718196460_656, 1718196461_280])
         timestamp_of_receive    = pd.Series([1718196460_654, 1718196461_280])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == False
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_microseconds(self):
         event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
         timestamp_of_receive    = pd.Series([1718196461_656_001, 1718196461_280_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == False
 
         event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
         timestamp_of_receive    = pd.Series([1718196460_654_999, 1718196461_280_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False
+        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == False
 
     #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
 
@@ -163,7 +163,7 @@ class TestIndividualColumnChecker:
             1718193600000,  # 12:00:00
             1718236740000  # 23:59:00
         ])
-        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS)
+        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS)
         assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in milliseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_microseconds(self):
@@ -172,7 +172,7 @@ class TestIndividualColumnChecker:
             1718193600000_000,  # 12:00:00
             1718236740000_000  # 23:59:00
         ])
-        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS)
+        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US)
         assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in microseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_milliseconds(self):
@@ -192,9 +192,9 @@ class TestIndividualColumnChecker:
             1718236739000  # poza
         ])
 
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when first timestamp is too late in milliseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when last timestamp is too early in milliseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MILLISECONDS) == False, "Expected failure when both timestamps are out of range in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when first timestamp is too late in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when last timestamp is too early in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when both timestamps are out of range in milliseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_microseconds(self):
         series1 = pd.Series([
@@ -213,9 +213,9 @@ class TestIndividualColumnChecker:
             1718236739000_000  # poza
         ])
 
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when first timestamp is too late in microseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when last timestamp is too early in microseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=EpochTimeUnit.MICROSECONDS) == False, "Expected failure when both timestamps are out of range in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when first timestamp is too late in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when last timestamp is too early in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when both timestamps are out of range in microseconds"
 
     #### is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value
 
@@ -511,7 +511,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 5000 + [1] * 5000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -526,7 +526,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.USD_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -541,7 +541,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.COIN_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSD_PERP'],
@@ -556,7 +556,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 5001 + [1] * 5000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -571,7 +571,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1001 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.USD_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -586,7 +586,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000 + [0] * 1001 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.COIN_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSD_PERP'],
@@ -601,7 +601,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.TRADE_STREAM,
             pairs=['BTCUSDT'],
@@ -622,7 +622,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 5000 + [1] * 5000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -639,7 +639,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.USD_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -656,7 +656,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.COIN_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSD_PERP'],
@@ -673,7 +673,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 5001 + [1] * 5000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -690,7 +690,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1001 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.USD_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -707,7 +707,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000 + [0] * 1001 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.COIN_M_FUTURES,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSD_PERP'],
@@ -724,7 +724,7 @@ class TestIndividualColumnChecker:
             'IsAsk': [0] * 1000 + [1] * 1000
         }
         df = pd.DataFrame(data)
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.TRADE_STREAM,
             pairs=['BTCUSDT'],
@@ -849,7 +849,7 @@ class TestIndividualColumnChecker:
             series=series,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result == True
 
@@ -861,13 +861,13 @@ class TestIndividualColumnChecker:
             series=series1,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         ) == False
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
             series=series2,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         ) == False
 
     def test_is_series_within_60_seconds_before_utc_date_end_positive_microseconds(self):
@@ -880,7 +880,7 @@ class TestIndividualColumnChecker:
             series=series,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
         assert result == True
 
@@ -892,13 +892,13 @@ class TestIndividualColumnChecker:
             series=series1,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         ) == False
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
             series=series2,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         ) == False
 
     #### is_last_timestamp_within_n_seconds_from_the_utc_date_start
@@ -910,7 +910,7 @@ class TestIndividualColumnChecker:
             series=series,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result == True
 
@@ -923,13 +923,13 @@ class TestIndividualColumnChecker:
             series=series1,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         ) == False
         assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
             series=series2,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         ) == False
 
     def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_positive_microseconds(self):
@@ -939,7 +939,7 @@ class TestIndividualColumnChecker:
             series=series,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
         assert result == True
 
@@ -952,13 +952,13 @@ class TestIndividualColumnChecker:
             series=series1,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         ) == False
         assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
             series=series2,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         ) == False
 
     #### is_first_timestamp_within_n_seconds_from_the_utc_date_start
@@ -973,7 +973,7 @@ class TestIndividualColumnChecker:
             series=series,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result == True
 
@@ -986,13 +986,13 @@ class TestIndividualColumnChecker:
             series=series1,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         ) == False
         assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
             series=series2,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         ) == False
 
     def test_is_first_timestamp_within_n_seconds_from_the_utc_date_start_positive_microseconds(self):
@@ -1005,7 +1005,7 @@ class TestIndividualColumnChecker:
             series=series,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
         assert result == True
 
@@ -1018,13 +1018,13 @@ class TestIndividualColumnChecker:
             series=series1,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         ) == False
         assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
             series=series2,
             date="12-06-2024",
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         ) == False
 
 class TestIndividualColumnCheckerQuantitativeEdition:
@@ -1076,22 +1076,22 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MILLISECONDS)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_milliseconds_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MILLISECONDS)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
         assert result_of_check == False
 
     def test_are_all_within_utc_z_day_range_microseconds_positive(self):
         df = pd.read_csv('test_csvs/test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MICROSECONDS)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_microseconds_negative(self):
         df = pd.read_csv('test_csvs/test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=EpochTimeUnit.MICROSECONDS)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
         assert result_of_check == False
 
     ##### is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms
@@ -1103,7 +1103,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             event_time_column=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
 
         assert result_of_check == True
@@ -1116,7 +1116,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             event_time_column=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
 
         assert result_of_check == True
@@ -1128,7 +1128,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             event_time_column=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
 
         assert result_of_check == False
@@ -1140,7 +1140,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             event_time_column=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
 
         assert result_of_check == False
@@ -1156,7 +1156,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS,
+            epoch_time_unit=TimeUnit.MS,
         )
         assert result_of_check == True, "Expected first and last timestamps to be within 5 seconds from day borders in milliseconds"
 
@@ -1169,7 +1169,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS,
+            epoch_time_unit=TimeUnit.US,
         )
         assert result_of_check == True, "Expected first and last timestamps to be within 5 seconds from day borders in microseconds"
 
@@ -1182,7 +1182,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS,
+            epoch_time_unit=TimeUnit.MS,
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in milliseconds"
 
@@ -1194,7 +1194,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in milliseconds"
 
@@ -1207,7 +1207,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
 
@@ -1219,7 +1219,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
         assert result_of_check == False, "Expected first or last timestamp to be outside 5 seconds from day borders in microseconds"
 
@@ -1369,7 +1369,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -1388,7 +1388,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -1407,7 +1407,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.TRADE_STREAM,
             pairs=['BTCUSDT'],
@@ -1432,7 +1432,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -1452,7 +1452,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.DEPTH_SNAPSHOT,
             pairs=['BTCUSDT'],
@@ -1472,7 +1472,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['LastUpdateId', 'IsAsk'],
             comment='#'
         )
-        asset_params = AssetParameters(
+        asset_params = AssetParams(
             market=Market.SPOT,
             stream_type=StreamType.TRADE_STREAM,
             pairs=['BTCUSDT'],
@@ -1551,7 +1551,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
             date="13-04-2025",
             n_seconds=5,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         )
         assert result == True
 
@@ -1562,7 +1562,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
             date="13-04-2025",
             n_seconds=5,
-            epoch_time_unit=EpochTimeUnit.MICROSECONDS
+            epoch_time_unit=TimeUnit.US
         ) == False
 
     #### is_last_timestamp_within_n_seconds_from_the_utc_date_start
@@ -1577,7 +1577,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=3600*2,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result == True, "Oczekiwano True, bo w pozytywnym CSV ostatni timestamp jest w ciągu 60s od 00:00 UTC"
 
@@ -1591,7 +1591,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result == False, "Oczekiwano False, bo w negatywnym CSV ostatni timestamp jest poza 60s od 00:00 UTC"
 
@@ -1607,7 +1607,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=60,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result == True, "Oczekiwano True, bo w pozytywnym CSV pierwszy timestamp jest w ciągu 60s od 00:00 UTC"
 
@@ -1621,6 +1621,6 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             series=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=1,
-            epoch_time_unit=EpochTimeUnit.MILLISECONDS
+            epoch_time_unit=TimeUnit.MS
         )
         assert result == False, "Oczekiwano False, bo w negatywnym CSV pierwszy timestamp jest poza 60s od 00:00 UTC"
