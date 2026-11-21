@@ -80,10 +80,13 @@ class TimestampedConnection(ClientConnection):
 class Client:
     __slots__ = ('logger', 'client_to_collector_srb', 'ap', 'cid', 'task', '_stop_event', '_ws_lock', '_ws', '_url', '_round_ts')
 
-    def __init__(self, ap: AssetParams, cid: bool):
+    def __init__(self, ap: AssetParams, cid: bool, *, srb_name: str | None = None):
         self.logger = logging.getLogger('binance_data_sink')
         srb_prefix = ("dq" if ap.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM else "tq")
-        self.client_to_collector_srb = SharedRingBuffer.attach(f"client_to_collector_{srb_prefix}_{ap.market.name}", 1 << 22)
+        self.client_to_collector_srb = SharedRingBuffer.attach(
+            srb_name if srb_name is not None else f"client_to_collector_{srb_prefix}_{ap.market.name}",
+            1 << 22,
+        )
         self.ap = ap
         self.cid = cid
         self.task: asyncio.Task | None = None

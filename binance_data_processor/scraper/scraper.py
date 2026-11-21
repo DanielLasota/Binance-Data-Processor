@@ -50,9 +50,9 @@ class DataScraper:
             print(f'Downloading: {ap}')
             df = self.data_downloader.download_as_df(ap)
             report = get_df_quality_report(df, ap)
-            print(f'data report status: {report.get_status().value}\n')
+            print(f'data report status: {report.get_status().value}')
             if report.get_status() is DataQualityReportStatus.NEGATIVE:
-                print(f'failed tests: {report.get_fails()}')
+                print(f'failed tests: \n{report.get_fails()}\n')
 
             reports.append(report)
 

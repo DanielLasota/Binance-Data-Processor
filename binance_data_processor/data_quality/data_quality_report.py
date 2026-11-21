@@ -107,6 +107,6 @@ class DataQualityReport:
         for col, tests in self.tests_results_register.items():
             for test_name, result in tests.items():
                 if not result:
-                    fails.append(f" {col} {test_name} {result}")
+                    fails.append(f"     {col} {test_name} {result}")
 
-        return ''.join(fails)
+        return '\n'.join(fails)
