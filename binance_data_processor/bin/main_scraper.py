@@ -13,21 +13,21 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     cfg = ScraperCfg(
-        date_range=['31-10-2026', '31-10-2026'],
+        date_range=['22-11-2026', '22-11-2026'],
         pairs=[
             "BTCUSDT",
-            "SOLUSDT",
-            "XRPUSDT",
+            "ETHUSDT",
+            # "XRPUSDT",
         ],
         markets=[
             'SPOT',
             'USD_M_FUTURES',
-            'COIN_M_FUTURES'
+            # 'COIN_M_FUTURES'
         ],
         stream_types=[
             'TRADE_STREAM',
             'DIFFERENCE_DEPTH_STREAM',
-            'DEPTH_SNAPSHOT'
+            # 'DEPTH_SNAPSHOT'
         ],
         skip_existing=True,
         dump_path=f'D:/binance_archival_data/',

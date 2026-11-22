@@ -38,11 +38,11 @@ class DataScraper:
 
     def _main_loop(self, cfg: ScraperCfg) -> None:
         print(f'\033[36m')
-
-        ap_list = self._get_final_asset_parameters_list_to_be_downloaded(cfg)
-
+        ap_list = self._get_final_ap_list_to_be_downloaded(cfg)
         print(f'ought to download {len(ap_list)} file(s):\n')
-        if cfg.verbose: DataScraper.print_asset_parameters_list(ap_list)
+
+        if cfg.verbose:
+            DataScraper.print_ap_list(ap_list)
 
         reports = []
 
@@ -60,7 +60,7 @@ class DataScraper:
                 df=df,
                 data_quality_reports=report,
                 dump_catalog=cfg.dump_path,
-                filename=get_base_of_root_csv_filename(ap)
+                fname=get_base_of_root_csv_filename(ap)
             )
 
             del report, df
@@ -69,7 +69,7 @@ class DataScraper:
             DataScraper.show_data_quality_report_list_summary(reports)
 
     @staticmethod
-    def _get_final_asset_parameters_list_to_be_downloaded(cfg: ScraperCfg) -> list[AssetParams]:
+    def _get_final_ap_list_to_be_downloaded(cfg: ScraperCfg) -> list[AssetParams]:
         apl = [
             AssetParams(
                 market=m,
@@ -88,20 +88,12 @@ class DataScraper:
         return apl
 
     @staticmethod
-    def print_asset_parameters_list(asset_parameters_list: list[AssetParams]) -> None:
+    def print_ap_list(ap_list: list[AssetParams]) -> None:
         rows = []
-        for ap in asset_parameters_list:
-            rows.append((
-                ap.pairs[0].upper(),
-                ap.market.name,
-                ap.stream_type.name,
-                ap.date or ''
-            ))
+        for ap in ap_list:
+            rows.append((ap.pairs[0].upper(), ap.market.name, ap.stream_type.name, ap.date or ''))
 
-        col_widths = [
-            max(len(str(item)) for item in column)
-            for column in zip(*rows)
-        ]
+        col_widths = [max(len(str(item)) for item in col) for col in zip(*rows)]
 
         for pair, market, stream, date in rows:
             print(

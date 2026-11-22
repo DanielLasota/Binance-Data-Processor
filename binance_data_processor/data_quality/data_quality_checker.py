@@ -9,7 +9,7 @@ from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
 from binance_data_processor.data_quality.data_quality_report import DataQualityReport
 from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
-from binance_data_processor.utils.file_utils import decode_asset_parameters_from_single_root_csv_name
+from binance_data_processor.utils.file_utils import decode_ap_from_single_root_csv_name
 from binance_data_processor.utils.file_utils import get_base_of_root_csv_filename
 from binance_data_processor.utils.file_utils import list_files_in_specified_directory
 from binance_data_processor.utils.file_utils import get_csv_len
@@ -28,11 +28,11 @@ def conduct_data_quality_analysis_on_specified_csv_list(csv_paths: list[str]) ->
     dqc = DataQualityChecker()
     dqc.conduct_csv_files_data_quality_analysis(csv_paths)
 
-def get_merged_csv_quality_reports(csvs_nest_catalog: str, df: pd.DataFrame, asset_parameters_list: list[AssetParams]) -> list[DataQualityReport]:
+def get_merged_csv_quality_reports(csvs_nest_catalog: str, df: pd.DataFrame, ap_list: list[AssetParams]) -> list[DataQualityReport]:
     dqc = DataQualityChecker()
     return dqc.get_main_merged_csv_report(
         df=df,
-        asset_parameters_list=asset_parameters_list,
+        asset_parameters_list=ap_list,
         csvs_nest_catalog=csvs_nest_catalog
     )
 
@@ -76,7 +76,7 @@ class DataQualityChecker:
             for csv_path in csv_paths:
                 try:
                     csv_name = os.path.basename(csv_path)
-                    asset_parameters = decode_asset_parameters_from_single_root_csv_name(csv_name)
+                    asset_parameters = decode_ap_from_single_root_csv_name(csv_name)
                     df = pd.read_csv(csv_path, comment='#')
                     df_quality_report = self.calc_quality_report(df, asset_parameters)
                     file_name = os.path.basename(csv_path)

@@ -59,8 +59,8 @@ def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: lis
         f"_{date}"
     )
 
-def to_csv_w_data_quality_reports(df: pd.DataFrame, data_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, filename: str) -> None:
-    dump_path = Path(dump_catalog) / f"{filename}.csv"
+def to_csv_w_data_quality_reports(df: pd.DataFrame, data_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, fname: str) -> None:
+    dump_path = Path(dump_catalog) / f"{fname}.csv"
     dump_path.parent.mkdir(parents=True, exist_ok=True)
 
     if isinstance(data_quality_reports, DataQualityReport):
@@ -80,14 +80,14 @@ def get_list_of_existing_root_csvs_asset_parameters(csv_nest: str) -> list[Asset
     for csv in local_csv_file_paths:
         try:
             csv_name = csv.split('/')[-1]
-            asset_parameters = decode_asset_parameters_from_single_root_csv_name(csv_name)
+            asset_parameters = decode_ap_from_single_root_csv_name(csv_name)
             found_asset_parameters_list.append(asset_parameters)
         except Exception as e:
             print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
 
     return found_asset_parameters_list
 
-def get_list_of_existing_merged_csvs_asset_parameters(csv_nest: str) -> list[AssetParams]:
+def get_ap_list_of_existing_merged_csvs(csv_nest: str) -> list[AssetParams]:
     local_files = list_files_in_specified_directory(csv_nest)
     local_csv_file_paths = [file for file in local_files if file.lower().endswith('.csv')]
     found_asset_parameters_list = []
@@ -95,7 +95,7 @@ def get_list_of_existing_merged_csvs_asset_parameters(csv_nest: str) -> list[Ass
     for csv in local_csv_file_paths:
         try:
             csv_name = csv.split('/')[-1]
-            asset_parameters = decode_list_of_asset_parameters_from_merged_csv_name(csv_name)
+            asset_parameters = decode_list_of_ap_from_merged_csv_name(csv_name)
             found_asset_parameters_list.append(asset_parameters)
         except Exception as e:
             print(f'_get_existing_files_asset_parameters_list: decode_asset_parameters_from_csv_name sth bad happened: \n {e}')
@@ -115,7 +115,7 @@ def list_files_in_specified_directory(directory_path: str) -> list:
         print(f"Error whilst listing files: {e}")
         return []
 
-def decode_asset_parameters_from_single_root_csv_name(csv_name: str) -> AssetParams:
+def decode_ap_from_single_root_csv_name(csv_name: str) -> AssetParams:
     _csv_name = csv_name.replace('.csv', '')
 
     market_mapping = {
@@ -154,7 +154,7 @@ def decode_asset_parameters_from_single_root_csv_name(csv_name: str) -> AssetPar
         date=date
     )
 
-def decode_list_of_asset_parameters_from_merged_csv_name(csv_name: str) -> list[AssetParams]:
+def decode_list_of_ap_from_merged_csv_name(csv_name: str) -> list[AssetParams]:
     base = csv_name.replace('.csv', '')
     tokens = base.split('_')
 
