@@ -4,7 +4,7 @@ import pprint
 import time
 import threading
 
-from binance_data_processor.core.logo import binance_archiver_logo
+from binance_data_processor.core.logo import logo1
 from binance_data_processor.core.listener_whistleblower import Whistleblower
 from binance_data_processor.core.queue_pool import ListenerQueuePool
 from binance_data_processor.core.setup_logger import setup_logger
@@ -52,7 +52,7 @@ class BinanceDataListener(Subject):
 
         self.logger = setup_logger(dump=True)
         if cfg.show_logo is True:
-            self.logger.info("\n%s", binance_archiver_logo)
+            self.logger.info("\n%s", logo1)
             self.logger.info("Configuration:\n%s", pprint.pformat(cfg, indent=1))
 
         self.global_shutdown_flag = threading.Event()

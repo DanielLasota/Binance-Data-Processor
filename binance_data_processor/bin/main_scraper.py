@@ -13,7 +13,7 @@ load_dotenv(env_path)
 if __name__ == '__main__':
 
     cfg = ScraperCfg(
-        date_range=['22-11-2026', '22-11-2026'],
+        date_range=['25-11-2026', '25-11-2026'],
         pairs=[
             "BTCUSDT",
             "ETHUSDT",
@@ -31,6 +31,7 @@ if __name__ == '__main__':
         ],
         skip_existing=True,
         dump_path=f'D:/binance_archival_data/',
+        verbose=True
     )
 
     download_csv_data(cfg)

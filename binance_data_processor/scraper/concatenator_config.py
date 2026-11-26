@@ -19,13 +19,13 @@ class DataConcatenatorConfig:
     join_pairs_into_one_csv: bool = False,
     join_markets_into_one_csv: bool = False,
     skip_existing: bool = True,
-    csvs_nest_catalog: str = 'D:/binance_archival_data/',
-    dump_path: str = 'D:/merged_csvs/'
+    csvs_nest_dir: str = 'D:/binance_archival_data/',
+    dump_dir: str = 'D:/merged_csvs/'
 
     def __post_init__(self):
         self.dates_to_be_downloaded = gen_dates(self.date_range)
 
-        prepare_dump_path_catalog(self.dump_path)
+        prepare_dump_path_catalog(self.dump_dir)
 
         self.markets = [Market(market.lower()) for market in self.markets]
         self.stream_types = [StreamType(stream_type.lower()) for stream_type in self.stream_types]

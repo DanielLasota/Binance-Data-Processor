@@ -9,30 +9,30 @@ class IndividualColumnChecker:
     __slots__ = ()
 
     @staticmethod
-    def is_series_of_only_one_unique_expected_value(series: pd.Series, expected_value: any) -> bool:
-        return series.unique()[0] == expected_value and len(series.unique()) == 1
+    def is_series_of_only_one_unique_expected_value(s: pd.Series, expected_value: any) -> bool:
+        return s.unique()[0] == expected_value and len(s.unique()) == 1
 
     @staticmethod
-    def is_series_of_set_of_expected_values(series: pd.Series, expected_values: set[any]) -> bool:
-        return set(series.unique()) <= expected_values
+    def is_series_of_set_of_expected_values(s: pd.Series, expected_values: set[any]) -> bool:
+        return set(s.unique()) <= expected_values
 
     @staticmethod
-    def is_series_non_decreasing(series: pd.Series) -> bool:
-        return series.diff().min() >= 0
+    def is_series_non_decreasing(s: pd.Series) -> bool:
+        return s.diff().min() >= 0
 
     @staticmethod
-    def is_series_epoch_valid(series: pd.Series) -> bool:
+    def is_series_epoch_valid(s: pd.Series) -> bool:
         import pandas as pd
 
         return (
-                series.notna().all()
-                and series.gt(0).all()
-                and series.astype(float).eq(series.astype(int)).all()
-                and pd.api.types.is_integer_dtype(series)
+                s.notna().all()
+                and s.gt(0).all()
+                and s.astype(float).eq(s.astype(int)).all()
+                and pd.api.types.is_integer_dtype(s)
         )
 
     @staticmethod
-    def is_series_epoch_within_utc_z_day_range(series: pd.Series, date: str, epoch_time_unit: TimeUnit) -> bool:
+    def is_series_epoch_within_utc_z_day_range(s: pd.Series, date: str, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -42,10 +42,10 @@ class IndividualColumnChecker:
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
         day_end_ms = day_start_ms + day_length - 1
 
-        return series.between(day_start_ms, day_end_ms).all()
+        return s.between(day_start_ms, day_end_ms).all()
 
     @staticmethod
-    def is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column: pd.Series, event_time_column: pd.Series, x_ms: int, y_ms: int, epoch_time_unit: TimeUnit) -> bool:
+    def is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(timestamp_of_receive_col: pd.Series, event_time_col: pd.Series, x_ms: int, y_ms: int, epoch_time_unit: TimeUnit) -> bool:
         """
         func checks drift between TimestampOfReceive and EventTime or other combination:
 
@@ -75,10 +75,10 @@ class IndividualColumnChecker:
         factor = 1_000 if epoch_time_unit is TimeUnit.US else 1
         x_ms *= factor
         y_ms *= factor
-        return (timestamp_of_receive_column - event_time_column).between(x_ms, y_ms).all()
+        return (timestamp_of_receive_col - event_time_col).between(x_ms, y_ms).all()
 
     @staticmethod
-    def are_first_and_last_timestamps_within_n_seconds_from_the_borders(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
+    def are_first_and_last_ts_within_n_s_from_the_borders(s: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -88,8 +88,8 @@ class IndividualColumnChecker:
         day_end_ms = day_start_ms + day_length - 1
         _n_seconds = multiplier_of_second * n_seconds
 
-        first_timestamp = series.iloc[0]
-        last_timestamp = series.iloc[-1]
+        first_timestamp = s.iloc[0]
+        last_timestamp = s.iloc[-1]
 
         first_within_range = day_start_ms <= first_timestamp <= day_start_ms + _n_seconds
         last_within_range = day_end_ms - _n_seconds <= last_timestamp <= day_end_ms
@@ -97,21 +97,21 @@ class IndividualColumnChecker:
         return first_within_range and last_within_range
 
     @staticmethod
-    def is_first_timestamp_within_n_seconds_from_the_utc_date_start(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
+    def is_first_ts_within_n_s_from_the_utc_date_start(s: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
         day_start_ms = int(day_start.timestamp() * epoch_time_unit.multiplier_of_second)
         _n_seconds = 1 * epoch_time_unit.multiplier_of_second * n_seconds
 
-        first_timestamp = series.iloc[0]
+        first_timestamp = s.iloc[0]
 
         first_within_range = day_start_ms <= first_timestamp <= day_start_ms + _n_seconds
 
         return first_within_range
 
     @staticmethod
-    def is_last_timestamp_within_n_seconds_from_the_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
+    def is_last_ts_within_n_seconds_from_the_utc_date_end(s: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -121,14 +121,14 @@ class IndividualColumnChecker:
         day_end_ms = day_start_ms + day_length - 1
         _n_seconds = multiplier_of_second * n_seconds
 
-        last_timestamp = series.iloc[-1]
+        last_timestamp = s.iloc[-1]
 
         last_within_range = day_end_ms - _n_seconds <= last_timestamp <= day_end_ms
 
         return last_within_range
 
     @staticmethod
-    def is_series_within_n_seconds_before_utc_date_end(series: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
+    def is_series_within_n_seconds_before_utc_date_end(s: pd.Series, date: str, n_seconds: int, epoch_time_unit: TimeUnit) -> bool:
         import pandas as pd
 
         day_start = pd.to_datetime(date, format='%d-%m-%Y').replace(hour=0, minute=0, second=0, microsecond=0)
@@ -139,10 +139,10 @@ class IndividualColumnChecker:
 
         window_start = day_end_ts - (n_seconds * multiplier)
 
-        return series.between(window_start, day_end_ts).all()
+        return s.between(window_start, day_end_ts).all()
 
     @staticmethod
-    def is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(first_update_id: pd.Series, final_update_id: pd.Series) -> bool:
+    def is_first_update_id_gt_by_one_than_prev_entry_final_update_id(first_update_id: pd.Series, final_update_id: pd.Series) -> bool:
         return (first_update_id.drop_duplicates().iloc[1:] == final_update_id.drop_duplicates().shift(1).iloc[1:] + 1).all()
 
     @staticmethod
@@ -162,37 +162,37 @@ class IndividualColumnChecker:
         return (final_update_id.iloc[:-1].reset_index(drop=True) == final_update_id_in_last_stream.iloc[1:].reset_index(drop=True)).all()
 
     @staticmethod
-    def is_series_of_expected_data_type(series: pd.Series, expected_type: type) -> bool:
-        return series.map(lambda x: type(x) is expected_type).all()
+    def is_series_of_expected_dtype(s: pd.Series, expected_type: type) -> bool:
+        return s.map(lambda x: type(x) is expected_type).all()
 
     @staticmethod
-    def is_series_of_positive_values(series: pd.Series) -> bool:
-        return series.gt(0).all()
+    def is_series_of_positive_vals(s: pd.Series) -> bool:
+        return s.gt(0).all()
 
     @staticmethod
-    def is_series_of_non_negative_values(series: pd.Series):
-        return series.ge(0).all()
+    def is_series_of_non_negative_vals(s: pd.Series):
+        return s.ge(0).all()
 
     @staticmethod
-    def is_series_range_reasonable_greater_than_min_less_than_max_values(series: pd.Series, min_value: float, max_value: float) -> bool:
-        return ((series > min_value) & (series < max_value)).all()
+    def is_series_range_reasonable_gt_min_lt_max_vals(s: pd.Series, min_val: float, max_val: float) -> bool:
+        return ((s > min_val) & (s < max_val)).all()
 
     @staticmethod
-    def is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series: pd.Series, min_value: float, max_value: float) -> bool:
-        return ((series >= min_value) & (series < max_value)).all()
+    def is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(s: pd.Series, min_value: float, max_value: float) -> bool:
+        return ((s >= min_value) & (s < max_value)).all()
 
     @staticmethod
-    def is_there_no_abnormal_tick_higher_than_2_percent(series: pd.Series, max_percent_change: float = 2.0) -> bool:
-        pct_changes = series.pct_change().dropna() * 100
+    def is_there_no_abnormal_tick_higher_than_2_percent(s: pd.Series, max_percent_change: float = 2.0) -> bool:
+        pct_changes = s.pct_change().dropna() * 100
         return pct_changes.abs().le(max_percent_change).all()
 
     @staticmethod
-    def is_series_of_zero_or_one_only(series: pd.Series) -> bool:
-        return series.isin([0, 1]).all() and series.map(lambda x: type(x) is int).all()
+    def is_series_of_zero_or_one_only(s: pd.Series) -> bool:
+        return s.isin([0, 1]).all() and s.map(lambda x: type(x) is int).all()
 
     @staticmethod
-    def is_each_series_value_bigger_by_one_than_previous(series: pd.Series) -> bool:
-        return series.diff()[1:].eq(1).all()
+    def is_each_series_val_gt_by_one_than_prev(s: pd.Series) -> bool:
+        return s.diff()[1:].eq(1).all()
 
     @staticmethod
     def is_each_snapshot_price_level_amount_accurate_to_market(df: pd.DataFrame, asset_parameters: AssetParams, expected_amount_of_price_levels_per_side: int) -> bool:

@@ -9,7 +9,7 @@ import psutil
 # from binance_data_processor.core.api_srv import ApiSrv
 from binance_data_processor.core.data_collector import DataCollector
 from binance_data_processor.core.emergency_sender import EmergencySender
-from binance_data_processor.core.logo import binance_archiver_logo
+from binance_data_processor.core.logo import logo1
 from binance_data_processor.core.queue_flags_pool import QueueFlagsPool
 from binance_data_processor.core.setup_logger import setup_logger
 from binance_data_processor.core.snapshot_srv import SnapshotSrv
@@ -87,7 +87,7 @@ class BinanceDataSink:
         self._qfp = QueueFlagsPool(cfg)
 
         self._logger = setup_logger(dump=True)
-        self._logger.info("\n%s", binance_archiver_logo)
+        self._logger.info("\n%s", logo1)
         self._logger.info("Cfg:\n%s", pprint.pformat(cfg, indent=1))
         if cfg.save_target is SaveTarget.BACKBLAZE:
             self._logger.info(f'Bucket: {cfg.blob_conn_params.backblaze_bucket_name}\n')

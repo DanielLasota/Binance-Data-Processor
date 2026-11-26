@@ -34,17 +34,17 @@ class DataDownloader:
         else:
             raise ValueError('No storage specified...')
 
-    def download_as_df(self, asset_parameters: AssetParams) -> pd.DataFrame:
-        return self._download_as_df(asset_parameters)
+    def download_as_df(self, ap: AssetParams) -> pd.DataFrame:
+        return self._download_as_df(ap)
 
-    def _download_as_df(self, asset_parameters: AssetParams) -> pd.DataFrame:
-        file_prefixes = (self._get_file_prefixes_for_date(asset_parameters))
+    def _download_as_df(self, ap: AssetParams) -> pd.DataFrame:
+        file_prefixes = (self._get_file_prefixes_for_date(ap))
         files_to_download = self.storage_client.list_files_with_prefixes(file_prefixes)
 
-        handler = self._get_handler(asset_parameters.stream_type)
-        df = handler(files_to_download, asset_parameters.market)
+        handler = self._get_handler(ap.stream_type)
+        df = handler(files_to_download, ap.market)
 
-        df = self._cut_df_to_single_day_range(df, asset_parameters.date, resolve_epoch_time_unit(asset_parameters))
+        df = self._cut_df_to_single_day_range(df, ap.date, resolve_epoch_time_unit(ap))
 
         return df
 
@@ -62,14 +62,14 @@ class DataDownloader:
         return df[(df['TimestampOfReceive'] >= start_epoch) & (df['TimestampOfReceive'] <= end_epoch)]
 
     @staticmethod
-    def _get_file_prefixes_for_date(asset_parameters: AssetParams) -> list[str]:
-        one_date_after = (datetime.strptime(asset_parameters.date, '%d-%m-%Y') + timedelta(days=1)).strftime('%d-%m-%Y')
+    def _get_file_prefixes_for_date(ap: AssetParams) -> list[str]:
+        one_date_after = (datetime.strptime(ap.date, '%d-%m-%Y') + timedelta(days=1)).strftime('%d-%m-%Y')
 
-        asset_parameters_for_the_next_day = copy.copy(asset_parameters)
-        asset_parameters_for_the_next_day.date = one_date_after
+        ap_for_the_next_day = copy.copy(ap)
+        ap_for_the_next_day.date = one_date_after
 
-        target_day_date_prefix = get_prefix_of_blob_csv_filename(asset_parameters)
-        day_date_one_after_prefix = get_prefix_of_blob_csv_filename(asset_parameters_for_the_next_day) + 'T00-0'
+        target_day_date_prefix = get_prefix_of_blob_csv_filename(ap)
+        day_date_one_after_prefix = get_prefix_of_blob_csv_filename(ap_for_the_next_day) + 'T00-0'
 
         return [target_day_date_prefix, day_date_one_after_prefix]
 
@@ -92,15 +92,15 @@ class DataDownloader:
             for i in range(0, len_of_files_to_be_downloaded, AMOUNT_OF_FILES_TO_BE_DOWNLOADED_AT_ONCE):
                 batch = list_of_file_to_be_downloaded[i:i + AMOUNT_OF_FILES_TO_BE_DOWNLOADED_AT_ONCE]
                 result_queue = queue.Queue()
-                threads_list = []
+                t_list = []
 
                 for idx, file_name in enumerate(batch, start=i):
-                    thread = threading.Thread(target=self.download_file_and_put_json_into_queue, args=(file_name, result_queue, idx))
-                    threads_list.append(thread)
-                    thread.start()
+                    t = threading.Thread(target=self.download_file_and_put_json_into_queue, args=(file_name, result_queue, idx))
+                    t_list.append(t)
+                    t.start()
 
-                for thread in threads_list:
-                    thread.join()
+                for t in t_list:
+                    t.join()
 
                 batch_results = [result_queue.get() for _ in range(len(batch))]
                 batch_results.sort(key=lambda x: x[0])
@@ -126,7 +126,7 @@ class DataDownloader:
                         timestamp_of_receive = record["_E"] #todo: chceck why int64 not str
 
                         if market == Market.USD_M_FUTURES:
-                            for bid in bids:
+                            for b in bids:
                                 records.append(
                                     [
                                         timestamp_of_receive,
@@ -139,11 +139,11 @@ class DataDownloader:
                                         final_update,
                                         final_update_id_in_last_stream,
                                         0,
-                                        str(bid[0]),
-                                        str(bid[1])
+                                        str(b[0]),
+                                        str(b[1])
                                     ]
                                 )
-                            for ask in asks:
+                            for a in asks:
                                 records.append(
                                     [
                                         timestamp_of_receive,
@@ -156,12 +156,12 @@ class DataDownloader:
                                         final_update,
                                         final_update_id_in_last_stream,
                                         1,
-                                        str(ask[0]),
-                                        str(ask[1]),
+                                        str(a[0]),
+                                        str(a[1]),
                                     ]
                                 )
                         elif market == Market.COIN_M_FUTURES:
-                            for bid in bids:
+                            for b in bids:
                                 records.append(
                                     [
                                         timestamp_of_receive,
@@ -174,12 +174,12 @@ class DataDownloader:
                                         final_update,
                                         final_update_id_in_last_stream,
                                         0,
-                                        str(bid[0]),
-                                        str(bid[1]),
+                                        str(b[0]),
+                                        str(b[1]),
                                         ps_unknown_field_coin_m_diff_depth_only
                                     ]
                                 )
-                            for ask in asks:
+                            for a in asks:
                                 records.append(
                                     [
                                         timestamp_of_receive,
@@ -192,13 +192,13 @@ class DataDownloader:
                                         final_update,
                                         final_update_id_in_last_stream,
                                         1,
-                                        str(ask[0]),
-                                        str(ask[1]),
+                                        str(a[0]),
+                                        str(a[1]),
                                         ps_unknown_field_coin_m_diff_depth_only
                                     ]
                                 )
                         elif market == Market.SPOT:
-                            for bid in bids:
+                            for b in bids:
                                 records.append(
                                     [
                                         timestamp_of_receive,
@@ -209,11 +209,11 @@ class DataDownloader:
                                         first_update,
                                         final_update,
                                         0,
-                                        str(bid[0]),
-                                        str(bid[1])
+                                        str(b[0]),
+                                        str(b[1])
                                     ]
                                 )
-                            for ask in asks:
+                            for a in asks:
                                 records.append(
                                     [
                                         timestamp_of_receive,
@@ -224,15 +224,15 @@ class DataDownloader:
                                         first_update,
                                         final_update,
                                         1,
-                                        str(ask[0]),
-                                        str(ask[1]),
+                                        str(a[0]),
+                                        str(a[1]),
                                     ]
                                 )
                     bar()
                 del batch_results
 
         if market == Market.SPOT:
-            columns = [
+            cols = [
                 "TimestampOfReceive",
                 "Stream",
                 "EventType",
@@ -245,7 +245,7 @@ class DataDownloader:
                 "Quantity"
             ]
         elif market == Market.USD_M_FUTURES:
-            columns = [
+            cols = [
                 "TimestampOfReceive",
                 "Stream",
                 "EventType",
@@ -260,7 +260,7 @@ class DataDownloader:
                 "Quantity"
             ]
         elif market == Market.COIN_M_FUTURES:
-            columns = [
+            cols = [
                 "TimestampOfReceive",
                 "Stream",
                 "EventType",
@@ -276,7 +276,7 @@ class DataDownloader:
                 "PSUnknownField"
             ]
 
-        return pd.DataFrame(data=records, columns=columns)
+        return pd.DataFrame(data=records, columns=cols)
 
     def _trade_stream_type_download_handler(self, list_of_files_to_be_downloaded: list[str], market: Market) -> pd.DataFrame:
         import pandas as pd

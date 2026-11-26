@@ -144,13 +144,13 @@ Check csvs with certificate:
 
 ```python
 from binance_data_processor import (
-    conduct_data_quality_analysis_on_whole_directory, 
+    conduct_data_quality_analysis_on_whole_directory,
     conduct_data_quality_analysis_on_specified_csv_list
 )
 
 if __name__ == '__main__':
     conduct_data_quality_analysis_on_specified_csv_list(
-        csv_paths=[
+        csv_dirs=[
             'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_spot_btcusdt_10-03-2025.csv',
             'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_usd_m_futures_btcusdt_10-03-2025.csv',
             'C:/Users/daniel/Documents/binance_archival_data/binance_depth_snapshot_coin_m_futures_btcusd_perp_10-03-2025.csv',

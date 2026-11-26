@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import os
 
-from binance_data_processor.core.logo import binance_archiver_logo
+from binance_data_processor.core.logo import logo1
 from binance_data_processor.enums.asset_params import AssetParams
 from binance_data_processor.enums.time_unit import TimeUnit
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
-from binance_data_processor.data_quality.data_quality_report import DataQualityReport
+from binance_data_processor.data_quality.quality_report import QualityReport
 from binance_data_processor.data_quality.individual_column_checker import IndividualColumnChecker as icc
 from binance_data_processor.utils.file_utils import decode_ap_from_single_root_csv_name
 from binance_data_processor.utils.file_utils import get_base_of_root_csv_filename
@@ -16,25 +16,21 @@ from binance_data_processor.utils.file_utils import get_csv_len
 from binance_data_processor.utils.time_utils import get_yesterday_date
 
 
-def get_df_quality_report(df: pd.DataFrame, asset_parameters: AssetParams) -> DataQualityReport:
+def get_df_quality_report(df: pd.DataFrame, ap: AssetParams) -> QualityReport:
     dqc = DataQualityChecker()
-    return dqc.calc_quality_report(df, asset_parameters)
+    return dqc.calc_quality_report(df, ap)
 
-def conduct_data_quality_analysis_on_whole_directory(csv_nest_directory: str) -> None:
+def conduct_data_quality_analysis_on_whole_directory(csv_nest_dir: str) -> None:
     dqc = DataQualityChecker()
-    dqc.conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_directory)
+    dqc.conduct_whole_directory_of_csvs_data_quality_analysis(csv_nest_dir)
 
-def conduct_data_quality_analysis_on_specified_csv_list(csv_paths: list[str]) -> None:
+def conduct_data_quality_analysis_on_specified_csv_list(csv_dirs: list[str]) -> None:
     dqc = DataQualityChecker()
-    dqc.conduct_csv_files_data_quality_analysis(csv_paths)
+    dqc.conduct_csv_files_data_quality_analysis(csv_dirs)
 
-def get_merged_csv_quality_reports(csvs_nest_catalog: str, df: pd.DataFrame, ap_list: list[AssetParams]) -> list[DataQualityReport]:
+def get_merged_csv_quality_reports(csvs_nest_dir: str, df: pd.DataFrame, ap_list: list[AssetParams]) -> list[QualityReport]:
     dqc = DataQualityChecker()
-    return dqc.get_main_merged_csv_report(
-        df=df,
-        asset_parameters_list=ap_list,
-        csvs_nest_catalog=csvs_nest_catalog
-    )
+    return dqc.get_main_merged_csv_report(df=df, ap_list=ap_list, csvs_nest_dir=csvs_nest_dir)
 
 
 class DataQualityChecker:
@@ -45,17 +41,17 @@ class DataQualityChecker:
 
     @staticmethod
     def print_logo():
-        print(f'\033[35m{binance_archiver_logo}')
+        print(f'\033[35m{logo1}')
         print(f'\033[36m')
 
-    def calc_quality_report(self, df: pd.DataFrame, asset_parameters: AssetParams) -> DataQualityReport:
+    def calc_quality_report(self, df: pd.DataFrame, ap: AssetParams) -> QualityReport:
         stream_type_handlers = {
             StreamType.DIFFERENCE_DEPTH_STREAM: self._get_difference_depth_report,
             StreamType.TRADE_STREAM: self._get_trade_report,
             StreamType.DEPTH_SNAPSHOT: self._get_depth_snapshot_report
         }
-        handler = stream_type_handlers.get(asset_parameters.stream_type)
-        return handler(df.astype({'Price': float, 'Quantity': float}), asset_parameters)
+        handler = stream_type_handlers.get(ap.stream_type)
+        return handler(df.astype({'Price': float, 'Quantity': float}), ap)
 
     def conduct_whole_directory_of_csvs_data_quality_analysis(self, csv_nest_directory: str) -> None:
         self.print_logo()
@@ -76,9 +72,9 @@ class DataQualityChecker:
             for csv_path in csv_paths:
                 try:
                     csv_name = os.path.basename(csv_path)
-                    asset_parameters = decode_ap_from_single_root_csv_name(csv_name)
+                    ap = decode_ap_from_single_root_csv_name(csv_name)
                     df = pd.read_csv(csv_path, comment='#')
-                    df_quality_report = self.calc_quality_report(df, asset_parameters)
+                    df_quality_report = self.calc_quality_report(df, ap)
                     file_name = os.path.basename(csv_path)
                     df_quality_report.file_name = file_name
                     data_quality_report_list.append(df_quality_report)
@@ -105,18 +101,17 @@ class DataQualityChecker:
             except Exception as e:
                 print(e)
 
-    def get_main_merged_csv_report(self, df: pd.DataFrame, asset_parameters_list: list[AssetParams], csvs_nest_catalog: str) -> list[DataQualityReport]:
-        isolated_reports = self._get_isolated_reports(df, asset_parameters_list)
-
-        total_len_of_isolated_dfs = self._calc_total_len_of_isolated_dfs(asset_parameters_list, csvs_nest_catalog)
+    def get_main_merged_csv_report(self, df: pd.DataFrame, ap_list: list[AssetParams], csvs_nest_dir: str) -> list[QualityReport]:
+        isolated_reports = self._get_isolated_reports(df, ap_list)
+        total_len_of_isolated_dfs = self._calc_total_len_of_isolated_dfs(ap_list, csvs_nest_dir)
 
         print(f'x: {total_len_of_isolated_dfs}')
         print(f'df.shape[0]: {df.shape[0]}')
 
-        report = DataQualityReport(asset_parameters_list, df.shape)
+        report = QualityReport(ap_list, df.shape)
         is_series_non_decreasing = icc.is_series_non_decreasing(df[df['StreamType'] != 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceiveUS'])
-        is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df[df['StreamType'] != 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'], date=asset_parameters_list[0].date, epoch_time_unit=TimeUnit.US)
+        is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df[df['StreamType'] != 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'], date=ap_list[0].date, epoch_time_unit=TimeUnit.US)
         is_merged_df_len_equal_to_root_csvs_combined = total_len_of_isolated_dfs == df.shape[0]
         is_islast_column_valid_for_merged = icc.is_islast_column_valid_for_merged(df)
         is_snapshot_injection_valid = icc.is_snapshot_injection_valid_for_merged(df)
@@ -128,11 +123,11 @@ class DataQualityChecker:
         report.add("GENERAL", "is_islast_column_valid_for_merged", is_islast_column_valid_for_merged)
         report.add("GENERAL", "is_snapshot_injection_valid", is_snapshot_injection_valid)
         report.add("GENERAL", "is_whole_set_of_merged_csvs_data_quality_report_positive", is_whole_set_of_merged_csvs_data_quality_report_positive)
-        print(f'DataQualityReport: {report.get_status()}')
+        print(f'QualityReport: {report.get_status()}')
 
         return [report] + isolated_reports
 
-    def _get_isolated_reports(self, df: pd.DataFrame, asset_parameters_list: list[AssetParams]) -> list[DataQualityReport]:
+    def _get_isolated_reports(self, df: pd.DataFrame, asset_parameters_list: list[AssetParams]) -> list[QualityReport]:
         reports = []
         for ap in asset_parameters_list:
             _df = df[
@@ -145,27 +140,27 @@ class DataQualityChecker:
         return reports
 
     @staticmethod
-    def _get_difference_depth_report(df: pd.DataFrame, ap: AssetParams) -> DataQualityReport:
-        r = DataQualityReport(ap, df.shape)
+    def _get_difference_depth_report(df: pd.DataFrame, ap: AssetParams) -> QualityReport:
+        r = QualityReport(ap, df.shape)
 
         epoch_time_unit = TimeUnit.US if ap.market is Market.SPOT else TimeUnit.MS
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceive'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceive'])
         is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfReceive'], date=ap.date, epoch_time_unit=epoch_time_unit)
-        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
         r.add("TimestampOfReceive", "is_series_non_decreasing", is_series_non_decreasing)
         r.add("TimestampOfReceive", "is_series_epoch_valid", is_series_epoch_valid)
         r.add("TimestampOfReceive", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         r.add("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms)
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
-            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
             r.add("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms)
         if ap.market in [Market.SPOT, Market.USD_M_FUTURES]:
-            are_first_and_last_timestamps_within_2_seconds_from_the_borders = icc.are_first_and_last_timestamps_within_n_seconds_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=2, epoch_time_unit=epoch_time_unit)
+            are_first_and_last_timestamps_within_2_seconds_from_the_borders = icc.are_first_and_last_ts_within_n_s_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=2, epoch_time_unit=epoch_time_unit)
             r.add("TimestampOfReceive", "are_first_and_last_timestamps_within_2_seconds_from_the_borders", are_first_and_last_timestamps_within_2_seconds_from_the_borders)
         elif ap.market in [Market.COIN_M_FUTURES]:
-            are_first_and_last_timestamps_within_5_seconds_from_the_borders = icc.are_first_and_last_timestamps_within_n_seconds_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=5, epoch_time_unit=epoch_time_unit)
+            are_first_and_last_timestamps_within_5_seconds_from_the_borders = icc.are_first_and_last_ts_within_n_s_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=5, epoch_time_unit=epoch_time_unit)
             r.add("TimestampOfReceive", "are_first_and_last_timestamps_within_5_seconds_from_the_borders", are_first_and_last_timestamps_within_5_seconds_from_the_borders)
 
         is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Stream'], f"{ap.pairs[0]}@depth@100ms")
@@ -176,19 +171,19 @@ class DataQualityChecker:
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['EventTime'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['EventTime'])
-        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
         r.add("EventTime", "is_series_non_decreasing", is_series_non_decreasing)
         r.add("EventTime", "is_series_epoch_valid", is_series_epoch_valid)
         r.add("EventTime", "is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms)
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
-            is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
+            is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
             r.add("EventTime", "is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms", is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms)
 
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
             is_series_non_decreasing = icc.is_series_non_decreasing(df['TransactionTime'])
             is_series_epoch_valid = icc.is_series_epoch_valid(df['TransactionTime'])
-            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
-            is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
+            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
             r.add("TransactionTime", "is_series_non_decreasing", is_series_non_decreasing)
             r.add("TransactionTime", "is_series_epoch_valid", is_series_epoch_valid)
             r.add("TransactionTime", "is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms)
@@ -200,13 +195,13 @@ class DataQualityChecker:
         is_series_non_decreasing = icc.is_series_non_decreasing(df['FirstUpdateId'])
         r.add("FirstUpdateId", "is_series_non_decreasing", is_series_non_decreasing)
         if ap.market is Market.SPOT:
-            is_first_update_id_bigger_by_one_than_previous_entry_final_update_id = icc.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(df['FirstUpdateId'], df['FinalUpdateId'])
+            is_first_update_id_bigger_by_one_than_previous_entry_final_update_id = icc.is_first_update_id_gt_by_one_than_prev_entry_final_update_id(df['FirstUpdateId'], df['FinalUpdateId'])
             r.add("FirstUpdateId", "is_first_update_id_bigger_by_one_than_previous_entry_final_update_id", is_first_update_id_bigger_by_one_than_previous_entry_final_update_id)
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['FinalUpdateId'])
         r.add("FinalUpdateId", "is_series_non_decreasing", is_series_non_decreasing)
         if ap.market is Market.SPOT:
-            is_first_update_id_bigger_by_one_than_previous_entry_final_update_id = icc.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(df['FirstUpdateId'], df['FinalUpdateId'])
+            is_first_update_id_bigger_by_one_than_previous_entry_final_update_id = icc.is_first_update_id_gt_by_one_than_prev_entry_final_update_id(df['FirstUpdateId'], df['FinalUpdateId'])
             r.add("FinalUpdateId", "is_first_update_id_bigger_by_one_than_previous_entry_final_update_id", is_first_update_id_bigger_by_one_than_previous_entry_final_update_id)
 
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
@@ -218,8 +213,8 @@ class DataQualityChecker:
         is_series_of_zero_or_one_only = icc.is_series_of_zero_or_one_only(df['IsAsk'])
         r.add("IsAsk", "is_series_of_zero_or_one_only", is_series_of_zero_or_one_only)
 
-        is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Price'], float)
-        is_series_of_positive_values = icc.is_series_of_positive_values(df['Price'])
+        is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df['Price'], float)
+        is_series_of_positive_values = icc.is_series_of_positive_vals(df['Price'])
         is_series_range_reasonable_greater_than_or_equal_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(df['Price'], 0.0, 1e7)
         r.add("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         r.add("Price", "is_series_of_positive_values", is_series_of_positive_values)
@@ -229,8 +224,8 @@ class DataQualityChecker:
             is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['PSUnknownField'], ap.pairs[0].replace('_perp', '').upper())
             r.add("PSUnknownField", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
-        is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Quantity'], float)
-        is_series_of_non_negative_values = icc.is_series_of_non_negative_values(df['Quantity'])
+        is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df['Quantity'], float)
+        is_series_of_non_negative_values = icc.is_series_of_non_negative_vals(df['Quantity'])
         is_series_range_reasonable_greater_than_or_equal_0_less_than_1e9_values = icc.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(df['Quantity'], 0.0, 1e9)
         r.add("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         r.add("Quantity", "is_series_of_non_negative_values", is_series_of_non_negative_values)
@@ -239,40 +234,42 @@ class DataQualityChecker:
         return r
 
     @staticmethod
-    def _get_depth_snapshot_report(df: pd.DataFrame, ap: AssetParams) -> DataQualityReport:
-        r = DataQualityReport(ap, df.shape)
+    def _get_depth_snapshot_report(df: pd.DataFrame, ap: AssetParams) -> QualityReport:
+        r = QualityReport(ap, df.shape)
 
         epoch_time_unit = TimeUnit.MS
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceive'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceive'])
         is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfReceive'], date=ap.date, epoch_time_unit=epoch_time_unit)
-        is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['TimestampOfReceive'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-        is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms =  icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TimestampOfRequest'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_ts_within_n_s_from_the_utc_date_start(df['TimestampOfReceive'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms =  icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TimestampOfRequest'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
         r.add("TimestampOfReceive", "is_series_non_decreasing", is_series_non_decreasing)
         r.add("TimestampOfReceive", "is_series_epoch_valid", is_series_epoch_valid)
         r.add("TimestampOfReceive", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         r.add("TimestampOfReceive", "is_first_timestamp_within_60_s_from_the_utc_date_start", is_first_timestamp_within_60_s_from_the_utc_date_start)
         r.add("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms)
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
-            is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['MessageOutputTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
-            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_than_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['MessageOutputTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_than_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
             r.add("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms)
             r.add("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_than_by_5000_ms", is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_than_by_5000_ms)
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfRequest'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfRequest'])
         is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfRequest'], date=ap.date, epoch_time_unit=epoch_time_unit)
-        is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['TimestampOfRequest'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-        is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms =  icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TimestampOfRequest'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_ts_within_n_s_from_the_utc_date_start(df['TimestampOfRequest'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms =  icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TimestampOfRequest'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
         r.add("TimestampOfRequest", "is_series_non_decreasing", is_series_non_decreasing)
         r.add("TimestampOfRequest", "is_series_epoch_valid", is_series_epoch_valid)
         r.add("TimestampOfRequest", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         r.add("TimestampOfRequest", "is_first_timestamp_within_60_s_from_the_utc_date_start", is_first_timestamp_within_60_s_from_the_utc_date_start)
         r.add("TimestampOfRequest", "is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_timestamp_of_request_by_1_ms_and_not_greater_by_5000_ms)
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
-            is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column=df['MessageOutputTime'], event_time_column=df['TimestampOfRequest'], x_ms=-3000, y_ms=5000, epoch_time_unit=epoch_time_unit)
-            is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column=df['TransactionTime'], event_time_column=df['TimestampOfRequest'], x_ms=-5000, y_ms=3000, epoch_time_unit=epoch_time_unit)
+            is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+                timestamp_of_receive_col=df['MessageOutputTime'], event_time_col=df['TimestampOfRequest'], x_ms=-3000, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+                timestamp_of_receive_col=df['TransactionTime'], event_time_col=df['TimestampOfRequest'], x_ms=-5000, y_ms=3000, epoch_time_unit=epoch_time_unit)
             r.add("TimestampOfRequest", "is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms", is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms)
             r.add("TimestampOfRequest", "is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms", is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms)
 
@@ -280,10 +277,11 @@ class DataQualityChecker:
             is_series_non_decreasing = icc.is_series_non_decreasing(df['MessageOutputTime'])
             is_series_epoch_valid = icc.is_series_epoch_valid(df['MessageOutputTime'])
             is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['MessageOutputTime'], date=ap.date, epoch_time_unit=epoch_time_unit)
-            is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['MessageOutputTime'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-            is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['MessageOutputTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
-            is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column=df['MessageOutputTime'], event_time_column=df['TimestampOfRequest'], x_ms=-3000, y_ms=5000, epoch_time_unit=epoch_time_unit)
-            is_message_output_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['MessageOutputTime'], df['TransactionTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_ts_within_n_s_from_the_utc_date_start(df['MessageOutputTime'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
+            is_timestamp_of_receive_not_less_than_message_output_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['MessageOutputTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_message_output_time_not_less_than_timestamp_of_request_by_3000_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+                timestamp_of_receive_col=df['MessageOutputTime'], event_time_col=df['TimestampOfRequest'], x_ms=-3000, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_message_output_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['MessageOutputTime'], df['TransactionTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
             r.add("MessageOutputTime", "is_series_non_decreasing", is_series_non_decreasing)
             r.add("MessageOutputTime", "is_series_epoch_valid", is_series_epoch_valid)
             r.add("MessageOutputTime", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
@@ -296,10 +294,11 @@ class DataQualityChecker:
             is_series_non_decreasing = icc.is_series_non_decreasing(df['TransactionTime'])
             is_series_epoch_valid = icc.is_series_epoch_valid(df['TransactionTime'])
             is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TransactionTime'], date=ap.date, epoch_time_unit=epoch_time_unit)
-            is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_timestamp_within_n_seconds_from_the_utc_date_start(df['TransactionTime'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
-            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_than_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
-            is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive_column=df['TransactionTime'], event_time_column=df['TimestampOfRequest'], x_ms=-5000, y_ms=3000, epoch_time_unit=epoch_time_unit)
-            is_message_output_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['MessageOutputTime'], df['TransactionTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_first_timestamp_within_60_s_from_the_utc_date_start = icc.is_first_ts_within_n_s_from_the_utc_date_start(df['TransactionTime'], date=ap.date, n_seconds=60, epoch_time_unit=epoch_time_unit)
+            is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_than_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+            is_transaction_time_not_less_than_timestamp_of_request_by_5000_ms_and_not_greater_by_3000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+                timestamp_of_receive_col=df['TransactionTime'], event_time_col=df['TimestampOfRequest'], x_ms=-5000, y_ms=3000, epoch_time_unit=epoch_time_unit)
+            is_message_output_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['MessageOutputTime'], df['TransactionTime'], x_ms=-1, y_ms=5000, epoch_time_unit=epoch_time_unit)
             r.add("TransactionTime", "is_series_non_decreasing", is_series_non_decreasing)
             r.add("TransactionTime", "is_series_epoch_valid", is_series_epoch_valid)
             r.add("TransactionTime", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
@@ -322,16 +321,16 @@ class DataQualityChecker:
         is_series_of_zero_or_one_only = icc.is_series_of_zero_or_one_only(df['IsAsk'])
         r.add("IsAsk", "is_series_of_zero_or_one_only", is_series_of_zero_or_one_only)
 
-        is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Price'], float)
-        is_series_of_positive_values = icc.is_series_of_positive_values(df['Price'])
-        is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e7)
+        is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df['Price'], float)
+        is_series_of_positive_values = icc.is_series_of_positive_vals(df['Price'])
+        is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_gt_min_lt_max_vals(df['Price'], 0.0, 1e7)
         r.add("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         r.add("Price", "is_series_of_positive_values", is_series_of_positive_values)
         r.add("Price", "is_series_range_reasonable_greater_than_0_less_than_1e7_values", is_series_range_reasonable_greater_than_0_less_than_1e7_values)
 
-        is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Quantity'], float)
-        is_series_of_positive_values = icc.is_series_of_positive_values(df['Quantity'])
-        is_series_range_reasonable_greater_than_0_less_than_1e9_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Quantity'], 0.0, 1e9)
+        is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df['Quantity'], float)
+        is_series_of_positive_values = icc.is_series_of_positive_vals(df['Quantity'])
+        is_series_range_reasonable_greater_than_0_less_than_1e9_values = icc.is_series_range_reasonable_gt_min_lt_max_vals(df['Quantity'], 0.0, 1e9)
         r.add("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
         r.add("Quantity", "is_series_of_positive_values", is_series_of_positive_values)
         r.add("Quantity", "is_series_range_reasonable_greater_than_0_less_than_1e9_values", is_series_range_reasonable_greater_than_0_less_than_1e9_values)
@@ -346,27 +345,27 @@ class DataQualityChecker:
         return r
 
     @staticmethod
-    def _get_trade_report(df: pd.DataFrame, ap: AssetParams) -> DataQualityReport:
+    def _get_trade_report(df: pd.DataFrame, ap: AssetParams) -> QualityReport:
         import numpy as np
-        r = DataQualityReport(ap, df.shape)
+        r = QualityReport(ap, df.shape)
 
         epoch_time_unit = TimeUnit.US if ap.market is Market.SPOT else TimeUnit.MS
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['TimestampOfReceive'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TimestampOfReceive'])
         is_series_epoch_within_utc_z_day_range = icc.is_series_epoch_within_utc_z_day_range(df['TimestampOfReceive'], date=ap.date, epoch_time_unit=epoch_time_unit)
-        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
-        is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
         r.add("TimestampOfReceive", "is_series_non_decreasing", is_series_non_decreasing)
         r.add("TimestampOfReceive", "is_series_epoch_valid", is_series_epoch_valid)
         r.add("TimestampOfReceive", "is_series_epoch_within_utc_z_day_range", is_series_epoch_within_utc_z_day_range)
         r.add("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms)
         r.add("TimestampOfReceive", "is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms)
         if ap.market in [Market.SPOT, Market.USD_M_FUTURES]:
-            are_first_and_last_timestamps_within_10_seconds_from_the_borders = icc.are_first_and_last_timestamps_within_n_seconds_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=10, epoch_time_unit=epoch_time_unit)
+            are_first_and_last_timestamps_within_10_seconds_from_the_borders = icc.are_first_and_last_ts_within_n_s_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=10, epoch_time_unit=epoch_time_unit)
             r.add("TimestampOfReceive", "are_first_and_last_timestamps_within_10_seconds_from_the_borders", are_first_and_last_timestamps_within_10_seconds_from_the_borders)
         elif ap.market in [Market.COIN_M_FUTURES]:
-            are_first_and_last_timestamps_within_5_minutes_from_the_borders = icc.are_first_and_last_timestamps_within_n_seconds_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=5 * 60, epoch_time_unit=epoch_time_unit)
+            are_first_and_last_timestamps_within_5_minutes_from_the_borders = icc.are_first_and_last_ts_within_n_s_from_the_borders(df['TimestampOfReceive'], date=ap.date, n_seconds=5 * 60, epoch_time_unit=epoch_time_unit)
             r.add("TimestampOfReceive", "are_first_and_last_timestamps_within_5_minutes_from_the_borders", are_first_and_last_timestamps_within_5_minutes_from_the_borders)
 
         is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Stream'], f"{ap.pairs[0]}@trade")
@@ -377,8 +376,8 @@ class DataQualityChecker:
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['EventTime'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['EventTime'])
-        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
-        is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['EventTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
         r.add("EventTime", "is_series_non_decreasing", is_series_non_decreasing)
         r.add("EventTime", "is_series_epoch_valid", is_series_epoch_valid)
         r.add("EventTime", "is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_event_time_by_5_ms_and_not_greater_by_5000_ms)
@@ -386,8 +385,8 @@ class DataQualityChecker:
 
         is_series_non_decreasing = icc.is_series_non_decreasing(df['TransactionTime'])
         is_series_epoch_valid = icc.is_series_epoch_valid(df['TransactionTime'])
-        is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
-        is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
+        is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['TimestampOfReceive'], df['TransactionTime'], x_ms=-5, y_ms=5000, epoch_time_unit=epoch_time_unit)
+        is_event_time_not_less_than_transaction_time_by_1_ms_and_not_greater_by_3000_ms = icc.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(df['EventTime'], df['TransactionTime'], x_ms=-1, y_ms=3000, epoch_time_unit=epoch_time_unit)
         r.add("TransactionTime", "is_series_non_decreasing", is_series_non_decreasing)
         r.add("TransactionTime", "is_series_epoch_valid", is_series_epoch_valid)
         r.add("TransactionTime", "is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms", is_timestamp_of_receive_not_less_than_transaction_time_by_5_ms_and_not_greater_by_5000_ms)
@@ -396,7 +395,7 @@ class DataQualityChecker:
         is_series_of_only_one_unique_expected_value = icc.is_series_of_only_one_unique_expected_value(df['Symbol'], ap.pairs[0].upper())
         r.add("Symbol", "is_series_of_only_one_unique_expected_value", is_series_of_only_one_unique_expected_value)
 
-        is_each_series_value_bigger_by_one_than_previous = icc.is_each_series_value_bigger_by_one_than_previous(df['TradeId'])
+        is_each_series_value_bigger_by_one_than_previous = icc.is_each_series_val_gt_by_one_than_prev(df['TradeId'])
         r.add("TradeId", "is_each_series_value_bigger_by_one_than_previous", is_each_series_value_bigger_by_one_than_previous)
 
         """
@@ -409,18 +408,18 @@ class DataQualityChecker:
         """
 
         if ap.market is Market.SPOT:
-            is_series_of_positive_values = icc.is_series_of_positive_values(df['Price'])
-            is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Price'], float)
-            is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Price'], 0.0, 1e7)
+            is_series_of_positive_values = icc.is_series_of_positive_vals(df['Price'])
+            is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df['Price'], float)
+            is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_gt_min_lt_max_vals(df['Price'], 0.0, 1e7)
             is_there_no_abnormal_tick_higher_than_2_percent = icc.is_there_no_abnormal_tick_higher_than_2_percent(df['Price'])
             r.add("Price", "is_series_of_positive_values", is_series_of_positive_values)
             r.add("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
             r.add("Price", "is_series_range_reasonable_greater_than_0_less_than_1e7_values", is_series_range_reasonable_greater_than_0_less_than_1e7_values)
             r.add("Price", "is_there_no_abnormal_tick_higher_than_2_percent", is_there_no_abnormal_tick_higher_than_2_percent)
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
-            is_series_of_positive_values = icc.is_series_of_positive_values(df[df['XUnknownParameter'] == 'MARKET']['Price'])
-            is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df[df['XUnknownParameter'] == 'MARKET']['Price'], float)
-            is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df[df['XUnknownParameter'] == 'MARKET']['Price'], 0.0, 1e7)
+            is_series_of_positive_values = icc.is_series_of_positive_vals(df[df['XUnknownParameter'] == 'MARKET']['Price'])
+            is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df[df['XUnknownParameter'] == 'MARKET']['Price'], float)
+            is_series_range_reasonable_greater_than_0_less_than_1e7_values = icc.is_series_range_reasonable_gt_min_lt_max_vals(df[df['XUnknownParameter'] == 'MARKET']['Price'], 0.0, 1e7)
             is_there_no_abnormal_tick_higher_than_2_percent = icc.is_there_no_abnormal_tick_higher_than_2_percent(df[df['XUnknownParameter'] == 'MARKET']['Price'])
             r.add("Price", "is_series_of_positive_values", is_series_of_positive_values)
             r.add("Price", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
@@ -428,16 +427,16 @@ class DataQualityChecker:
             r.add("Price", "is_there_no_abnormal_tick_higher_than_2_percent", is_there_no_abnormal_tick_higher_than_2_percent)
 
         if ap.market is Market.SPOT:
-            is_series_of_positive_values = icc.is_series_of_positive_values(df['Quantity'])
-            is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df['Quantity'], float)
-            is_series_range_reasonable_greater_than_0_less_than_1e9_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df['Quantity'], 0.0, 1e9)
+            is_series_of_positive_values = icc.is_series_of_positive_vals(df['Quantity'])
+            is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df['Quantity'], float)
+            is_series_range_reasonable_greater_than_0_less_than_1e9_values = icc.is_series_range_reasonable_gt_min_lt_max_vals(df['Quantity'], 0.0, 1e9)
             r.add("Quantity", "is_series_of_positive_values", is_series_of_positive_values)
             r.add("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
             r.add("Quantity", "is_series_range_reasonable_greater_than_0_less_than_1e9_values", is_series_range_reasonable_greater_than_0_less_than_1e9_values)
         if ap.market in [Market.USD_M_FUTURES, Market.COIN_M_FUTURES]:
-            is_series_of_positive_values = icc.is_series_of_positive_values(df[df['XUnknownParameter'] == 'MARKET']['Quantity'])
-            is_series_of_expected_data_type_float = icc.is_series_of_expected_data_type(df[df['XUnknownParameter'] == 'MARKET']['Quantity'], float)
-            is_series_range_reasonable_greater_than_0_less_than_1e9_values = icc.is_series_range_reasonable_greater_than_min_less_than_max_values(df[df['XUnknownParameter'] == 'MARKET']['Quantity'], 0.0, 1e9)
+            is_series_of_positive_values = icc.is_series_of_positive_vals(df[df['XUnknownParameter'] == 'MARKET']['Quantity'])
+            is_series_of_expected_data_type_float = icc.is_series_of_expected_dtype(df[df['XUnknownParameter'] == 'MARKET']['Quantity'], float)
+            is_series_range_reasonable_greater_than_0_less_than_1e9_values = icc.is_series_range_reasonable_gt_min_lt_max_vals(df[df['XUnknownParameter'] == 'MARKET']['Quantity'], 0.0, 1e9)
             r.add("Quantity", "is_series_of_positive_values", is_series_of_positive_values)
             r.add("Quantity", "is_series_of_expected_data_type_float", is_series_of_expected_data_type_float)
             r.add("Quantity", "is_series_range_reasonable_greater_than_0_less_than_1e9_values", is_series_range_reasonable_greater_than_0_less_than_1e9_values)
@@ -456,14 +455,14 @@ class DataQualityChecker:
         return r
 
     @staticmethod
-    def _calc_total_len_of_isolated_dfs(asset_parameters_list: list[AssetParams], csvs_nest_catalog: str) -> int:
+    def _calc_total_len_of_isolated_dfs(ap_list: list[AssetParams], csvs_nest_dir: str) -> int:
         import pandas as pd
         # import cpp_binance_orderbook
         # orderbook_session_simulator = cpp_binance_orderbook.OrderBookSessionSimulator()
 
         total_rows_of_root_csv_combined = total_rows_of_final_depth_snapshot = 0
-        for ap in asset_parameters_list:
-            source_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(ap)}.csv'
+        for ap in ap_list:
+            source_csv_path = f'{csvs_nest_dir}/{get_base_of_root_csv_filename(ap)}.csv'
 
             if ap.stream_type is StreamType.DEPTH_SNAPSHOT:
                 _df = pd.read_csv(source_csv_path, comment='#')
@@ -473,13 +472,13 @@ class DataQualityChecker:
                 total_rows_of_root_csv_combined += get_csv_len(source_csv_path)
 
             if ap.stream_type is StreamType.DIFFERENCE_DEPTH_STREAM:
-                asset_parameter_of_yesterday = AssetParams(
+                ap_of_yesterday = AssetParams(
                     market=ap.market,
                     stream_type=ap.stream_type,
                     pairs=ap.pairs,
                     date=get_yesterday_date(ap.date)
                 )
-                source_yesterday_difference_depth_csv_path = f'{csvs_nest_catalog}/{get_base_of_root_csv_filename(asset_parameter_of_yesterday)}.csv'
+                source_yesterday_difference_depth_csv_path = f'{csvs_nest_dir}/{get_base_of_root_csv_filename(ap_of_yesterday)}.csv'
                 # final_orderbook_snapshot = orderbook_session_simulator.compute_final_depth_snapshot(source_csv_path)
                 # total_rows_of_final_depth_snapshot += (len(final_orderbook_snapshot.bids()) + len(final_orderbook_snapshot.asks()))
                 df = pd.read_csv(source_yesterday_difference_depth_csv_path, comment='#')

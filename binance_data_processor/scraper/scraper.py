@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from binance_data_processor.core.logo import binance_archiver_logo
-from binance_data_processor.enums.data_quality_report_status_enum import DataQualityReportStatus
+from binance_data_processor.core.logo import logo1
+from binance_data_processor.enums.quality_report_status_enum import QualityStatus
 from binance_data_processor.scraper.data_downloader import DataDownloader
 from binance_data_processor.scraper.scraper_config import ScraperCfg
-from binance_data_processor.data_quality.data_quality_report import DataQualityReport
-from binance_data_processor.data_quality.data_quality_checker import get_df_quality_report
+from binance_data_processor.data_quality.quality_report import QualityReport
+from binance_data_processor.data_quality.quality_checker import get_df_quality_report
 from binance_data_processor.enums.asset_params import AssetParams
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.utils.file_utils import get_list_of_existing_root_csvs_asset_parameters
 from binance_data_processor.utils.file_utils import get_base_of_root_csv_filename
-from binance_data_processor.utils.file_utils import to_csv_w_data_quality_reports
+from binance_data_processor.utils.file_utils import to_csv_w_quality_reports
 
 
 __all__ = [
@@ -33,7 +33,7 @@ class DataScraper:
         self.data_downloader = DataDownloader()
 
     def run(self, cfg: ScraperCfg) -> None:
-        if cfg.verbose: print(f'\033[35m{binance_archiver_logo}')
+        print(f'\033[35m{logo1}\033[0m')
         self._main_loop(cfg)
 
     def _main_loop(self, cfg: ScraperCfg) -> None:
@@ -51,26 +51,26 @@ class DataScraper:
             df = self.data_downloader.download_as_df(ap)
             report = get_df_quality_report(df, ap)
             print(f'data report status: {report.get_status().value}')
-            if report.get_status() is DataQualityReportStatus.NEGATIVE:
+            if report.get_status() is QualityStatus.NEGATIVE:
                 print(f'failed tests: \n{report.get_fails()}\n')
 
             reports.append(report)
 
-            to_csv_w_data_quality_reports(
+            to_csv_w_quality_reports(
                 df=df,
-                data_quality_reports=report,
-                dump_catalog=cfg.dump_path,
+                quality_reports=report,
+                dump_dir=cfg.dump_path,
                 fname=get_base_of_root_csv_filename(ap)
             )
 
             del report, df
 
         if cfg.verbose:
-            DataScraper.show_data_quality_report_list_summary(reports)
+            DataScraper.show_quality_report_list_summary(reports)
 
     @staticmethod
     def _get_final_ap_list_to_be_downloaded(cfg: ScraperCfg) -> list[AssetParams]:
-        apl = [
+        ap_list = [
             AssetParams(
                 market=m,
                 stream_type=s,
@@ -84,8 +84,8 @@ class DataScraper:
         ]
         if cfg.skip_existing:
             existing = get_list_of_existing_root_csvs_asset_parameters(cfg.dump_path)
-            return [a for a in apl if a not in existing]
-        return apl
+            return [a for a in ap_list if a not in existing]
+        return ap_list
 
     @staticmethod
     def print_ap_list(ap_list: list[AssetParams]) -> None:
@@ -96,21 +96,16 @@ class DataScraper:
         col_widths = [max(len(str(item)) for item in col) for col in zip(*rows)]
 
         for pair, market, stream, date in rows:
-            print(
-                f"{pair:<{col_widths[0]}} "
-                f"{market:<{col_widths[1]}} "
-                f"{stream:<{col_widths[2]}} "
-                f"{date}"
-            )
+            print(f"{pair:<{col_widths[0]}} {market:<{col_widths[1]}} {stream:<{col_widths[2]}} {date}")
 
     @staticmethod
-    def show_data_quality_report_list_summary(data_quality_report_list: list[DataQualityReport]) -> None:
-        if len(data_quality_report_list) == 0:
+    def show_quality_report_list_summary(quality_report_list: list[QualityReport]) -> None:
+        if len(quality_report_list) == 0:
             return
 
         i = 1
-        for report in data_quality_report_list:
-            print(f'{i}. {report.asset_parameters}: {report.get_status()}')
+        for report in quality_report_list:
+            print(f'{i}. {report.ap}: {report.get_status()}')
             i += 1
 
         while True:
@@ -118,6 +113,6 @@ class DataScraper:
                 user_input = input('\n(n/exit): ').strip().lower()
                 if user_input == 'exit':
                     break
-                print(data_quality_report_list[int(user_input) - 1])
+                print(quality_report_list[int(user_input) - 1])
             except Exception as e:
                 print(e)

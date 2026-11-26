@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class DataQualityReportStatus(Enum):
+class QualityStatus(Enum):
     POSITIVE = 'positive'
     NEGATIVE = 'negative'
     ...

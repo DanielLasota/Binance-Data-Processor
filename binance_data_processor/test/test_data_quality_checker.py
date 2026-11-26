@@ -28,7 +28,7 @@ class TestIndividualColumnChecker:
             ]
         )
 
-        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=series, expected_value='btcusdt@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(s=series, expected_value='btcusdt@depth@100ms')
         assert result_of_check == False
 
     def test_given_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
@@ -45,7 +45,7 @@ class TestIndividualColumnChecker:
             ]
         )
 
-        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=series, expected_value='btcusdt@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(s=series, expected_value='btcusdt@depth@100ms')
         assert result_of_check == True
 
     def test_given_pandas_series_with_non_descending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_true_is_being_returned(self):
@@ -62,7 +62,7 @@ class TestIndividualColumnChecker:
             ]
         )
 
-        result_of_check = IndividualColumnChecker.is_series_non_decreasing(series=series)
+        result_of_check = IndividualColumnChecker.is_series_non_decreasing(s=series)
         assert result_of_check == True
 
     def test_given_pandas_series_with_non_ascending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_false_is_being_returned(self):
@@ -79,7 +79,7 @@ class TestIndividualColumnChecker:
             ]
         )
 
-        result_of_check = IndividualColumnChecker.is_series_non_decreasing(series=series)
+        result_of_check = IndividualColumnChecker.is_series_non_decreasing(s=series)
         assert result_of_check == False
 
     ##### is_whole_series_epoch_valid
@@ -134,30 +134,30 @@ class TestIndividualColumnChecker:
         event_time = pd.Series([1718196460_656, 1718196461_280, 1718196460_656])
         timestamp_of_receive = pd.Series([1718196460_660, 1718196461_290, 1718196460_660])
 
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == True
+        assert IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == True
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_positive_microseconds(self):
         event_time = pd.Series([1718196460_656_000, 1718196461_280_000, 1718196460_656_000])
         timestamp_of_receive = pd.Series([1718196460_660_000, 1718196461_290_000, 1718196460_660_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == True
+        assert IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == True
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_milliseconds(self):
         event_time              = pd.Series([1718196460_656, 1718196461_280])
         timestamp_of_receive    = pd.Series([1718196461_657, 1718196461_280])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == False
+        assert IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == False
 
         event_time              = pd.Series([1718196460_656, 1718196461_280])
         timestamp_of_receive    = pd.Series([1718196460_654, 1718196461_280])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == False
+        assert IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.MS) == False
 
     def test_is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms_negative_microseconds(self):
         event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
         timestamp_of_receive    = pd.Series([1718196461_656_001, 1718196461_280_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == False
+        assert IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == False
 
         event_time              = pd.Series([1718196460_656_000, 1718196461_280_000])
         timestamp_of_receive    = pd.Series([1718196460_654_999, 1718196461_280_000])
-        assert IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == False
+        assert IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(timestamp_of_receive, event_time, x_ms=-1, y_ms=1000, epoch_time_unit=TimeUnit.US) == False
 
     #### are_first_and_last_timestamps_within_5_seconds_from_the_borders
 
@@ -167,7 +167,7 @@ class TestIndividualColumnChecker:
             1718193600000,  # 12:00:00
             1718236740000  # 23:59:00
         ])
-        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS)
+        result = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS)
         assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in milliseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_positive_microseconds(self):
@@ -176,7 +176,7 @@ class TestIndividualColumnChecker:
             1718193600000_000,  # 12:00:00
             1718236740000_000  # 23:59:00
         ])
-        result = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US)
+        result = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US)
         assert result == True, "Expected first and last timestamps to be within 5 seconds from day borders in microseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_milliseconds(self):
@@ -196,9 +196,9 @@ class TestIndividualColumnChecker:
             1718236739000  # poza
         ])
 
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when first timestamp is too late in milliseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when last timestamp is too early in milliseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when both timestamps are out of range in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when first timestamp is too late in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when last timestamp is too early in milliseconds"
+        assert IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.MS) == False, "Expected failure when both timestamps are out of range in milliseconds"
 
     def test_are_first_and_last_timestamp_within_60_seconds_from_the_borders_negative_microseconds(self):
         series1 = pd.Series([
@@ -217,9 +217,9 @@ class TestIndividualColumnChecker:
             1718236739000_000  # poza
         ])
 
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when first timestamp is too late in microseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when last timestamp is too early in microseconds"
-        assert IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when both timestamps are out of range in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series1, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when first timestamp is too late in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series2, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when last timestamp is too early in microseconds"
+        assert IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(series3, date="12-06-2024", n_seconds=60, epoch_time_unit=TimeUnit.US) == False, "Expected failure when both timestamps are out of range in microseconds"
 
     #### is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value
 
@@ -249,7 +249,7 @@ class TestIndividualColumnChecker:
         """
         df = pd.read_csv(io.StringIO(data), skipinitialspace=True)
 
-        assert IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(
+        assert IndividualColumnChecker.is_first_update_id_gt_by_one_than_prev_entry_final_update_id(
             first_update_id=df["FirstUpdateId"],
             final_update_id=df["FinalUpdateId"]
         ) == True
@@ -280,7 +280,7 @@ class TestIndividualColumnChecker:
         """
         df = pd.read_csv(io.StringIO(data), skipinitialspace=True)
 
-        assert IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(
+        assert IndividualColumnChecker.is_first_update_id_gt_by_one_than_prev_entry_final_update_id(
             first_update_id=df["FirstUpdateId"],
             final_update_id=df["FinalUpdateId"]
         ) == False
@@ -403,55 +403,55 @@ class TestIndividualColumnChecker:
 
     def test_are_values_with_specified_type_positive(self):
         series = pd.Series([1.0, 2.5, 3.7])
-        assert IndividualColumnChecker.is_series_of_expected_data_type(series, float) == True
+        assert IndividualColumnChecker.is_series_of_expected_dtype(series, float) == True
 
         series = pd.Series([2, 1, 1, 5])
-        assert IndividualColumnChecker.is_series_of_expected_data_type(series, int) == True
+        assert IndividualColumnChecker.is_series_of_expected_dtype(series, int) == True
 
         series = pd.Series(["BTCUSDT", "BTCUSDT", "BTCUSDT", "BTCUSDT"])
-        assert IndividualColumnChecker.is_series_of_expected_data_type(series, str) == True
+        assert IndividualColumnChecker.is_series_of_expected_dtype(series, str) == True
 
     def test_are_values_with_specified_type_negative(self):
         series = pd.Series([1.0, "2.5", 3.7])
-        assert IndividualColumnChecker.is_series_of_expected_data_type(series, float) == False
+        assert IndividualColumnChecker.is_series_of_expected_dtype(series, float) == False
 
         series = pd.Series([2, 1, 1, True])
-        assert IndividualColumnChecker.is_series_of_expected_data_type(series, int) == False
+        assert IndividualColumnChecker.is_series_of_expected_dtype(series, int) == False
 
         series = pd.Series(["BTCUSDT", "BTCUSDT", "BTCUSDT", False, None])
-        assert IndividualColumnChecker.is_series_of_expected_data_type(series, str) == False
+        assert IndividualColumnChecker.is_series_of_expected_dtype(series, str) == False
 
     #### are_values_with_specified_type
 
     def test_are_values_positive_positive(self):
         series = pd.Series([1, 2, 3])
-        assert IndividualColumnChecker.is_series_of_positive_values(series) == True
+        assert IndividualColumnChecker.is_series_of_positive_vals(series) == True
 
     def test_are_values_positive_negative(self):
         series = pd.Series([1, 0, 3])
-        assert IndividualColumnChecker.is_series_of_positive_values(series) == False
+        assert IndividualColumnChecker.is_series_of_positive_vals(series) == False
 
     ##### is_series_range_reasonable_greater_than_min_less_than_max_values
 
     def test_range_strict_positive(self):
         series = pd.Series([1.5, 2.0, 2.5])
-        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == True
+        assert IndividualColumnChecker.is_series_range_reasonable_gt_min_lt_max_vals(series, 1.0, 3.0) == True
 
     def test_range_strict_negative_at_min(self):
         series = pd.Series([1.0, 1.5, 2.5])
-        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+        assert IndividualColumnChecker.is_series_range_reasonable_gt_min_lt_max_vals(series, 1.0, 3.0) == False
 
     def test_range_strict_negative_at_max(self):
         series = pd.Series([1.5, 2.5, 3.0])
-        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+        assert IndividualColumnChecker.is_series_range_reasonable_gt_min_lt_max_vals(series, 1.0, 3.0) == False
 
     def test_range_strict_negative_below_min(self):
         series = pd.Series([0.5, 2.0, 2.5])
-        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+        assert IndividualColumnChecker.is_series_range_reasonable_gt_min_lt_max_vals(series, 1.0, 3.0) == False
 
     def test_range_strict_negative_above_max(self):
         series = pd.Series([1.5, 2.5, 3.5])
-        assert IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series, 1.0, 3.0) == False
+        assert IndividualColumnChecker.is_series_range_reasonable_gt_min_lt_max_vals(series, 1.0, 3.0) == False
 
     #### is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values
 
@@ -501,11 +501,11 @@ class TestIndividualColumnChecker:
 
     def test_is_each_trade_id_bigger_by_one_than_previous_positive(self):
         series = pd.Series([1, 2, 3, 4])
-        assert IndividualColumnChecker.is_each_series_value_bigger_by_one_than_previous(series) == True
+        assert IndividualColumnChecker.is_each_series_val_gt_by_one_than_prev(series) == True
 
     def test_is_each_trade_id_bigger_by_one_than_previous_negative(self):
         series = pd.Series([1, 2, 4, 5])
-        assert IndividualColumnChecker.is_each_series_value_bigger_by_one_than_previous(series) == False
+        assert IndividualColumnChecker.is_each_series_val_gt_by_one_than_prev(series) == False
 
     #### is_each_snapshot_price_level_amount_accurate_to_market
 
@@ -850,7 +850,7 @@ class TestIndividualColumnChecker:
             1718236799999   # 12-06-2024 23:59:59.999 UTC
         ])
         result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=series,
+            s=series,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -862,13 +862,13 @@ class TestIndividualColumnChecker:
         series1 = pd.Series([1718236739998, 1718236799999])
         series2 = pd.Series([1718236740000, 1718236800000])
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=series1,
+            s=series1,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
         ) == False
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=series2,
+            s=series2,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -881,7 +881,7 @@ class TestIndividualColumnChecker:
             1718236799999999   # 12-06-2024 23:59:59.999999 UTC
         ])
         result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=series,
+            s=series,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -893,13 +893,13 @@ class TestIndividualColumnChecker:
         series1 = pd.Series([1718236739999998, 1718236799999999])
         series2 = pd.Series([1718236740000000, 1718236800000000])
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=series1,
+            s=series1,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
         ) == False
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=series2,
+            s=series2,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -910,8 +910,8 @@ class TestIndividualColumnChecker:
     def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_positive_milliseconds(self):
         # date = 12-06-2024; window dla n_seconds=60 to [1718236739999, 1718236799999]
         series = pd.Series([0, 1718236785000])  # ostatni timestamp 23:59:45 UTC
-        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=series,
+        result = IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=series,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -923,14 +923,14 @@ class TestIndividualColumnChecker:
         series1 = pd.Series([0, 1718236739998])  # 23:58:59.998 UTC → za wcześnie
         # powyżej końca dnia
         series2 = pd.Series([0, 1718236800000])  # 24:00:00.000 UTC → poza zakresem
-        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=series1,
+        assert IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=series1,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
         ) == False
-        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=series2,
+        assert IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=series2,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -939,8 +939,8 @@ class TestIndividualColumnChecker:
     def test_is_last_timestamp_within_n_seconds_from_the_utc_date_start_positive_microseconds(self):
         # date = 12-06-2024; window dla n_seconds=60 to [1718236739999999, 1718236799999999]
         series = pd.Series([0, 1718236785000000])  # ostatni timestamp 23:59:45.000000 UTC
-        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=series,
+        result = IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=series,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -952,14 +952,14 @@ class TestIndividualColumnChecker:
         series1 = pd.Series([0, 1718236739999998])  # 23:58:59.999998 UTC → za wcześnie
         # powyżej końca dnia
         series2 = pd.Series([0, 1718236800000000])  # 24:00:00.000000 UTC → poza zakresem
-        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=series1,
+        assert IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=series1,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
         ) == False
-        assert IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=series2,
+        assert IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=series2,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -973,8 +973,8 @@ class TestIndividualColumnChecker:
             1718150420000,  # 00:00:20 UTC – w oknie
             1718193600000   # dowolna dalsza wartość
         ])
-        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=series,
+        result = IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=series,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -986,14 +986,14 @@ class TestIndividualColumnChecker:
         series1 = pd.Series([1718150399999, 1718193600000])
         # powyżej górnej granicy
         series2 = pd.Series([1718150460001, 1718193600000])
-        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=series1,
+        assert IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=series1,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
         ) == False
-        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=series2,
+        assert IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=series2,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -1005,8 +1005,8 @@ class TestIndividualColumnChecker:
             1718150420000000,  # 00:00:20.000000 UTC – w oknie
             1718193600000000   # dowolna dalsza wartość
         ])
-        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=series,
+        result = IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=series,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -1018,14 +1018,14 @@ class TestIndividualColumnChecker:
         series1 = pd.Series([1718150399999000, 1718193600000000])
         # powyżej górnej granicy
         series2 = pd.Series([1718150460000001, 1718193600000000])
-        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=series1,
+        assert IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=series1,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
         ) == False
-        assert IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=series2,
+        assert IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=series2,
             date="12-06-2024",
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -1035,76 +1035,76 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_given_more_than_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Stream'])
-        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=df['Stream'], expected_value='trxusd_perp@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(s=df['Stream'], expected_value='trxusd_perp@depth@100ms')
         assert result_of_check == True
 
     def test_given_one_unique_value_in_pandas_series_when_check_if_is_whole_series_made_of_only_one_expected_value_check_then_false_is_being_returned(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
 
-        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(series=df['Symbol'], expected_value='btcusdt@depth@100ms')
+        result_of_check = IndividualColumnChecker.is_series_of_only_one_unique_expected_value(s=df['Symbol'], expected_value='btcusdt@depth@100ms')
         assert result_of_check == False
 
     def test_given_pandas_series_with_non_descending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_true_is_being_returned(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
 
-        result_of_check = IndividualColumnChecker.is_series_non_decreasing(series=df['EventTime'])
+        result_of_check = IndividualColumnChecker.is_series_non_decreasing(s=df['EventTime'])
         assert result_of_check == True
 
     def test_given_pandas_series_with_non_ascending_values_when_is_each_series_entry_greater_or_equal_to_previous_one_check_then_false_is_being_returned(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
-        result_of_check = IndividualColumnChecker.is_series_non_decreasing(series=df['EventTime'])
+        result_of_check = IndividualColumnChecker.is_series_non_decreasing(s=df['EventTime'])
         assert result_of_check == False
 
 ##### is_whole_series_epoch_valid
 
     def test_is_whole_series_epoch_milliseconds_valid_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=df['EventTime'])
+        result_of_check = IndividualColumnChecker.is_series_epoch_valid(s=df['EventTime'])
         assert result_of_check == True
 
     def test_is_whole_series_epoch_microseconds_valid_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime'])
         series_us = df['EventTime']
-        result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=series_us)
+        result_of_check = IndividualColumnChecker.is_series_epoch_valid(s=series_us)
         assert result_of_check == True
 
     def test_is_whole_series_epoch_milliseconds_valid_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TransactionTime'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=df['TransactionTime'])
+        result_of_check = IndividualColumnChecker.is_series_epoch_valid(s=df['TransactionTime'])
         assert result_of_check == False
 
     def test_is_whole_series_epoch_microseconds_valid_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_valid(series=df['EventTime'])
+        result_of_check = IndividualColumnChecker.is_series_epoch_valid(s=df['EventTime'])
         assert result_of_check == False
 
     def test_are_all_within_utc_z_day_range_milliseconds_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(s=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_milliseconds_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(s=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.MS)
         assert result_of_check == False
 
     def test_are_all_within_utc_z_day_range_microseconds_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(s=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
         assert result_of_check == True
 
     def test_are_all_within_utc_z_day_range_microseconds_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(series=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
+        result_of_check = IndividualColumnChecker.is_series_epoch_within_utc_z_day_range(s=df['TimestampOfReceive'], date='04-03-2025', epoch_time_unit=TimeUnit.US)
         assert result_of_check == False
 
     ##### is_timestamp_of_column_a_no_greater_than_column_b_by_one_s_and_no_less_by_1_ms
 
     def test_are_event_times_close_to_receive_times_positive_milliseconds(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
-            timestamp_of_receive_column=df['TimestampOfReceive'],
-            event_time_column=df['EventTime'],
+        result_of_check = IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+            timestamp_of_receive_col=df['TimestampOfReceive'],
+            event_time_col=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
             epoch_time_unit=TimeUnit.MS
@@ -1115,9 +1115,9 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     def test_are_event_times_close_to_receive_times_positive_microseconds(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
 
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
-            timestamp_of_receive_column=df['TimestampOfReceive'],
-            event_time_column=df['EventTime'],
+        result_of_check = IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+            timestamp_of_receive_col=df['TimestampOfReceive'],
+            event_time_col=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
             epoch_time_unit=TimeUnit.US
@@ -1127,9 +1127,9 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_event_times_close_to_receive_times_negative_milliseconds(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
-            timestamp_of_receive_column=df['TimestampOfReceive'],
-            event_time_column=df['EventTime'],
+        result_of_check = IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+            timestamp_of_receive_col=df['TimestampOfReceive'],
+            event_time_col=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
             epoch_time_unit=TimeUnit.MS
@@ -1139,9 +1139,9 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_event_times_close_to_receive_times_negative_microseconds(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['EventTime', 'TimestampOfReceive'])
-        result_of_check = IndividualColumnChecker.is_timestamp_of_column_a_not_less_than_column_b_by_x_ms_and_not_greater_by_y_ms(
-            timestamp_of_receive_column=df['TimestampOfReceive'],
-            event_time_column=df['EventTime'],
+        result_of_check = IndividualColumnChecker.is_ts_of_col_a_nl_than_col_b_by_x_ms_and_not_gt_by_y_ms(
+            timestamp_of_receive_col=df['TimestampOfReceive'],
+            event_time_col=df['EventTime'],
             x_ms=-1,
             y_ms=1000,
             epoch_time_unit=TimeUnit.US
@@ -1156,8 +1156,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
-            series=df['TimestampOfReceive'],
+        result_of_check = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(
+            s=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS,
@@ -1169,8 +1169,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
-            series=df['TimestampOfReceive'],
+        result_of_check = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(
+            s=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.US,
@@ -1182,8 +1182,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
-            series=df['TimestampOfReceive'],
+        result_of_check = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(
+            s=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS,
@@ -1194,8 +1194,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             TEST_CSVS_DIR / 'test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
-            series=df['TimestampOfReceive'],
+        result_of_check = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(
+            s=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -1207,8 +1207,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
-            series=df['TimestampOfReceive'],
+        result_of_check = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(
+            s=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -1219,8 +1219,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             TEST_CSVS_DIR / 'test_negative_binance_trade_stream_spot_trxusdt_04-03-2025.csv',
             usecols=['TimestampOfReceive']
         )
-        result_of_check = IndividualColumnChecker.are_first_and_last_timestamps_within_n_seconds_from_the_borders(
-            series=df['TimestampOfReceive'],
+        result_of_check = IndividualColumnChecker.are_first_and_last_ts_within_n_s_from_the_borders(
+            s=df['TimestampOfReceive'],
             date='04-03-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.US
@@ -1232,7 +1232,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['FirstUpdateId', 'FinalUpdateId'])
-        result_of_check = IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(
+        result_of_check = IndividualColumnChecker.is_first_update_id_gt_by_one_than_prev_entry_final_update_id(
             first_update_id=df['FirstUpdateId'],
             final_update_id=df['FinalUpdateId']
         )
@@ -1240,7 +1240,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_first_update_id_column_value_bigger_by_one_than_previous_entry_final_update_id_column_value_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['FirstUpdateId', 'FinalUpdateId'])
-        result_of_check = IndividualColumnChecker.is_first_update_id_bigger_by_one_than_previous_entry_final_update_id(
+        result_of_check = IndividualColumnChecker.is_first_update_id_gt_by_one_than_prev_entry_final_update_id(
             first_update_id=df['FirstUpdateId'],
             final_update_id=df['FinalUpdateId']
         )
@@ -1276,44 +1276,46 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_are_values_with_specified_type_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
-        result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['EventTime'], expected_type=int)
+        result_of_check = IndividualColumnChecker.is_series_of_expected_dtype(s=df['EventTime'], expected_type=int)
         assert result_of_check == True
 
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
-        result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['Symbol'], expected_type=str)
+        result_of_check = IndividualColumnChecker.is_series_of_expected_dtype(s=df['Symbol'], expected_type=str)
         assert result_of_check == True
 
     def test_are_values_with_specified_type_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
-        result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['EventTime'], expected_type=float)
+        result_of_check = IndividualColumnChecker.is_series_of_expected_dtype(s=df['EventTime'], expected_type=float)
         assert result_of_check == False
 
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Symbol'])
-        result_of_check = IndividualColumnChecker.is_series_of_expected_data_type(series=df['Symbol'], expected_type=int)
+        result_of_check = IndividualColumnChecker.is_series_of_expected_dtype(s=df['Symbol'], expected_type=int)
         assert result_of_check == False
 
     #### are_values_positive
 
     def test_are_values_positive_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['EventTime'])
-        result_of_check = IndividualColumnChecker.is_series_of_positive_values(series=df['EventTime'])
+        result_of_check = IndividualColumnChecker.is_series_of_positive_vals(s=df['EventTime'])
         assert result_of_check == True
 
     def test_are_values_positive_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Quantity'])
-        result_of_check = IndividualColumnChecker.is_series_of_positive_values(series=df['Quantity'])
+        result_of_check = IndividualColumnChecker.is_series_of_positive_vals(s=df['Quantity'])
         assert result_of_check == False
 
     ##### is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values
 
     def test_are_values_within_reasonable_range_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_gt_min_lt_max_vals(
+            s=df['Price'], min_val=0, max_val=10)
         assert result_of_check == True
 
     def test_are_values_within_reasonable_range_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_gt_min_lt_max_vals(
+            s=df['Price'], min_val=0, max_val=10)
         assert result_of_check == False
 
     ##### is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values
@@ -1321,48 +1323,50 @@ class TestIndividualColumnCheckerQuantitativeEdition:
 
     def test_is_series_range_reasonable_greater_than_min_less_than_max_values_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(
+            s=df['Price'], min_value=0, max_value=10)
         assert result_of_check == True
 
     def test_is_series_range_reasonable_greater_than_min_less_than_max_values_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_spot_trxusdt_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(series=df['Price'], min_value=0, max_value=10)
+        result_of_check = IndividualColumnChecker.is_series_range_reasonable_greater_than_or_equal_min_less_than_max_values(
+            s=df['Price'], min_value=0, max_value=10)
         assert result_of_check == False
 
     #### is_there_no_abnormal_price_tick_higher_than_2_percent
 
     def test_is_there_no_abnormal_price_tick_higher_than_2_percent_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(series=df['Price'])
+        result_of_check = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(s=df['Price'])
         assert result_of_check == True
 
     def test_is_there_no_abnormal_price_tick_higher_than_2_percent_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['Price'])
-        result_of_check = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(series=df['Price'])
+        result_of_check = IndividualColumnChecker.is_there_no_abnormal_tick_higher_than_2_percent(s=df['Price'])
         assert result_of_check == False
 
     #### are_values_zero_or_one
 
     def test_are_values_zero_or_one_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['IsAsk'])
-        result_of_check = IndividualColumnChecker.is_series_of_zero_or_one_only(series=df['IsAsk'])
+        result_of_check = IndividualColumnChecker.is_series_of_zero_or_one_only(s=df['IsAsk'])
         assert result_of_check == True
 
     def test_are_values_zero_or_one_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_difference_depth_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['IsAsk'])
-        result_of_check = IndividualColumnChecker.is_series_of_zero_or_one_only(series=df['IsAsk'])
+        result_of_check = IndividualColumnChecker.is_series_of_zero_or_one_only(s=df['IsAsk'])
         assert result_of_check == False
 
     #### is_each_trade_id_bigger_by_one_than_previous
 
     def test_is_each_trade_id_bigger_by_one_than_previous_positive(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_positive_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TradeId'])
-        result_of_check = IndividualColumnChecker.is_each_series_value_bigger_by_one_than_previous(series=df['TradeId'])
+        result_of_check = IndividualColumnChecker.is_each_series_val_gt_by_one_than_prev(s=df['TradeId'])
         assert result_of_check == True
 
     def test_is_each_trade_id_bigger_by_one_than_previous_negative(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'test_negative_binance_trade_stream_coin_m_futures_trxusd_perp_04-03-2025.csv', usecols=['TradeId'])
-        result_of_check = IndividualColumnChecker.is_each_series_value_bigger_by_one_than_previous(series=df['TradeId'])
+        result_of_check = IndividualColumnChecker.is_each_series_val_gt_by_one_than_prev(s=df['TradeId'])
         assert result_of_check == False
 
     #### is_each_snapshot_price_level_amount_accurate_to_market
@@ -1552,7 +1556,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
     def test_is_series_within_60_seconds_before_utc_date_end_positive_microseconds(self):
         df = pd.read_csv(TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_positive.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
         result = IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
+            s=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
             date="13-04-2025",
             n_seconds=5,
             epoch_time_unit=TimeUnit.US
@@ -1563,7 +1567,7 @@ class TestIndividualColumnCheckerQuantitativeEdition:
         df = pd.read_csv(TEST_CSVS_DIR / 'merged_depth_snapshot_difference_depth_stream_trade_stream_usd_m_futures_trxusdt_14-04-2025_negative.csv', comment='#', usecols=['StreamType', 'TimestampOfReceiveUS'])
 
         assert IndividualColumnChecker.is_series_within_n_seconds_before_utc_date_end(
-            series=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
+            s=df[df['StreamType'] == 'FINAL_DEPTH_SNAPSHOT']['TimestampOfReceiveUS'],
             date="13-04-2025",
             n_seconds=5,
             epoch_time_unit=TimeUnit.US
@@ -1577,8 +1581,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['TimestampOfReceive'],
             comment='#'
         )
-        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=df['TimestampOfReceive'],
+        result = IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=3600*2,
             epoch_time_unit=TimeUnit.MS
@@ -1591,8 +1595,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['TimestampOfReceive'],
             comment='#'
         )
-        result = IndividualColumnChecker.is_last_timestamp_within_n_seconds_from_the_utc_date_end(
-            series=df['TimestampOfReceive'],
+        result = IndividualColumnChecker.is_last_ts_within_n_seconds_from_the_utc_date_end(
+            s=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -1607,8 +1611,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['TimestampOfReceive'],
             comment='#'
         )
-        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=df['TimestampOfReceive'],
+        result = IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=60,
             epoch_time_unit=TimeUnit.MS
@@ -1621,8 +1625,8 @@ class TestIndividualColumnCheckerQuantitativeEdition:
             usecols=['TimestampOfReceive'],
             comment='#'
         )
-        result = IndividualColumnChecker.is_first_timestamp_within_n_seconds_from_the_utc_date_start(
-            series=df['TimestampOfReceive'],
+        result = IndividualColumnChecker.is_first_ts_within_n_s_from_the_utc_date_start(
+            s=df['TimestampOfReceive'],
             date='14-04-2025',
             n_seconds=1,
             epoch_time_unit=TimeUnit.MS

@@ -29,8 +29,8 @@ if __name__ == '__main__':
         ],
         join_pairs_into_one_csv=False,
         join_markets_into_one_csv=False,
-        csvs_nest_catalog='D:/binance_archival_data/',
-        dump_path='D:/merged_csvs/',
+        csvs_nest_dir='D:/binance_archival_data/',
+        dump_dir='D:/merged_csvs/',
         skip_existing=True
     )
     make_merged_csvs(cfg)

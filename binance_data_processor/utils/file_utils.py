@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from binance_data_processor.data_quality.data_quality_report import DataQualityReport
+from binance_data_processor.data_quality.quality_report import QualityReport
 from binance_data_processor.enums.asset_params import AssetParams
 from binance_data_processor.enums.market_enum import Market
 from binance_data_processor.enums.stream_type_enum import StreamType
@@ -59,16 +59,16 @@ def get_base_of_merged_csv_filename(list_of_asset_parameters_for_single_csv: lis
         f"_{date}"
     )
 
-def to_csv_w_data_quality_reports(df: pd.DataFrame, data_quality_reports: DataQualityReport | list[DataQualityReport], dump_catalog: str, fname: str) -> None:
-    dump_path = Path(dump_catalog) / f"{fname}.csv"
+def to_csv_w_quality_reports(df: pd.DataFrame, quality_reports: QualityReport | list[QualityReport], dump_dir: str, fname: str) -> None:
+    dump_path = Path(dump_dir) / f"{fname}.csv"
     dump_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if isinstance(data_quality_reports, DataQualityReport):
-        data_quality_reports = [data_quality_reports]
+    if isinstance(quality_reports, QualityReport):
+        quality_reports = [quality_reports]
 
     with dump_path.open("w", newline="") as f:
-        for report in data_quality_reports:
-            f.write(str(report))
+        for r in quality_reports:
+            f.write(str(r))
             f.write("\n")
         df.to_csv(f, index=False, lineterminator="\n")
 
